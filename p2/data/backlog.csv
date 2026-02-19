@@ -1,0 +1,8 @@
+ID,Historia de Usuario,Prioridad,Estimacion,Sprint,Comentarios
+HU01,Carga basica de logs,Alta,3,1,Debe manejar data.csv y toy_data.csv
+HU02,Validadores de cabeceras,Alta,2,1,Metodo GET y estados 200/206
+HU03,Limpieza de registros NA,Media,3,2,Filtra 19 registros a 17 en toy
+HU04,Deteccion de Bots,Media,2,2,Filtra User-Agents tipo Crawler/Bot
+HU05,Calculo de estadisticas,Alta,5,3,Core de la aplicacion
+HU06,Ranking de escucha,Baja,3,4,Top K programas
+HU07,Algoritmo recomendador,Baja,8,4,Basado en podcast_topic y user_id
