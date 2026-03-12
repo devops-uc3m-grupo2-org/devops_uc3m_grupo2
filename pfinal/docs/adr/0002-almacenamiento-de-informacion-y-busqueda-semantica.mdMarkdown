@@ -1,0 +1,88 @@
+# ADR 002: Almacenamiento de la información y búsqueda semántica
+
+## Estado
+**Aceptado** (Pendiente de implementación)
+
+## Contexto
+
+Según el documento oficial del proyecto (páginas 2-5):
+
+- El sistema debe **monitorizar** canales RSS y detectar noticias que contengan los descriptores de una alerta (palabra clave + 3-10 sinónimos/relacionados generados por IA).
+- Se requiere **clasificación** automática de cada noticia en categorías IPTC Media Topics.
+- Se necesita visualizar **temas candentes** (nubes de palabras por categoría) y estadísticas globales.
+- Hay que almacenar la “información” (noticias: título, resumen, fecha, fuente, texto, categoría IPTC, etc.) de forma eficiente y searchable.
+- El proyecto exige **dos sistemas gestores de datos**:
+  - Uno para **entidades del sistema** (usuarios, roles, alertas, fuentes RSS).
+  - Otro para **almacenamiento de la información** (noticias).
+
+Ya tenemos en Fase 1 (ver código actual):
+- **PostgreSQL + SQLAlchemy** como base de datos relacional para entidades (usuarios, roles).
+- FastAPI como backend.
+- Uso intensivo de IA generativa obligatorio (recomendación de sinónimos, clasificación).
+
+Se evaluaron soluciones que permitan:
+- Búsqueda por palabras clave + **búsqueda semántica** (para sinónimos y relevancia).
+- Filtrado por metadatos (fecha, fuente, categoría IPTC, alerta).
+- Agregaciones rápidas para word clouds y estadísticas.
+- Escalabilidad razonable para un proyecto universitario (deadline 25 mayo 2026).
+
+## Decisión
+
+**Usaremos PostgreSQL + extensión pgvector** como única base de datos.
+
+- Tablas relacionales (ya existentes) para entidades del sistema.
+- Nueva tabla `news_items` (o extensión) + **pgvector** para almacenar embeddings de las noticias + búsqueda híbrida (full-text + vectorial).
+- No introduciremos segundo servicio (Qdrant, Elasticsearch, etc.).
+
+## Justificación
+
+| Criterio del proyecto                          | pgvector (Postgres) | Qdrant          | Elasticsearch   | Chroma          | Comentario clave del PDF |
+|------------------------------------------------|---------------------|-----------------|-----------------|-----------------|--------------------------|
+| Dos sistemas de datos requeridos               | Sí (un solo motor)  | Sí (2 motores)  | Sí (2 motores)  | Sí (2 motores)  | Simplifica ops |
+| Búsqueda semántica + sinónimos IA              | ★★★★★               | ★★★★★           | ★★★★            | ★★★★            | Suficiente para volumen universitario |
+| Full-text + hybrid search                      | ★★★★★ (con tsvector)| ★★★★★           | ★★★★★           | ★★★             | Alertas + word clouds |
+| Filtrado por metadatos (categoría, fecha…)     | ★★★★★               | ★★★★★           | ★★★★★           | ★★★★            | IPTC, fuentes |
+| Agregaciones / word clouds / estadísticas      | ★★★★★ (SQL nativo)  | Media           | Excelente       | Baja            | Necesario para dashboard |
+| Complejidad operativa (estudiantes)            | Muy baja            | Media           | Alta            | Baja            | Deadline mayo 2026 |
+| Docker + docker-compose actual                 | Ya existe           | Extra servicio  | Extra servicio  | Extra servicio  | Mínimo overhead |
+| Coste / mantenimiento                          | Gratis              | Gratis          | Medio           | Gratis          | Proyecto académico |
+| Integración LangChain / IA                     | Excelente           | Excelente       | Buena           | Buena           | Uso intensivo IA requerido |
+
+**Razones principales para elegir pgvector**:
+- Cumple literalmente el requisito de “dos sistemas gestores de datos” sin duplicar infraestructura (Postgres ya está en producción y en docker-compose).
+- Soporte oficial de embeddings + búsqueda semántica desde 2024-2025 (HNSW + ivfflat).
+- Full-text search nativo (`tsvector`) + vector similarity en la misma consulta → ideal para alertas (keyword + semántico).
+- Agregaciones SQL ultra-rápidas para nubes de palabras y estadísticas del dashboard.
+- Zero configuración extra en producción universitaria.
+- Fácil integración con SQLAlchemy 2.0 y FastAPI (ya usado).
+
+## Consecuencias
+
+### Positivas
+- Todo el stack en un solo contenedor → más sencillo de mantener, desplegar y depurar.
+- Transacciones ACID entre metadatos y embeddings.
+- Búsquedas híbridas muy rápidas incluso con miles de noticias.
+- Word clouds y estadísticas se resuelven con simples queries SQL.
+- Camino directo a producción con un único servicio PostgreSQL.
+
+### Negativas / Mitigadas
+- Rendimiento ligeramente inferior a Qdrant/Elasticsearch en >1M documentos → no relevante para este proyecto (volumen esperado: cientos/miles de noticias).
+- Gestión de embeddings en la misma DB → se mitigará con índices dedicados y limpieza periódica.
+- Si en futuro crece mucho → migración a Qdrant/Elasticsearch será sencilla (exportar embeddings).
+
+## Alternativas consideradas y rechazadas
+
+- **Qdrant** → Excelente, pero introduce segundo servicio (más complejidad para estudiantes).
+- **Elasticsearch** → Recomendado en el PDF (pág. 5), pero overhead operativo alto y curva de aprendizaje innecesaria.
+- **Chroma** → Demasiado simple, pierde en agregaciones y filtrado avanzado.
+- **MongoDB** → No tiene vector search nativo tan potente como pgvector en 2026.
+
+## Referencias
+- Documento oficial del proyecto (páginas 2-5 y Anexo I).
+- pgvector documentation[](https://github.com/pgvector/pgvector)
+- SQLAlchemy + pgvector integration examples 2026.
+- Benchmarks pgvector vs Qdrant 2025 (para proyectos de tamaño medio).
+
+Fecha de decisión: 12 marzo 2026
+Propuesto por: Equipo NEWSRADAR
+Aceptado por: [nombre del líder]
