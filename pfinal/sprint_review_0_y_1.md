@@ -139,3 +139,5 @@ El repositorio queda con:
 - Ficheros auxiliares del proyecto (PDF, etc.).
 
 Preparado para commits limpios y para la revisión de sprints.
+
+
