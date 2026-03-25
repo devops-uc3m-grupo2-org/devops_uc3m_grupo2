@@ -235,6 +235,8 @@ Se necesita un mecanismo fiable para:
 - Posibles rate-limits de fuentes RSS → implementar backoff y caché de última fecha procesada.
 - En producción futura → migrar jobs pesados a Celery + Redis (ADR futuro si es necesario).
 
+El detalle del scheduler y su configuración práctica se recoge en ADR 005 (APScheduler).
+
 ## Alternativas consideradas y rechazadas
 
 - **Celery + Redis desde el principio** → Muy robusto, pero añade 2 servicios Docker y complejidad innecesaria para el volumen esperado.
@@ -323,6 +325,8 @@ La aplicación necesita ejecutar tareas periódicas de monitorización de alerta
 ## Decisión
 
 Para la Fase 1 se usará `APScheduler` en modo `BackgroundScheduler` ejecutándose dentro del proceso FastAPI. La integración es ligera y permite ejecutar la función `monitor_alerts` cada X segundos/minutos.
+
+Este ADR complementa ADR 003 (ingestión RSS y orquestación de monitorización), que describe el flujo de ingestión y requisitos de cron por alerta.
 
 ## Justificación
 
@@ -413,7 +417,7 @@ Usar PostgreSQL como base de datos relacional y SQLAlchemy como ORM en el backen
 
 - Consideraciones:
   - Requiere administración de la instancia y backups.
-  - Para índices de búsquedas semánticas o vectores se debería integrar una capa vectorial especializada.
+  - Para índices de búsquedas semánticas o vectores se usará la extensión `pgvector` (ver ADR 002), sin añadir otro motor externo.
 
 ## Fecha
 
