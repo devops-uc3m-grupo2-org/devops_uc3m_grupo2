@@ -8,7 +8,7 @@ Preparar base técnica sólida y dockerizada: backend, base de datos y entorno d
 ### ¿Qué está hecho?
 
 - Proyecto montado con **Docker Compose**:
-  - Servicios `app` (FastAPI), `db` (Postgres 16‑alpine) y `pgadmin`.  
+  - Servicios `app` (FastAPI), `db` (Postgres 16‑alpine) y `pgadmin`.
 - Base de datos **PostgreSQL** levantando correctamente:
   - Contenedor `pfinal-db-1` funcionando.
   - Datos persistentes en el volumen `postgres_data`.
@@ -83,9 +83,42 @@ Acceso seguro, gestión de usuarios y emisión de tokens JWT.
 2. Ejecutar `GET /api/v1/users`:
    - Ver el usuario admin en la lista.
 
-> Nota: El endpoint `POST /api/v1/auth/register` existe pero todavía no está completamente funcional (devuelve `500` si se llama con un body genérico). No es crítico para el sprint review actual.
+### Registro de usuarios (completado)
 
----
+Además, el endpoint de registro está operativo:
+
+- Endpoint: `POST /api/v1/auth/register`
+- Ejemplo de petición válida:
+  ```json
+  {
+    "email": "user1@newsradar.com",
+    "password": "test1234",
+    "first_name": "User",
+    "last_name": "Uno",
+    "organization": "NewsRadar"
+  }
+  ```
+- Respuesta (`200 OK`):
+  ```json
+  {
+    "id": 3,
+    "email": "user1@newsradar.com",
+    "first_name": "User",
+    "last_name": "Uno",
+    "organization": "NewsRadar"
+  }
+  ```
+
+Comportamiento esperado:
+
+- Si el email no existe → crea el usuario y devuelve `200` con sus datos.
+- Si el email ya está registrado → devuelve `409` con mensaje `"El email ya está registrado"`.
+
+En la demo se puede enseñar:
+
+1. `POST /api/v1/auth/register` creando un usuario nuevo.
+2. `POST /api/v1/auth/login` con ese usuario nuevo para obtener un JWT.
+3. `GET /api/v1/users` mostrando el admin y el nuevo usuario registrado.
 
 ## Limpieza del proyecto
 
