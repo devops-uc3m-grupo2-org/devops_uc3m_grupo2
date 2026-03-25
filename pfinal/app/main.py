@@ -15,7 +15,7 @@ from app.services.fetcher import fetch_feed
 
 load_dotenv()
 
-app = FastAPI(title="NewsRadar API", version="1.0")
+app = FastAPI(title="NewsRadar API SPRIIIIINT2", version="1.0")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -164,4 +164,12 @@ def list_news(db: Session = Depends(get_db)):
             "source_id": i.source_id,
         }
         for i in items
+    ]
+
+
+@app.get("/_routes")
+def debug_list_routes():
+    return [
+        {"path": r.path, "name": r.name, "methods": sorted(list(r.methods))}
+        for r in app.routes
     ]
