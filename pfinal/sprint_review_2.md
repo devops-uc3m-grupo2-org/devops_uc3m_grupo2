@@ -218,6 +218,89 @@ La integración completa con PostgreSQL en Docker (del Sprint 1) se mantiene com
 
 ---
 
-## Seguimientos
+# Guía para Arrancar la API y Probar el Sprint 2
 
-*(Espacio para observaciones, mejoras e hitos futuros del proyecto.)*
+## 1. Arrancar la API
+
+En **WSL**, desde la carpeta del proyecto, ejecuta los siguientes comandos:
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 9000
+```
+
+> **Nota:** Deja esa terminal abierta mientras trabajas.
+
+---
+
+## 2. Abrir Swagger
+
+En tu navegador (preferiblemente en una **ventana de incógnito**), accede a:
+
+[http://localhost:9000/docs](http://localhost:9000/docs)
+
+---
+
+## 3. Probar Sprint 2
+
+### Crear fuente RSS
+
+En **Swagger**, realiza una petición `POST` a:
+
+`/api/v1/sources`
+
+#### Body (JSON):
+
+```json
+{
+  "name": "RTVE Noticias",
+  "medium": "RTVE",
+  "rss_url": "https://www.rtve.es/rss/temas_noticias.xml",
+  "iptc_category": "news"
+}
+```
+
+Ejecuta la petición y **anota el `id`** de la fuente creada (por ejemplo, `2`).
+
+---
+
+### Lanzar ingesta de RSS
+
+Realiza una petición `POST` a:
+
+`/api/v1/sources/{source_id}/fetch`
+
+1. Pulsa **“Try it out”**.
+2. Sustituye `{source_id}` por el número que obtuviste antes (por ejemplo, `2`).
+3. Ejecuta la petición.
+
+#### Ejemplo de respuesta esperada:
+
+```json
+{
+  "source_id": 2,
+  "new_items": 10
+}
+```
+
+---
+
+### Ver noticias guardadas
+
+Haz una petición `GET` a:
+
+`/api/v1/news`
+
+Ejecuta para ver un **array de noticias** con la siguiente estructura:
+
+```json
+[
+  {
+    "id": 1,
+    "title": "Título de la noticia",
+    "link": "https://www.rtve.es/.../",
+    "summary": "Resumen de la noticia",
+    "published": "2026-03-25T20:00:00Z",
+    "source_id": 2
+  }
+]
+```

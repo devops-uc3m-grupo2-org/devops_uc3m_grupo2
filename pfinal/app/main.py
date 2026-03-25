@@ -11,11 +11,12 @@ import os
 
 from app.core.database import engine, Base, get_db
 from app.models.models import User, Role, InformationSource, NewsItem
+import feedparser
 from app.services.fetcher import fetch_feed
 
 load_dotenv()
 
-app = FastAPI(title="NewsRadar API SPRIIIIINT2", version="1.0")
+app = FastAPI(title="NewsRadar API", version="1.0")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -143,7 +144,29 @@ def list_sources(db: Session = Depends(get_db)):
 
 
 @app.post("/api/v1/sources/{source_id}/fetch")
-def fetch_source(source_id: int, db: Session = Depends(get_db)):
+def fetch_source(source_id: int, db: Session = Depends(get_db), debug: bool = False):
+    # Modo debug: devuelve metadata del feed y primer entry para diagnóstico
+    src = db.query(InformationSource).get(source_id)
+    if not src:
+        raise HTTPException(status_code=404, detail="Fuente no encontrada")
+
+    if debug:
+        feed = feedparser.parse(src.rss_url)
+        first = None
+        if len(feed.entries) > 0:
+            e = feed.entries[0]
+            first = {
+                "title": getattr(e, "title", None),
+                "link": getattr(e, "link", None),
+                "published": getattr(e, "published", None),
+            }
+        return {
+            "source_id": source_id,
+            "feed_status": feed.get("status", None),
+            "entries_count": len(feed.entries),
+            "first_entry": first,
+        }
+
     try:
         created = fetch_feed(db, source_id)
     except ValueError:
