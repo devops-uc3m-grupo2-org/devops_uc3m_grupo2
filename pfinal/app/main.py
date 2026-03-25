@@ -5,10 +5,13 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from fastapi import Body
+
 import os
 
 from app.core.database import engine, Base, get_db
-from app.models.models import User, Role
+from app.models.models import User, Role, InformationSource, NewsItem
+from app.services.fetcher import fetch_feed
 
 load_dotenv()
 
@@ -107,3 +110,58 @@ def register(user_payload: dict, db: Session = Depends(get_db)):
         "last_name": user.last_name,
         "organization": user.organization,
     }
+
+
+@app.post("/api/v1/sources")
+def create_source(payload: dict = Body(...), db: Session = Depends(get_db)):
+    if db.query(InformationSource).filter(InformationSource.rss_url == payload["rss_url"]).first():
+        raise HTTPException(status_code=409, detail="La fuente ya existe")
+    src = InformationSource(
+        name=payload.get("name", "Fuente"),
+        medium=payload.get("medium", ""),
+        rss_url=payload["rss_url"],
+        iptc_category=payload.get("iptc_category", ""),
+    )
+    db.add(src)
+    db.commit()
+    db.refresh(src)
+    return {"id": src.id, "name": src.name, "rss_url": src.rss_url}
+
+@app.get("/api/v1/sources")
+def list_sources(db: Session = Depends(get_db)):
+    sources = db.query(InformationSource).all()
+    return [
+        {
+            "id": s.id,
+            "name": s.name,
+            "medium": s.medium,
+            "rss_url": s.rss_url,
+            "iptc_category": s.iptc_category,
+        }
+        for s in sources
+    ]
+
+
+@app.post("/api/v1/sources/{source_id}/fetch")
+def fetch_source(source_id: int, db: Session = Depends(get_db)):
+    try:
+        created = fetch_feed(db, source_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Fuente no encontrada")
+    return {"source_id": source_id, "new_items": created}
+
+
+@app.get("/api/v1/news")
+def list_news(db: Session = Depends(get_db)):
+    items = db.query(NewsItem).order_by(NewsItem.published.desc()).limit(200).all()
+    return [
+        {
+            "id": i.id,
+            "title": i.title,
+            "link": i.link,
+            "summary": i.summary,
+            "published": i.published.isoformat() if i.published else None,
+            "source_id": i.source_id,
+        }
+        for i in items
+    ]
