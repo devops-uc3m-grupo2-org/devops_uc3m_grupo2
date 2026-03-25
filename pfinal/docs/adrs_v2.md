@@ -5,7 +5,7 @@ Cada decisión está respaldada por código y alineada con los sprints desarroll
 
 ---
 
-## ## ADR 1: Elección del Framework Backend (Python 3.12 + FastAPI)
+## ADR 1: Elección del Framework Backend (Python 3.12 + FastAPI)
 **Estado:** Aceptado
 
 
@@ -25,7 +25,7 @@ Negativas/Riesgos: Requiere manejar el flujo asíncrono (async/await) para no bl
 
 ---
 
-## ## ADR 2: Persistencia y Migraciones (PostgreSQL + Alembic)
+## ADR 2: Persistencia y Migraciones (PostgreSQL + Alembic)
 Estado: Aceptado
 
 ### Contexto
