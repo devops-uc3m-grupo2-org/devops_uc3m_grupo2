@@ -258,7 +258,7 @@ def update_alert(alert_id: int, payload: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(alert)
 
-    return {"message": "updated"}
+    return {f"Alert {alert_id}": "updated"}
 
 
 @app.delete("/api/v1/alerts/{alert_id}")
@@ -271,4 +271,10 @@ def delete_alert(alert_id: int, db: Session = Depends(get_db)):
     db.delete(alert)
     db.commit()
 
-    return {"message": "deleted"}
+    return {f"Alert {alert_id}": "deleted"}
+
+@app.on_event("startup")
+def startup():
+    Base.metadata.create_all(bind=engine)
+    create_seed_data()
+    start_scheduler()
