@@ -166,3 +166,144 @@ Ejemplo típico FastAPI + Docker:
 - Dejar ramas viejas sin borrar después de fusionar.
 - Forzar cambios de API sin cambiar de versión MAJOR.
 - Usar `git checkout .` o `git restore .` sin saber qué vas a perder.
+
+
+
+
+
+
+
+# Flujo de ramas y buenas prácticas de Git
+
+Este documento define el flujo de ramas y las buenas prácticas de Git para el equipo de DevOps UC3M Grupo 2.
+
+---
+
+## 1. Estructura de ramas
+
+Cada rama se crea desde `main` y se fusiona a `main` mediante una Pull Request.
+
+### Backend (máximo 2 personas)
+
+- **Backend 1**
+  - Rama principal: `feat/backend-XX`
+  - Ejemplo: `feat/backend-user-api`, `feat/backend-products`.
+
+- **Backend 2**
+  - Rama principal: `feat/backend-YY`
+  - Ejemplo: `feat/backend-metrics`, `feat/backend-auth`.
+
+### Frontend (1 persona fija + 1 flexible)
+
+- **Frontend fijo**
+  - Rama principal: `feat/frontend-XX`
+  - Ejemplo: `feat/frontend-login`, `feat/frontend-dashboard`.
+
+- **Frontend flexible**
+  - Rama principal: `feat/frontend-flex`
+  - Para cambios rápidos o pruebas de UI.
+
+### Documentación
+
+- Rama de documentación común:
+  - `docs/team-guides`
+  - Aquí se incluyen:
+    - Buenas prácticas de Git y DevOps.
+    - Historias de usuario.
+    - READMEs y guías internas.
+
+### Automatización y Testing
+
+- **Automatización (CI/CD, scripts, etc.)**
+  - Rama: `feat/automation`
+
+- **Testing (pruebas unitarias, integración, etc.)**
+  - Rama: `feat/testing`
+
+### DevOps (supervisor y corrección de errores)
+
+- **Corrección de errores y monitorización**
+  - `devops/bugfix` → correcciones de incidencias en producción.
+  - `devops/monitoring` → cambios de monitorización, métricas (DORA, logs, etc.).
+
+---
+
+## 2. Cómo crear las ramas
+
+Ejemplos de comandos para cada rama (ejecutar desde `main` actualizado):
+
+```bash
+git checkout main
+git pull origin main
+
+# Backend 1
+git checkout -b feat/backend-user-api
+git push origin feat/backend-user-api
+
+# Backend 2
+git checkout -b feat/backend-metrics
+git push origin feat/backend-metrics
+
+# Frontend fijo
+git checkout -b feat/frontend-login
+git push origin feat/frontend-login
+
+# Frontend flexible
+git checkout -b feat/frontend-flex
+git push origin feat/frontend-flex
+
+# Documentación
+git checkout -b docs/team-guides
+git push origin docs/team-guides
+
+# Automatización
+git checkout -b feat/automation
+git push origin feat/automation
+
+# Testing
+git checkout -b feat/testing
+git push origin feat/testing
+
+# DevOps bugfix
+git checkout -b devops/bugfix
+git push origin devops/bugfix
+
+# DevOps monitoring
+git checkout -b devops/monitoring
+git push origin devops/monitoring
+```
+
+---
+
+## 3. Flujo de trabajo básico
+
+1. Cada miembro trabaja en su rama asignada.
+2. Cuando la tarea está lista:
+   - `git add .` y `git commit` con mensajes claros.
+   - `git push origin <nombre-rama>`.
+3. En GitHub:
+   - Crear **Pull Request** `<nombre-rama>` → `main`.
+   - Revisión de código, pruebas y aprobación.
+4. Tras la aprobación:
+   - Fusionar PR en `main`.
+5. En local, una vez fusionado:
+   ```bash
+   git checkout main
+   git pull origin main
+   git branch -d <nombre-rama>
+   ```
+6. (Opcional) También borrar la rama remota:
+   ```bash
+   git push origin --delete <nombre-rama>
+   ```
+
+---
+
+## 4. Relación con DevOps y automatización
+
+- La rama `feat/automation` debe contener los scripts de CI/CD (GitHub Actions, etc.).
+- La rama `devops/monitoring` guarda cambios relacionados con métricas, logs y monitorización del sistema.
+
+Esto permite que el equipo siga las buenas prácticas de DevOps (DORA metrics, integración continua, etc.) mientras mantiene un flujo de Git limpio y organizado.
+
+---
