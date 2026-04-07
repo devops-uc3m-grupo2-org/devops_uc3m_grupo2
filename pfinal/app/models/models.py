@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+import json
 
 
 class Role(Base):
@@ -42,3 +43,27 @@ class NewsItem(Base):
     published = Column(DateTime, nullable=True)
     source_id = Column(Integer, ForeignKey("information_sources.id"))
     source = relationship("InformationSource")
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    keyword = Column(String, nullable=False)
+    synonyms = Column(String, default="[]")  
+    iptc_category = Column(String, nullable=False)
+
+    cron_expression = Column(String, default="*/5 * * * *")  # cada 5 min
+    is_active = Column(Boolean, default=True)
+
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    user = relationship("User", backref="alerts")
+
+    #Para la generación de sinónimos
+    def get_synonyms(self):
+        return json.loads(self.synonyms or "[]")
+
+    def set_synonyms(self, values):
+        self.synonyms = json.dumps(values)

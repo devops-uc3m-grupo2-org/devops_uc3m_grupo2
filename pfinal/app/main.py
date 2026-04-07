@@ -10,9 +10,10 @@ from fastapi import Body
 import os
 
 from app.core.database import engine, Base, get_db
-from app.models.models import User, Role, InformationSource, NewsItem
+from app.models.models import User, Role, InformationSource, NewsItem, Alert
 import feedparser
 from app.services.fetcher import fetch_feed
+from app.core.scheduler import start_scheduler
 
 load_dotenv()
 
@@ -196,3 +197,78 @@ def debug_list_routes():
         {"path": r.path, "name": r.name, "methods": sorted(list(r.methods))}
         for r in app.routes
     ]
+
+
+@app.post("/api/v1/alerts")
+def create_alert(payload: dict = Body(...), db: Session = Depends(get_db)):
+
+    alert = Alert(
+        name=payload["name"],
+        keyword=payload["keyword"],
+        iptc_category=payload["iptc_category"],
+        cron_expression=payload.get("cron_expression", "*/5 * * * *"),
+        user_id=payload["user_id"],
+    )
+
+    alert.set_synonyms(payload.get("synonyms", []))
+
+    db.add(alert)
+    db.commit()
+    db.refresh(alert)
+
+    return {
+        "id": alert.id,
+        "name": alert.name,
+        "keyword": alert.keyword,
+        "synonyms": alert.get_synonyms(),
+    }
+
+@app.get("/api/v1/alerts")
+def list_alerts(db: Session = Depends(get_db)):
+    alerts = db.query(Alert).all()
+
+    return [
+        {
+            "id": a.id,
+            "name": a.name,
+            "keyword": a.keyword,
+            "synonyms": a.get_synonyms(),
+            "iptc_category": a.iptc_category,
+            "is_active": a.is_active,
+        }
+        for a in alerts
+    ]
+
+
+@app.put("/api/v1/alerts/{alert_id}")
+def update_alert(alert_id: int, payload: dict, db: Session = Depends(get_db)):
+
+    alert = db.query(Alert).get(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    alert.name = payload.get("name", alert.name) #Payload contiene los datos a modificar
+    alert.keyword = payload.get("keyword", alert.keyword)
+    alert.iptc_category = payload.get("iptc_category", alert.iptc_category)
+    alert.is_active = payload.get("is_active", alert.is_active)
+
+    if "synonyms" in payload:
+        alert.set_synonyms(payload["synonyms"])
+
+    db.commit()
+    db.refresh(alert)
+
+    return {"message": "updated"}
+
+
+@app.delete("/api/v1/alerts/{alert_id}")
+def delete_alert(alert_id: int, db: Session = Depends(get_db)):
+
+    alert = db.query(Alert).get(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    db.delete(alert)
+    db.commit()
+
+    return {"message": "deleted"}
