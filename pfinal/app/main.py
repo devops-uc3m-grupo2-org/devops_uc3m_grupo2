@@ -10,9 +10,10 @@ from fastapi import Body
 import os
 
 from app.core.database import engine, Base, get_db
-from app.models.models import User, Role, InformationSource, NewsItem, Alert
+from app.models.models import User, Role, InformationSource, NewsItem, Alert, AlertNews
 import feedparser
 from app.services.fetcher import fetch_feed
+from app.services.alertLogic import match_alert
 from app.core.scheduler import start_scheduler
 
 load_dotenv()
@@ -273,8 +274,42 @@ def delete_alert(alert_id: int, db: Session = Depends(get_db)):
 
     return {f"Alert {alert_id}": "deleted"}
 
-@app.on_event("startup")
-def startup():
-    Base.metadata.create_all(bind=engine)
-    create_seed_data()
-    start_scheduler()
+@app.post("/api/v1/run-matching")
+def run_matching(db: Session = Depends(get_db)):
+
+    items = db.query(NewsItem).all()
+    alerts = db.query(Alert).filter(Alert.is_active == True).all()
+
+    for item in items:
+        for alert in alerts:
+            if match_alert(alert, item):
+
+                exists = db.query(AlertNews).filter_by(
+                    alert_id=alert.id,
+                    news_item_id=item.id
+                ).first()
+
+                if not exists:
+                    db.add(AlertNews(
+                        alert_id=alert.id,
+                        news_item_id=item.id
+                    ))
+
+    db.commit()
+
+    return {"status": "matching executed"}
+
+@app.get("/api/v1/matchAlert/{alert_id}")
+def alert_match(alert_id: int, db: Session = Depends(get_db)):
+
+    matching_news = db.query(AlertNews).filter(
+        AlertNews.alert_id == alert_id
+    ).all()
+
+    if not matching_news:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    return {
+        "alert_id": alert_id,
+        "news_ids": [m.news_item_id for m in matching_news]
+    }

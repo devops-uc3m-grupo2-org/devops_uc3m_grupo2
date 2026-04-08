@@ -43,6 +43,7 @@ class NewsItem(Base):
     published = Column(DateTime, nullable=True)
     source_id = Column(Integer, ForeignKey("information_sources.id"))
     source = relationship("InformationSource")
+    alerts = relationship("Alert", secondary="alert_news", passive_deletes=True) #Evita que python busque eliminar huerfanos, confía en el delete Cascade de alerts
 
 
 class Alert(Base):
@@ -53,13 +54,13 @@ class Alert(Base):
     keyword = Column(String, nullable=False)
     synonyms = Column(String, default="[]")  
     iptc_category = Column(String, nullable=False)
-
     cron_expression = Column(String, default="*/5 * * * *")  # cada 5 min
     is_active = Column(Boolean, default=True)
-
     user_id = Column(Integer, ForeignKey("users.id"))
-
+    #Cada Alert pertenece a un user, y un user puede tener varias alerts (alert.user y user.alerts)
     user = relationship("User", backref="alerts")
+    #Un news_item puede pertenecer a varias alerts y una alert tener varios NewsItems
+    news_items = relationship("NewsItem", secondary="alert_news")
 
     #Para la generación de sinónimos
     def get_synonyms(self):
@@ -67,3 +68,11 @@ class Alert(Base):
 
     def set_synonyms(self, values):
         self.synonyms = json.dumps(values)
+
+class AlertNews(Base):
+    __tablename__ = "alert_news"
+
+    id = Column(Integer, primary_key=True)
+    
+    alert_id = Column(Integer, ForeignKey("alerts.id", ondelete="CASCADE"))
+    news_item_id = Column(Integer, ForeignKey("news_items.id"))

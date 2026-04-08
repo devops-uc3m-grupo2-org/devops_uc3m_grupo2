@@ -23,20 +23,26 @@ En este sprint se busca trabajar en el backend de **Newsradar** para agregar la 
 Archivo: `app/models/models.py`
 
 ### Alert
+Es una tabla con todas las alertas creadas por los usuarios.
+
 - **id**: int (PK)
 - **name**: Nombre de la alerta.
 - **keyword**: Palabra de la cuál se genera.
 - **synonyms**: Sinónimos de la palabra.
-- **iptc_category**: categoría temática 
+- **iptc_category**: categoría temática ("*de etiquetar la alerta en una categoría siguiendo el primer nivel de IPTC Media Topic*")
 - **cron_expression**: Tiempo de duración
 - **is_active**: Si está activa o no
 - **user_id**: Id Usuario Recipiente
 - **user**: Relación SQLAlchemy con 'User'
 
-- **Funciones de Alert**
-    - **get_synonyms** : Muestra los sinónimos de la palabra
-    - **ser_synonyms**: Añade sinónimos de la palabra.
+Con relación a "iptc_category" más adelante se tendrá que implementar que solo acepte cómo valores el primer nivel de IPTC Media Topic
 
+### AlertNews
+Las alertas y las noticias tienen una multiplicidad de muchos a muchos, por lo que es útil emplear una tabla intermedia para modelar la relación. Esta tabla permite directamente asociar una noticia a varias alertas, y una alerta a varias noticias, evitando la redundancia de información. Por ejemplo, si una noticia coincide con 100 alertas, sin esta tablas, tendríamos que duplicar la noticia 100 veces, con la tabla, solo realizamos 100 relaciones pequeñas. Asimismo, evita la utilización de una lista dentro de un campo, de caso contrario necesitaríamos en un campo como "related_news", meter los IDs de todas las noticias. Finalmente, ayuda a la escalabilidad, ya que ayuda  a evitar tener que hacer parsing por stings (si tenemos lista dentro de campo) y permite queries en ambas direcciones.
+
+- **id**: int (PK)
+- **alert_id**: Id de la alerta.
+- **news_item_id**: Id de la noticia.
 
 
 ---
@@ -67,15 +73,17 @@ Archivo: `app/core/scheduler.py`
 
 | Método | Ruta                              | Descripción                      |
 | ------ | --------------------------------- | -------------------------------- |
-| GET    | /api/v1/alerts                    |   Listar alertas                 |
-| POST   | /api/v1/alerts                    |   Crear alerta                   |
-| PUT    | /api/v1/alerts/{alert_id}         |   Actualizar alerta              |
-| DELETE | /api/v1/alerts/{alert_id}         |   Borrar Alerta                  |
+| GET    | /api/v1/alerts                    |        Listar alertas            |
+| POST   | /api/v1/alerts                    |        Crear alerta              |
+| PUT    | /api/v1/alerts/{alert_id}         |        Actualizar alerta         |
+| DELETE | /api/v1/alerts/{alert_id}         |        Borrar Alerta             |
+| POST   | /api/v1/run-matching              | Prueba el almacenmiento de todas las <br> noticias por alerta  |
+| GET    | /api/v1/matchAlert/{alert_id}     | Permite ver las noticias guardada en una <br> alerta específica |
 
 
 ### Flujo de Prueba
 
-### Crear Alerta 
+### Crear Alertas
 Endpoint: `POST /api/v1/alerts`
 
 **Ejemplo de body:**
@@ -102,8 +110,8 @@ Puedes probar con diferentes valores.
 **Ejemplo de body:**
 ```json
 {
-  "name": "Guerra",
-  "keyword": "Bomba",
+  "name": "Guerra Alerta",
+  "keyword": "guerra",
   "iptc_category": "Politica",
   "user_id" : "Admin123" 
 }
@@ -113,8 +121,8 @@ Puedes probar con diferentes valores.
 ```json
 {
   "id": 2,
-  "name": "Guerra",
-  "keyword": "Bomba",
+  "name": "Guerra Alerta",
+  "keyword": "guerra",
   "synonyms": []
 }
 ```
@@ -137,15 +145,15 @@ Se espera que se muestren todas las alertas que has creado, en este caso:
   },
   {
     "id": 2,
-    "name": "Guerra",
-    "keyword": "Bomba",
+    "name": "Guerra Alerta",
+    "keyword": "guerra",
     "synonyms": [],
     "iptc_category": "Politica",
     "is_active": true
   }
 ]
 ```
-### Actualizar Alert
+### Actualizar Alerta
 Endpoint: `PUT /api/v1/alerts/{alert_id}`
 
 Para este endpoint debes insertar el id de una alerta y el valor que esperas modificar.
@@ -166,12 +174,12 @@ Para este endpoint debes insertar el id de una alerta y el valor que esperas mod
 
 Para comprobar qué la actualización se realizó correctamente, basta con volver a ejecutar el endpoint de "List Alerts" y verificar que el cambio se realizó.
 
-### Actualizar Alert
+### Borrar Alerta
 Endpoint: `Delete /api/v1/alerts/{alert_id}`
 
 Para este endpoint debes insertar el id de una alerta que deseas eliminar.
 
-```alert_id : 2```
+```alert_id : 1```
 
 **Respuesta esperada:**
 {
@@ -179,3 +187,39 @@ Para este endpoint debes insertar el id de una alerta que deseas eliminar.
 }
 
 En este caso, puedes comprobar si se ha borrado correctamente con List Alerts.
+
+
+### Correr MatchAlert
+Endpoint: `POST /api/v1/run-matching`
+
+Este endpoint ejecutará una ronda de MatchAlert y incluirá en la tabla de AlertNews todas las relaciones de noticia-alarma que existan. Para probarlo, debes asegurarte que ya existan noticias en la base de datos (sprint 2) y que hayan alertas creadas que contengan esas palabras.
+
+**Respuesta esperada:**
+
+```json
+{
+  "status": "matching executed"
+}
+```
+
+### Verificar funcionamiento de matchAlert
+Endpoint: `POST /api/v1/matchAlert/{alert_id}`
+
+Para verificar si el matchAlert está funcionando correctamente utilizamos este endpoint. Previamente en el flujo hemos creado una alerta con la keyword "guerra" (id:2). Asimismo, desde el sprint 2 se agregaron noticias desde una RSS y algunas contienen esta palabra. Para verificar que el match está funcionando debes introducir el id de la alerta:
+
+```alert_id : 2```
+
+Se espera que devuelva los IDs de las noticas que contienen la palabra, esto es verificable utilizando el endpoint: 
+`GET /api/v1/news`
+y verificando que los IDs recibidos corresponden a noticias que contienen la palabra "guerra".
+
+**Respuesta esperada:**
+```json
+{
+  "alert_id": 3,
+  "news_ids": [
+    2,
+    7
+  ]
+}
+```

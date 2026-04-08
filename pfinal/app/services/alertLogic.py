@@ -6,5 +6,5 @@ def match_alert(alert, news_item):
     keywords = [alert.keyword.lower()] + [  
         s.lower() for s in alert.get_synonyms()
     ]
-    # Recorremos cada palabra del text y vemos si es una de la "claves", True si encontramos una
+    # Recorremos cada palabra del text y vemos si es una de la "clave", devuelve True si encontramos una
     return any(k in text for k in keywords)
