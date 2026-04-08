@@ -15,7 +15,7 @@ import feedparser
 from app.services.fetcher import fetch_feed
 from app.services.alertLogic import match_alert
 from app.services.ai import generate_synonyms
-from app.core.scheduler import start_scheduler
+from app.core.scheduler import start_scheduler, fetch_all_sources_job
 
 load_dotenv()
 
@@ -171,9 +171,10 @@ def fetch_source(source_id: int, db: Session = Depends(get_db), debug: bool = Fa
         }
 
     try:
-        created = fetch_feed(db, source_id)
+        created, _ = fetch_feed(db, source_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Fuente no encontrada")
+    
     return {"source_id": source_id, "new_items": created}
 
 
@@ -308,7 +309,7 @@ def alert_match(alert_id: int, db: Session = Depends(get_db)):
     ).all()
 
     if not matching_news:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="Alert News not found")
 
     return {
         "alert_id": alert_id,
@@ -328,3 +329,7 @@ def get_suggestions(keyword: str):
         "keyword": keyword,
         "suggestions": suggestions
     }
+@app.post("/api/v1/run-scheduler")
+def run_scheduler_manually():
+    fetch_all_sources_job()
+    return {"status": "scheduler executed manually"}
