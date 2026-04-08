@@ -1,7 +1,7 @@
 # Sprint 3 – Alertas CRUD + Etiquetado + Cron básico
 
 
-En este sprint se busca trabajar en el backend de **Newsradar** para agregar la lógica de las **alertas** generadas cuando llega una noticia con la información pertinente. Asimismo, se enfoca en lograr que la aplicación etiquete debidamente esta notica de acuerdo a sus palabras claves.
+En este sprint se busca trabajar en el backend de **Newsradar** para agregar la lógica de las **alertas** generadas cuando llega una noticia con la información pertinente. Asimismo, se enfoca en lograr que la aplicación etiquete debidamente esta noticia de acuerdo a sus palabras claves y la almacene a falta de ser categorizada. Asimismo, se busca desarrollar una primera versión del scheduling, que permita hacer periodicamente identificación de noticias.
 
 ---
 
@@ -12,7 +12,8 @@ En este sprint se busca trabajar en el backend de **Newsradar** para agregar la 
 - Implementar servicio que permita modificar, actualizar y ver las alertas.
 - Implementar un servicio que asigne noticia a alerta despendiendo de su contenido.
 - Implementar servicio de Scheduling
--  Exponer endpoints REST para:
+
+- Exponer endpoints REST para:
   - Crear alerta.
   - Listar alerta.
   - Modificar alerta.
@@ -42,7 +43,7 @@ Es una tabla con todas las alertas creadas por los usuarios.
 Con relación a "iptc_category" más adelante se tendrá que implementar que solo acepte cómo valores el primer nivel de IPTC Media Topic
 
 ### AlertNews
-Las alertas y las noticias tienen una multiplicidad de muchos a muchos, por lo que es útil emplear una tabla intermedia para modelar la relación. Esta tabla permite directamente asociar una noticia a varias alertas, y una alerta a varias noticias, evitando la redundancia de información. Por ejemplo, si una noticia coincide con 100 alertas, sin esta tablas, tendríamos que duplicar la noticia 100 veces, con la tabla, solo realizamos 100 relaciones pequeñas. Asimismo, evita la utilización de una lista dentro de un campo, de caso contrario necesitaríamos en un campo como "related_news", meter los IDs de todas las noticias. Finalmente, ayuda a la escalabilidad, ya que ayuda  a evitar tener que hacer parsing por stings (si tenemos lista dentro de campo) y permite queries en ambas direcciones.
+Las alertas y las noticias tienen una multiplicidad de muchos a muchos, por lo que es útil emplear una tabla intermedia para modelar la relación. Esta tabla permite directamente asociar una noticia a varias alertas, y una alerta a varias noticias, evitando la redundancia de información. Por ejemplo, si una noticia coincide con 100 alertas, sin esta tablas, tendríamos que duplicar la noticia 100 veces, con la tabla, solo realizamos 100 relaciones pequeñas. Asimismo, evita la utilización de una lista dentro de un campo, de caso contrario necesitaríamos dentro de un campo como "related_news", meter los IDs de todas las noticias (en forma de lista). Finalmente, ayuda a la escalabilidad, ya que evita tener que hacer parsing por strings (si tenemos lista dentro de campo) y permite queries en ambas direcciones.
 
 - **id**: int (PK)
 - **alert_id**: Id de la alerta.
@@ -95,7 +96,7 @@ Asimismo tenemos una función start_scheduler que inicia este proceso y con ayud
 | POST   | /api/v1/alerts                    |        Crear alerta              |
 | PUT    | /api/v1/alerts/{alert_id}         |        Actualizar alerta         |
 | DELETE | /api/v1/alerts/{alert_id}         |        Borrar Alerta             |
-| POST   | /api/v1/run-matching              | Prueba el almacenmiento de todas las <br> noticias por alerta  |
+| POST   | /api/v1/run-matching              | Prueba el almacenamiento de todas las <br> noticias por alerta  |
 | GET    | /api/v1/matchAlert/{alert_id}     | Permite ver las noticias guardada en una <br> alerta específica |
 | POST   | /api/v1/run-scheduler             | Identifica si el scheduler lanza algún error |
 
@@ -124,7 +125,7 @@ Endpoint: `POST /api/v1/alerts`
   "synonyms": []
 }
 ```
-Puedes probar con diferentes valores.
+Se puede probar con diferentes valores.
 
 **Ejemplo de body:**
 ```json
@@ -193,7 +194,7 @@ Para este endpoint debes insertar el id de una alerta y el valor que esperas mod
 }
 ```
 
-Para comprobar qué la actualización se realizó correctamente, basta con volver a ejecutar el endpoint de "List Alerts" y verificar que el cambio se realizó.
+Para comprobar que la actualización se realizó correctamente, basta con volver a ejecutar el endpoint de "List Alerts" y verificar que el cambio se realizó.
 
 ### Borrar Alerta
 Endpoint: `Delete /api/v1/alerts/{alert_id}`
