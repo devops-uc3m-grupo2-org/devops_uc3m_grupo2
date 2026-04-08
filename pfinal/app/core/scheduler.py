@@ -13,37 +13,43 @@ def fetch_all_sources_job():
 
     try:
         sources = db.query(InformationSource).all()
-
+        oncomingNews= []
         for source in sources:
             try:
-                n_new_items = fetch_feed(db, source.id, limit=10) #Limitado a 10 par efectos de debugging
-                items = db.query(NewsItem).order_by(NewsItem.id.desc()).limit(n_new_items).all() #Los últimos introducidos
-
-                process_alerts_for_items(db, items)
+                n_new_items, items = fetch_feed(db, source.id, limit=10) #Limitado a 10 par efectos de debugging
+                oncomingNews.extend(items)
 
                 print(f"[FETCH] Source {source.id}: {n_new_items} new items")
             except Exception as e:
                 print(f"[ERROR] Source {source.id}: {e}")
+        
+        process_alerts_for_items(db, oncomingNews)
 
     finally:
         db.close()
 
 def process_alerts_for_items(db, items):
     alerts = db.query(Alert).filter(Alert.is_active == True).all()
+    try:
+        for item in items:
+            for alert in alerts:
+                if match_alert(alert, item):
+                    print(f"[MATCH] Alert {alert.id} matched News {item.id}") #Para Debugging, puede ser removido más tarde
+                    exists = db.query(AlertNews).filter_by(
+                            alert_id = alert.id,
+                            news_item_id = item.id).first()
 
-    for item in items:
-        for alert in alerts:
-            if match_alert(alert, item):
-                print(f"[MATCH] Alert {alert.id} matched News {item.id}")
-                exists = db.query(AlertNews).filter_by(
-                        alert_id = alert.id,
-                        news_item_id = item.id).first()
-
-                if not exists:
-                    db.add(AlertNews(
-                        alert_id=alert.id,
-                        news_item_id=item.id))
-                notify_user(alert)
+                    if not exists:
+                        db.add(AlertNews(
+                            alert_id=alert.id,
+                            news_item_id=item.id))
+                    notify_user(alert)
+                else:
+                    print(f"[NO MATCH] Alert {alert.id} No matched News") #Para Debugging, puede ser removido más tarde
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 def start_scheduler():
