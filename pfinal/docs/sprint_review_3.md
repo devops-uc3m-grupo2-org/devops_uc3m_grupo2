@@ -63,9 +63,23 @@ Archivo: `app/services/alertLogic.py`
 
 Archivo: `app/core/scheduler.py`
 
+En este archivo definimos el scheduler que se encargará de cada 5 minutos revisar realizar las tareas. Este inlcuye realizar un fetch para nueva noticias, identificar si las noticias corresponden a una alerta, almacenarlas en tal caso, y llamar a la función que realizará las notificaciones. Estas tareas se incluyeron en este archivo ya que se deben realizar periódicamente sin falta. 
+
 ### Función Principal
 
-### Comportamiento
+```def fetch_all_sources_job()```
+
+#### Comportamiento
+
+Se encarga de llamar a fetch_feed para cada source en la base de datos.
+
+Procede a guardar las noticias y después corre la función ```def process_alerts_for_items(db, items)```
+que para cada noticia identifica si pertenece a una alerta con ```match_alert(alert, item)```.
+
+Finalmente corre ```notify_user(alert)``` que enviará la notificación (a desarrollar más adelante).
+
+Asimismo tenemos una función start_scheduler que inicia este proceso y con ayuda de un cron, se específica que lo debe realizar cada 5 minutos.
+
 
 ---
 
@@ -79,6 +93,7 @@ Archivo: `app/core/scheduler.py`
 | DELETE | /api/v1/alerts/{alert_id}         |        Borrar Alerta             |
 | POST   | /api/v1/run-matching              | Prueba el almacenmiento de todas las <br> noticias por alerta  |
 | GET    | /api/v1/matchAlert/{alert_id}     | Permite ver las noticias guardada en una <br> alerta específica |
+| POST   | /api/v1/run-scheduler             | Identifica si el scheduler lanza algún error |
 
 
 ### Flujo de Prueba
@@ -223,3 +238,82 @@ y verificando que los IDs recibidos corresponden a noticias que contienen la pal
   ]
 }
 ```
+
+### Verificar funcionamiento de scheduler (**Importante**)
+Endpoint: `POST /api/v1/run-scheduler`
+
+Este endpoint es un poco largo ya que identifica el correcto funcionamiento de todo el programa de alertas. Específicamente se encarga de correr el scheduler de forma manual para verificar si realiza todo lo que debe. Para verificarlo, podemos crear una nueva alerta con una keyword frecuentes (como indicado anteriormente).
+
+Para asegurarnos que hayan noticias nuevas, podemos agregar un nuevo source con el endpoint `POST /api/v1/sources` de esta forma:
+
+**Ejemplo de Body**
+```json
+{
+  "name": "ACBAtleticoM",
+  "medium": "ABC",
+  "rss_url": "https://www.abc.es/rss/2.0/deportes/atletico-madrid/",
+  "iptc_category": "Deportes"
+}
+```
+
+**Respuesta Esperada**
+```json
+{
+  "id": 4,
+  "name": "ABCAtleticoM",
+  "rss_url": "https://www.abc.es/rss/2.0/deportes/atletico-madrid/"
+}
+```
+
+Posteriormente creamos una alert, con una keyword relacionada con el RSS (por ejemplo, RSS:ABCAtlecticoM -> Madrid).
+
+**Ejemplo de body:**
+```json
+{
+  "name": "AM",
+  "keyword": "madrid",
+  "iptc_category": "Deportes",
+  "user_id" : "Admin123" 
+}
+```
+Debemos observar cuál es su "id" para verificar el correcto funcionamiento más adelante (por ejemplo, id=1).
+
+Ahora para verificar el estado inicial de la tabla AlertNews, probamos `POST /api/v1/matchAlert/{alert_id}` con "alert_id = 1" y identificamos que no está en la misma, ya que no hemos empleado match_alert todavía:
+
+```json
+{
+  "detail": "Alert News not found"
+}
+```
+
+Finalmente, presionanos el "*Try it Once*" del endpoint `POST /api/v1/run-scheduler`. El scheduler se ejecuta de forma manual y este ejecuta de nuevo el ```match_alert()``` sobre todas las noticias nuevas. En caso de encontrar una alerta que coincida esta noticia debería introducirse en la tabla de AlertNews.
+
+**Respuesta Esperada**
+
+```json
+{
+   "status": "scheduler executed manually"
+}
+```
+Para verificar, probamos el endpoint the `POST /api/v1/matchAlert/{alert_id}` con "alert_id=1" de nuevo, y verificamos si aparecen las nuevas noticias coincidentes con la alerta, en caso tal, el scheduler está funcionando correctamente.
+
+**Respuesta Esperada**
+```json
+{
+  "alert_id": 1,
+  "news_ids": [
+    8,12,14
+  ]
+}
+```
+O en su defecto, si no aparece ninguna, miramos la terminal y debería aparecer esto:
+"""app-1      | [FETCH] Source 1: 0 new items
+app-1      | [FETCH] Source 2: 0 new items
+app-1      | [MATCH] Alert 1 No matched news
+app-1      | [MATCH] Alert 2 No matched news
+app-1      | [MATCH] Alert 3 No matched news
+app-1      | [FETCH] Source 3: 1 new items
+app-1      | [FETCH] Source 4: 0 new items
+app-1      | [FETCH] Source 5: 0 new items
+"
+Esto significa que ha ejecutado el match_alert pero no ha encontrado ninguna que coincida (Scheduler tmb correcto).

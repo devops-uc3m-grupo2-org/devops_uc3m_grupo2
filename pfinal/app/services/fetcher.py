@@ -8,6 +8,7 @@ from app.models.models import InformationSource, NewsItem
 
 
 def fetch_feed(db: Session, source_id: int, limit: int = 10) -> int:
+    created_items = []
     src = db.query(InformationSource).get(source_id)
     if not src:
         raise ValueError("Fuente no encontrada")
@@ -36,7 +37,9 @@ def fetch_feed(db: Session, source_id: int, limit: int = 10) -> int:
             source_id=src.id,
         )
         db.add(item)
+        created_items.append(item)
+        
         created += 1
 
     db.commit()
-    return created
+    return created, created_items
