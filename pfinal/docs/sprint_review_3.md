@@ -5,9 +5,9 @@ En este sprint se busca trabajar en el backend de **Newsradar** para agregar la 
 
 ---
 
-## Objetivos de Sprint 2
+## Objetivos de Sprint 3
 
-- Definir modelos para representar alertas
+- Definir modelos para representar alerta
 - Implementar un servicio que genere una alerta.
 - Implementar servicio que permita modificar, actualizar y ver las alertas.
 - Implementar un servicio que asigne noticia a alerta despendiendo de su contenido.
@@ -18,7 +18,8 @@ En este sprint se busca trabajar en el backend de **Newsradar** para agregar la 
   - Listar alerta.
   - Modificar alerta.
   - Borrar alerta.
-  - Verificar si noticia pertenece a alerta.
+  - Verificar si una noticia pertenece a alerta.
+  - Probar el scheduling
 
 ---
 
@@ -187,9 +188,11 @@ Para este endpoint debes insertar el id de una alerta y el valor que esperas mod
 ```
 
 **Respuesta esperada:**
+```json
 {
   "Alert 1": "updated"
 }
+```
 
 Para comprobar que la actualización se realizó correctamente, basta con volver a ejecutar el endpoint de "List Alerts" y verificar que el cambio se realizó.
 
@@ -201,9 +204,11 @@ Para este endpoint debes insertar el id de una alerta que deseas eliminar.
 ```alert_id : 1```
 
 **Respuesta esperada:**
+```json
 {
   "Alert 1": "deleted"
 }
+```
 
 En este caso, puedes comprobar si se ha borrado correctamente con List Alerts.
 
@@ -253,7 +258,7 @@ Para asegurarnos que hayan noticias nuevas, podemos agregar un nuevo source con 
 **Ejemplo de Body**
 ```json
 {
-  "name": "ACBAtleticoM",
+  "name": "ABCAtleticoM",
   "medium": "ABC",
   "rss_url": "https://www.abc.es/rss/2.0/deportes/atletico-madrid/",
   "iptc_category": "Deportes"
@@ -320,4 +325,4 @@ app-1      | [FETCH] Source 3: 1 new items
 app-1      | [FETCH] Source 4: 0 new items
 app-1      | [FETCH] Source 5: 0 new items
 "
-Esto significa que ha ejecutado el match_alert pero no ha encontrado ninguna que coincida (Scheduler tmb correcto).
+Esto significa que ha ejecutado el match_alert pero no ha encontrado ninguna que coincida (Scheduler también correcto).
