@@ -12,15 +12,13 @@ En este sprint se busca trabajar en el backend de **Newsradar** para agregar la 
 - Implementar servicio que permita modificar, actualizar y ver las alertas.
 - Implementar un servicio que asigne noticia a alerta despendiendo de su contenido.
 - Implementar servicio de Scheduling
-
-### Exponer endpoints REST para:
-
-- Crear alerta.
-- Listar alerta.
-- Modificar alerta.
-- Borrar alerta.
-- Verificar si una noticia pertenece a alerta.
-- Probar el scheduling
+-  Exponer endpoints REST para:
+  - Crear alerta.
+  - Listar alerta.
+  - Modificar alerta.
+  - Borrar alerta.
+  - Verificar si una noticia pertenece a alerta.
+  - Probar el scheduling
 
 ---
 
