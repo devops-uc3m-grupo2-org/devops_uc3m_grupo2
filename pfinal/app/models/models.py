@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Bool
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 import json
-
+from datetime import datetime, timezone
 
 class Role(Base):
     __tablename__ = "roles"
@@ -56,7 +56,7 @@ class Alert(Base):
     iptc_category = Column(String, nullable=False)
     cron_expression = Column(String, default="*/5 * * * *")  # cada 5 min
     is_active = Column(Boolean, default=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     #Cada Alert pertenece a un user, y un user puede tener varias alerts (alert.user y user.alerts)
     user = relationship("User", backref="alerts")
     #Un news_item puede pertenecer a varias alerts y una alert tener varios NewsItems
@@ -76,3 +76,20 @@ class AlertNews(Base):
     
     alert_id = Column(Integer, ForeignKey("alerts.id", ondelete="CASCADE"))
     news_item_id = Column(Integer, ForeignKey("news_items.id"))
+    # Para Categorizar utilizamos la categoría iptc de la alerta (a través de la Foreign Key)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True)
+
+    alert_id = Column(Integer, ForeignKey("alerts.id"))
+    news_item_id = Column(Integer, ForeignKey("news_items.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User")
+    subject = Column(String)
+    body = Column(Text)
+
+    status = Column(String, default="pending")  # pending, sent, failed
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    sent_at = Column(DateTime, nullable=True)

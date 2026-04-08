@@ -326,3 +326,21 @@ app-1      | [FETCH] Source 4: 0 new items
 app-1      | [FETCH] Source 5: 0 new items
 "
 Esto significa que ha ejecutado el match_alert pero no ha encontrado ninguna que coincida (Scheduler también correcto).
+
+**Nuevo Commit:** 
+El Scheduling funciona a excepción de las notificaciones, estas todavía presentan una imperfección, al correr el endpoint se recibirá un mensaje de error, pero al mirar la terminal se podrá identificar que realizá las tareas correctamente hasta los matchs 
+terminal```
+app-1  | [FETCH] Source 1: 0 new items
+app-1  | [FETCH] Source 2: 0 new items
+app-1  | [FETCH] Source 3: 10 new items
+app-1  | [MATCH] Alert 1 matched News 11
+app-1  | [MATCH] Alert 1 matched News 12
+app-1  | [MATCH] Alert 1 matched News 13
+app-1  | [MATCH] Alert 1 matched News 14
+app-1  | [MATCH] Alert 1 matched News 15
+app-1  | [MATCH] Alert 1 matched News 16
+app-1  | [MATCH] Alert 1 matched News 17
+app-1  | [MATCH] Alert 1 matched News 18
+app-1  | [MATCH] Alert 1 matched News 19
+app-1  | [MATCH] Alert 1 matched News 20
+```

@@ -329,7 +329,8 @@ def get_suggestions(keyword: str):
         "keyword": keyword,
         "suggestions": suggestions
     }
-@app.post("/api/v1/run-scheduler")
+
+@app.post("/api/v1/run-scheduler", tags= ["Scheduler"])
 def run_scheduler_manually():
     fetch_all_sources_job()
     return {"status": "scheduler executed manually"}
