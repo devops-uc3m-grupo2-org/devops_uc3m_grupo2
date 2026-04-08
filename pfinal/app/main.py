@@ -14,6 +14,7 @@ from app.models.models import User, Role, InformationSource, NewsItem, Alert, Al
 import feedparser
 from app.services.fetcher import fetch_feed
 from app.services.alertLogic import match_alert
+from app.services.ai import generate_synonyms
 from app.core.scheduler import start_scheduler
 
 load_dotenv()
@@ -65,7 +66,7 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-@app.post("/api/v1/auth/login")
+@app.post("/api/v1/auth/login",tags=["Auth"])
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -78,7 +79,7 @@ def health():
     return {"status": "ok", "message": "NewsRadar listo con PostgreSQL + JWT"}
 
 # CRUD mínimo de usuarios (Fase 1)
-@app.get("/api/v1/users")
+@app.get("/api/v1/users", tags=["Auth"])
 def list_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     return [
@@ -92,7 +93,7 @@ def list_users(db: Session = Depends(get_db)):
         for u in users
     ]
 
-@app.post("/api/v1/auth/register")
+@app.post("/api/v1/auth/register", tags=["Auth"])
 def register(user_payload: dict, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == user_payload.get("email")).first():
         raise HTTPException(status_code=409, detail="El email ya está registrado")
@@ -115,7 +116,7 @@ def register(user_payload: dict, db: Session = Depends(get_db)):
     }
 
 
-@app.post("/api/v1/sources")
+@app.post("/api/v1/sources", tags=["Sources"])
 def create_source(payload: dict = Body(...), db: Session = Depends(get_db)):
     if db.query(InformationSource).filter(InformationSource.rss_url == payload["rss_url"]).first():
         raise HTTPException(status_code=409, detail="La fuente ya existe")
@@ -130,7 +131,7 @@ def create_source(payload: dict = Body(...), db: Session = Depends(get_db)):
     db.refresh(src)
     return {"id": src.id, "name": src.name, "rss_url": src.rss_url}
 
-@app.get("/api/v1/sources")
+@app.get("/api/v1/sources", tags=["Sources"])
 def list_sources(db: Session = Depends(get_db)):
     sources = db.query(InformationSource).all()
     return [
@@ -145,7 +146,7 @@ def list_sources(db: Session = Depends(get_db)):
     ]
 
 
-@app.post("/api/v1/sources/{source_id}/fetch")
+@app.post("/api/v1/sources/{source_id}/fetch", tags=["Sources"])
 def fetch_source(source_id: int, db: Session = Depends(get_db), debug: bool = False):
     # Modo debug: devuelve metadata del feed y primer entry para diagnóstico
     src = db.query(InformationSource).get(source_id)
@@ -176,7 +177,7 @@ def fetch_source(source_id: int, db: Session = Depends(get_db), debug: bool = Fa
     return {"source_id": source_id, "new_items": created}
 
 
-@app.get("/api/v1/news")
+@app.get("/api/v1/news", tags=["News"])
 def list_news(db: Session = Depends(get_db)):
     items = db.query(NewsItem).order_by(NewsItem.published.desc()).limit(200).all()
     return [
@@ -200,7 +201,7 @@ def debug_list_routes():
     ]
 
 
-@app.post("/api/v1/alerts")
+@app.post("/api/v1/alerts", tags=["Alerts"])
 def create_alert(payload: dict = Body(...), db: Session = Depends(get_db)):
 
     alert = Alert(
@@ -224,7 +225,7 @@ def create_alert(payload: dict = Body(...), db: Session = Depends(get_db)):
         "synonyms": alert.get_synonyms(),
     }
 
-@app.get("/api/v1/alerts")
+@app.get("/api/v1/alerts", tags=["Alerts"])
 def list_alerts(db: Session = Depends(get_db)):
     alerts = db.query(Alert).all()
 
@@ -241,7 +242,7 @@ def list_alerts(db: Session = Depends(get_db)):
     ]
 
 
-@app.put("/api/v1/alerts/{alert_id}")
+@app.put("/api/v1/alerts/{alert_id}", tags=["Alerts"])
 def update_alert(alert_id: int, payload: dict, db: Session = Depends(get_db)):
 
     alert = db.query(Alert).get(alert_id)
@@ -262,7 +263,7 @@ def update_alert(alert_id: int, payload: dict, db: Session = Depends(get_db)):
     return {f"Alert {alert_id}": "updated"}
 
 
-@app.delete("/api/v1/alerts/{alert_id}")
+@app.delete("/api/v1/alerts/{alert_id}", tags=["Alerts"])
 def delete_alert(alert_id: int, db: Session = Depends(get_db)):
 
     alert = db.query(Alert).get(alert_id)
@@ -274,7 +275,7 @@ def delete_alert(alert_id: int, db: Session = Depends(get_db)):
 
     return {f"Alert {alert_id}": "deleted"}
 
-@app.post("/api/v1/run-matching")
+@app.post("/api/v1/run-matching", tags=["Alerts"])
 def run_matching(db: Session = Depends(get_db)):
 
     items = db.query(NewsItem).all()
@@ -299,7 +300,7 @@ def run_matching(db: Session = Depends(get_db)):
 
     return {"status": "matching executed"}
 
-@app.get("/api/v1/matchAlert/{alert_id}")
+@app.get("/api/v1/matchAlert/{alert_id}", tags=["Alerts"])
 def alert_match(alert_id: int, db: Session = Depends(get_db)):
 
     matching_news = db.query(AlertNews).filter(
@@ -312,4 +313,18 @@ def alert_match(alert_id: int, db: Session = Depends(get_db)):
     return {
         "alert_id": alert_id,
         "news_ids": [m.news_item_id for m in matching_news]
+    }
+
+# Starter del schdule, está comentaod para no arriesgar llenar la base de datos
+#@app.on_event("startup")
+#def startup_event():
+#    start_scheduler()
+
+
+@app.get("/api/v1/suggestions", tags=["AI"])
+def get_suggestions(keyword: str):
+    suggestions = generate_synonyms(keyword)
+    return {
+        "keyword": keyword,
+        "suggestions": suggestions
     }
