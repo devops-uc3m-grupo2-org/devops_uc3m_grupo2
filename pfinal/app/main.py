@@ -1,5 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -8,6 +11,7 @@ from dotenv import load_dotenv
 from fastapi import Body
 
 import os
+import pathlib
 
 from app.core.database import engine, Base, get_db
 from app.models.models import User, Role, InformationSource, NewsItem, Alert, AlertNews
@@ -20,6 +24,28 @@ from app.core.scheduler import start_scheduler, fetch_all_sources_job
 load_dotenv()
 
 app = FastAPI(title="NewsRadar API", version="1.0")
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files
+static_dir = pathlib.Path(__file__).parent.parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Root endpoint to serve frontend
+@app.get("/")
+async def root():
+    index_path = pathlib.Path(__file__).parent.parent / "static" / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"message": "NewsRadar API - Frontend en /static/index.html"}
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
