@@ -47,4 +47,19 @@ Este es un helper para crear una noticia al instante. En el proyecto las noticia
 |  test_fetch_source_not_found(client) | Prueba un fetch de un source inexistente|
 |  test_fetch_source_debug(client) |Crea un source y verifica si hace un <br>fetch correctamente|
 
+### test_news.py
+|               Test            |           Descripción                     |      
+| ------------------------------| ----------------------------------------- |
+|  test_list_news(client)      | Verifica si crea lista con las alertas| 
 
+### test_alerts.py
+| Test                          | Descripción                               |
+| ------------------------------| ----------------------------------------- |
+| test_create_alert(client) | Verifica que se puede crear una alerta correctamente con keyword, categoría IPTC y sinónimos, y que los datos se guardan bien |
+| test_create_and_list_alerts(client) | Crea una alerta y comprueba que aparece en el listado de alertas |
+| test_update_alert(client) | Verifica que se puede actualizar parcialmente una alerta existente (ej: nombre o estado) |
+| test_update_alert_persists(client) | Comprueba que los cambios en una alerta se mantienen al consultar el listado posteriormente |
+| test_create_and_delete_alert(client) | Crea una alerta, la elimina y verifica que ya no aparece en el listado |
+| test_delete_alert_not_found(client) | Verifica que eliminar una alerta inexistente devuelve un error 404 |
+| test_run_matching_creates_relations(client, create_news) | Inserta datos de prueba (news + alert), ejecuta el matching y comprueba que se crean relaciones entre alertas y noticias |
+| test_alert_match_not_found(client) | Verifica que consultar el matching de una alerta<br> inexistente devuelve un error 404 |
