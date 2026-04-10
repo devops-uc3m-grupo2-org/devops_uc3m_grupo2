@@ -69,7 +69,8 @@ def create_user(session):
         email= "prueba@gmail.com",
         first_name= "prueba",
         last_name= "pruebas",
-        organization= "si"
+        organization= "si",
+        hashed_password="ABCDEFGH"
     )
     session.add(n_user)
     session.commit()
