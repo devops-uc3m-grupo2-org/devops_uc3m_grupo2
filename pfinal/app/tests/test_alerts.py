@@ -6,7 +6,7 @@ def test_create_alert(client, create_user):
             "name": "Bitcoin Alert",
             "keyword": "bitcoin",
             "iptc_category": "Economía, negocios y finanzas",
-            "user_id": 1,
+            "user_id": user["id"],
             "synonyms": ["btc", "crypto"]
         }
     )
@@ -25,7 +25,7 @@ def test_create_and_list_alerts(client, create_user):
             "name": "Bitcoin Alert",
             "keyword": "bitcoin",
             "iptc_category": "Economía, negocios y finanzas",
-            "user_id": 1,
+            "user_id": user["id"],
             "synonyms": ["btc", "crypto"]
         }
     )
@@ -48,7 +48,7 @@ def test_update_alert(client, create_user):
             "name": "Test Alert",
             "keyword": "ai",
             "iptc_category": "Ciencias y tecnología",
-            "user_id": 1
+            "user_id": user["id"]
         }
     )
 
@@ -70,7 +70,7 @@ def test_update_alert_persists(client, create_user):
             "name": "Old Name",
             "keyword": "ai",
             "iptc_category": "Ciencias y Tecnología",
-            "user_id": 1
+            "user_id": user["id"]
         }
     )
 
@@ -96,7 +96,7 @@ def test_create_and_delete_alert(client, create_user):
             "name": "Delete Alert",
             "keyword": "delete",
             "iptc_category": "deportes",
-            "user_id": 1
+            "user_id": user["id"]
         }
     )
 
@@ -110,14 +110,13 @@ def test_create_and_delete_alert(client, create_user):
     assert all(a["id"] != alert_id for a in alerts)
 
 
-def test_delete_alert_not_found(client, create_user):
-    user = create_user
+def test_delete_alert_not_found(client):
     response = client.delete("/api/v1/alerts/999999")
 
     assert response.status_code == 404
 
-def test_run_matching_creates_relations(client, create_news):
-        
+def test_run_matching_creates_relations(client, create_news, create_user):
+    user = create_user
     source = client.post(
         "/api/v1/sources",
         json={
@@ -133,7 +132,7 @@ def test_run_matching_creates_relations(client, create_news):
             "name": "AMNews",
             "keyword": "Madrid",
             "iptc_category": "Deportes",
-            "user_id": 1,
+            "user_id": user["id"],
             "is_active": True
         }
     ).json()

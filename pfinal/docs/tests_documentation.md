@@ -26,6 +26,9 @@ Proporciona un cliente HTTP para probar la API como si fuera un usuario externo.
 ### def create_news()
 Este es un helper para crear una noticia al instante. En el proyecto las noticias se crean con el fetcher, pero los tests no pueden depender de datos externos (¿hay noticias nuevas?¿En tal caso, alguna coincide con la alerta?). Por este motivo se creó esta función que permite simular una noticia en la base de datos, y en los test utilizamos esta noticia para probar endpoints como el MatchAlert.
 
+### def create_user()
+Este es un helper que permite crear un usuario, para que funciones como el MatchAlert encuentre un user_id real y no de error.
+
 ## Tests
 
 ### test_health.py
