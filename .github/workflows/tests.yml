@@ -1,5 +1,6 @@
 name: FastAPI CI
 
+#En qué Acciones
 on:
   push:
   pull_request:
@@ -7,25 +8,50 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    #Levanta una base de datos PostgreSQL real dentro del runner de GitHub Actions
+    services:
+      postgres:
+        image: postgres:15
+        #Configura la base de datos inicial
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        #GitHub espera a que Postgres esté listo antes de correr tests, le decimos cada cuánto chequear, cuánto esperar el intento y cuántas veces intentar.
+        options: >-
+          --health-cmd="pg_isready -U test" 
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+          
     steps:
+      #Descarga el repositorio para poder usarlo
       - name: Checkout repo
         uses: actions/checkout@v4
-
+      #Configura Python
       - name: Set up Python
+      #Utiliza pip para acelerar ejecucción
         uses: actions/setup-python@v5
         with:
           python-version: 3.12
           cache: 'pip'
 
+      #Instala todo lo específicado en los requirements más función para mostrar cobertura del código
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r pfinal/requirements.txt
           pip install pytest pytest-cov
 
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=$PWD/pfinal" >> $GITHUB_ENV
+      #Define las variables de entorno del pipeline
+      #Añade el directorio al proyecto para que los imports sean correctos (hecho gracias a debugging)
+      - name: Set environment variables
+        run: |
+          echo "DATABASE_URL=postgresql://test:test@localhost:5432/test_db" >> $GITHUB_ENV
+          echo "PYTHONPATH=$PWD/pfinal" >> $GITHUB_ENV
 
+      #Corre los tests
       - name: Run tests
         run: pytest pfinal/app/tests -v --cov=app --cov-report=term

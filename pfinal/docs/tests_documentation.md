@@ -3,6 +3,8 @@
 ## Formato de los ficheros de los tests
 Importante, todos los ficheros de los tests deben seguir este formato `*_test.py` o `test_*.py` para que sea identificado por pytest y se ejecuten con el Continuous Integration (CI).
 
+En una primera instancia, y se puede observar en versión anterior en Github, se utilizó para los tests **SQLite**, al permitir un debugging más sencillo y ejecucción de forma local. Para ejecutar los tests tienes que cambiar en .env a "DATABASE_URL=sqlite:///./newsradar.db" y ejecutar en la terminal "python -m pytest pfinal/app/tests"
+
 ## Ubicación de los tests
 Todos los tests se encuentran divididos en ficheros en `app/tests`.
 
@@ -16,13 +18,16 @@ Se explicará el funcionamiento general, la explicación detallada de qué hace 
 Prepara la base de datos antes de ejecutar cualquier test y la limpia al final. Con los parámetros plantemoas que se ejecuta una sola vez en los tests, y que lo hace automáticamente (sin tener que llamarla).
 
 ### def session()
-Proporciona una sesión de base de datos aislada para tests que interactúan directamente con **SQLAlchemy**. Cada test recibe una sesión de base de datos independiente. Es importante resaltar que hace rollback al final, para asegurarse que cada test este aislado.
+Proporciona una sesión de base de datos aislada para tests que interactúan directamente con **PostgreSQL**. Cada test recibe una sesión de base de datos independiente. Es importante resaltar que hace rollback al final, para asegurarse que cada test este aislado.
 
 ### def client()
 Proporciona un cliente HTTP para probar la API como si fuera un usuario externo. Se encarga también de cambiar las dependencias para que los tests utilicen una base de datos local en vez a la real (que no se guarden las alertas y soruces que creemos). Permite testear los endpoints sin tocar la base de datos de producción.
 
 ### def create_news()
 Este es un helper para crear una noticia al instante. En el proyecto las noticias se crean con el fetcher, pero los tests no pueden depender de datos externos (¿hay noticias nuevas?¿En tal caso, alguna coincide con la alerta?). Por este motivo se creó esta función que permite simular una noticia en la base de datos, y en los test utilizamos esta noticia para probar endpoints como el MatchAlert.
+
+### def create_user()
+Este es un helper que permite crear un usuario, para que funciones como el MatchAlert encuentre un user_id real y no de error. Algunas tablas tienen como foreign key otras tablas, si no encuentrar la foreign key puede lanzar un error, así que "creamos una entrada" en esta tabla desde antes.
 
 ## Tests
 

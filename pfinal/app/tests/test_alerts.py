@@ -1,11 +1,12 @@
-def test_create_alert(client):
+def test_create_alert(client, create_user):
+    user = create_user
     response = client.post(
         "/api/v1/alerts",
         json={
             "name": "Bitcoin Alert",
             "keyword": "bitcoin",
             "iptc_category": "Economía, negocios y finanzas",
-            "user_id": 1,
+            "user_id": user.id,
             "synonyms": ["btc", "crypto"]
         }
     )
@@ -16,15 +17,15 @@ def test_create_alert(client):
     assert "btc" in data["synonyms"]
 
 
-def test_create_and_list_alerts(client):
-
+def test_create_and_list_alerts(client, create_user):
+    user = create_user
     client.post(
         "/api/v1/alerts",
         json={
             "name": "Bitcoin Alert",
             "keyword": "bitcoin",
             "iptc_category": "Economía, negocios y finanzas",
-            "user_id": 1,
+            "user_id": user.id,
             "synonyms": ["btc", "crypto"]
         }
     )
@@ -38,7 +39,8 @@ def test_create_and_list_alerts(client):
     assert any(a["keyword"] == "bitcoin" for a in alerts)
 
 
-def test_update_alert(client):
+def test_update_alert(client, create_user):
+    user = create_user
     # Crear alerta
     create = client.post(
         "/api/v1/alerts",
@@ -46,7 +48,7 @@ def test_update_alert(client):
             "name": "Test Alert",
             "keyword": "ai",
             "iptc_category": "Ciencias y tecnología",
-            "user_id": 1
+            "user_id": user.id
         }
     )
 
@@ -60,15 +62,15 @@ def test_update_alert(client):
     assert response.status_code == 200
 
 
-def test_update_alert_persists(client):
-
+def test_update_alert_persists(client, create_user):
+    user = create_user
     create = client.post(
         "/api/v1/alerts",
         json={
             "name": "Old Name",
             "keyword": "ai",
             "iptc_category": "Ciencias y Tecnología",
-            "user_id": 1
+            "user_id": user.id
         }
     )
 
@@ -86,15 +88,15 @@ def test_update_alert_persists(client):
 
     assert updated["name"] == "New Name"
 
-def test_create_and_delete_alert(client):
-
+def test_create_and_delete_alert(client, create_user):
+    user = create_user
     create = client.post(
         "/api/v1/alerts",
         json={
             "name": "Delete Alert",
             "keyword": "delete",
             "iptc_category": "deportes",
-            "user_id": 1
+            "user_id": user.id
         }
     )
 
@@ -113,8 +115,8 @@ def test_delete_alert_not_found(client):
 
     assert response.status_code == 404
 
-def test_run_matching_creates_relations(client, create_news):
-        
+def test_run_matching_creates_relations(client, create_news, create_user):
+    user = create_user
     source = client.post(
         "/api/v1/sources",
         json={
@@ -130,7 +132,7 @@ def test_run_matching_creates_relations(client, create_news):
             "name": "AMNews",
             "keyword": "Madrid",
             "iptc_category": "Deportes",
-            "user_id": 1,
+            "user_id": user.id,
             "is_active": True
         }
     ).json()
@@ -145,7 +147,8 @@ def test_run_matching_creates_relations(client, create_news):
     assert len(response.json()["news_ids"]) > 0
 
 
-def test_alert_match_not_found(client):
+def test_alert_match_not_found(client, create_user):
+    user = create_user
     response = client.get("/api/v1/matchAlert/999999")
 
     assert response.status_code == 404

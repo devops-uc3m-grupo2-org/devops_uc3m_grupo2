@@ -7,48 +7,30 @@ from app.core.database import Base, engine, get_db
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
-    #Crea todas las tablas definidas en los modelos
+    Base.metadata.drop_all(bind=engine)    # Crea tablas definidas en modelos en PostgreSQL
     Base.metadata.create_all(bind=engine)
-    #Ejecuta todos los tests
     yield
-    #Elimina las tablas después de los tests
     Base.metadata.drop_all(bind=engine)
-'''
-@pytest.fixture
-def session():
-    from app.core.database import SessionLocal
-    # Crea sesión
-    db = SessionLocal()
-    try:
-        # La entrega al test con yield
-        yield db
-        # Evita que los cambios persistan en los tests.
-        db.rollback()
-    finally:
-        # Cierra la sesión
-        db.close()
-'''
 
 @pytest.fixture
 def session():
     from app.core.database import SessionLocal
+
     # Crea enlace con la base de datos
     connection = engine.connect()
     # Todo lo que haga ahora es temporal
     transaction = connection.begin()
 
     db = SessionLocal(bind=connection)
-
+    #Comparte la sesión con los tests
     yield db
-
-    # Cierra la sesión
-    db.close()
     # Evita que los cambios persistan en los tests.
     transaction.rollback()
     connection.close()
+
+    # Cierra Conexión
+    db.close()
         
-
-
 @pytest.fixture
 def client(session):
     def override_get_db():
@@ -79,3 +61,19 @@ def create_news(session):
         return news
 
     return _create
+
+@pytest.fixture
+def create_user(session):
+    from app.models.models import User
+    n_user = User(id= 1,
+        email= "prueba@gmail.com",
+        first_name= "prueba",
+        last_name= "pruebas",
+        organization= "si",
+        hashed_password="ABCDEFGH"
+    )
+    session.add(n_user)
+    session.commit()
+    session.refresh(n_user)
+    return n_user
+    
