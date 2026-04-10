@@ -34,10 +34,28 @@ def test_create_source_duplicate(client):
 
 
 def test_list_sources(client):
+
+    created_source = client.post(
+        "/api/v1/sources",
+        json={
+            "name": "Test Source",
+            "rss_url": "http://test.com/rss",
+            "medium": "web"
+        }
+    )
+
+    assert created_source.status_code == 200
+
+    source_data = created_source.json()
+
     response = client.get("/api/v1/sources")
+
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+    sources = response.json()
+    assert any(s["id"] == source_data["id"] for s in sources)
 
 
 def test_fetch_source_not_found(client):

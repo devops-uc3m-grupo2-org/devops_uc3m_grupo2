@@ -113,7 +113,7 @@ def test_delete_alert_not_found(client):
 
     assert response.status_code == 404
 
-def test_run_matching_creates_relations(client, create_news, db_session):
+def test_run_matching_creates_relations(client, create_news):
         
     source = client.post(
         "/api/v1/sources",
