@@ -72,7 +72,7 @@ def create_user(session):
         organization= "si"
     )
     session.add(n_user)
-    session.commit(n_user)
+    session.commit()
     session.refresh(n_user)
     return n_user
     
