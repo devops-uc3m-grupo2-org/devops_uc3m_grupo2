@@ -61,3 +61,12 @@ def create_news(session):
         return news
 
     return _create
+
+@pytest.fixture
+def create_user(client):
+    user = client.post("/api/v1/users", json={
+        "username": "test",
+        "email": "test@test.com",
+        "password": "test"
+    }).json()
+    return user
