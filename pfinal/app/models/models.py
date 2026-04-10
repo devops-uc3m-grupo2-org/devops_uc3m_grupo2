@@ -43,7 +43,7 @@ class NewsItem(Base):
     published = Column(DateTime, nullable=True)
     source_id = Column(Integer, ForeignKey("information_sources.id"))
     source = relationship("InformationSource")
-    alerts = relationship("Alert", secondary="alert_news", passive_deletes=True) #Evita que python busque eliminar huerfanos, confía en el delete Cascade de alerts
+    alerts = relationship("Alert", secondary="alert_news", passive_deletes=True, overlaps="news_items") #Evita que python busque eliminar huerfanos, confía en el delete Cascade de alerts
 
 
 class Alert(Base):
@@ -60,7 +60,8 @@ class Alert(Base):
     #Cada Alert pertenece a un user, y un user puede tener varias alerts (alert.user y user.alerts)
     user = relationship("User", backref="alerts")
     #Un news_item puede pertenecer a varias alerts y una alert tener varios NewsItems
-    news_items = relationship("NewsItem", secondary="alert_news")
+    news_items = relationship("NewsItem", secondary="alert_news", overlaps="alerts")
+
 
     #Para la generación de sinónimos
     def get_synonyms(self):
