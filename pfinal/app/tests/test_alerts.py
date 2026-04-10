@@ -6,7 +6,7 @@ def test_create_alert(client, create_user):
             "name": "Bitcoin Alert",
             "keyword": "bitcoin",
             "iptc_category": "Economía, negocios y finanzas",
-            "user_id": user["id"],
+            "user_id": user.id,
             "synonyms": ["btc", "crypto"]
         }
     )
@@ -25,7 +25,7 @@ def test_create_and_list_alerts(client, create_user):
             "name": "Bitcoin Alert",
             "keyword": "bitcoin",
             "iptc_category": "Economía, negocios y finanzas",
-            "user_id": user["id"],
+            "user_id": user.id,
             "synonyms": ["btc", "crypto"]
         }
     )
@@ -48,7 +48,7 @@ def test_update_alert(client, create_user):
             "name": "Test Alert",
             "keyword": "ai",
             "iptc_category": "Ciencias y tecnología",
-            "user_id": user["id"]
+            "user_id": user.id
         }
     )
 
@@ -70,7 +70,7 @@ def test_update_alert_persists(client, create_user):
             "name": "Old Name",
             "keyword": "ai",
             "iptc_category": "Ciencias y Tecnología",
-            "user_id": user["id"]
+            "user_id": user.id
         }
     )
 
@@ -96,7 +96,7 @@ def test_create_and_delete_alert(client, create_user):
             "name": "Delete Alert",
             "keyword": "delete",
             "iptc_category": "deportes",
-            "user_id": user["id"]
+            "user_id": user.id
         }
     )
 
@@ -132,7 +132,7 @@ def test_run_matching_creates_relations(client, create_news, create_user):
             "name": "AMNews",
             "keyword": "Madrid",
             "iptc_category": "Deportes",
-            "user_id": user["id"],
+            "user_id": user.id,
             "is_active": True
         }
     ).json()
