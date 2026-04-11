@@ -6,8 +6,28 @@ from email.message import EmailMessage
 
 from sqlalchemy.orm import joinedload
 
-def notify_user(db):
+def create_notification(db, alert, item):
+
+    exists = db.query(Notification).filter_by(
+        alert_id=alert.id,
+        news_item_id=item.id,
+        user_id=alert.user_id
+    ).first()
+
+    if exists:
+        return
     
+    notification = Notification(
+        alert_id=alert.id,
+        news_item_id=item.id,
+        user_id=alert.user_id,
+        subject=f"Actualización de {alert.name}",
+        body=build_email_body(alert, item),
+        status="pending")
+    
+    db.add(notification)
+
+def notify_user(db):
     pending = (
     db.query(Notification)
     .options(joinedload(Notification.user))

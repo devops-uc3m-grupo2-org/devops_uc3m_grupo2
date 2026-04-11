@@ -10,12 +10,14 @@ from fastapi import Body
 import os
 
 from app.core.database import engine, Base, get_db
-from app.models.models import User, Role, InformationSource, NewsItem, Alert, AlertNews
+from app.models.models import User, Role, InformationSource, NewsItem, Alert, AlertNews, Notification
 import feedparser
 from app.services.fetcher import fetch_feed
 from app.services.alertLogic import match_alert
 from app.services.ai import generate_synonyms
 from app.core.scheduler import start_scheduler, fetch_all_sources_job
+from app.services.notifications import notify_user
+
 
 load_dotenv()
 
@@ -329,6 +331,34 @@ def get_suggestions(keyword: str):
         "keyword": keyword,
         "suggestions": suggestions
     }
+
+
+@app.get("/api/v1/get-notifications", tags=["Notifications"])
+def get_notifications(db: Session = Depends(get_db)):
+
+    notifications = db.query(Notification).all()
+
+    return [
+        {
+            "id": n.id,
+            "user_id": n.user_id,
+            "subject": n.subject,
+            "status": n.status,
+            "created_at": n.created_at,
+            "sent_at": n.sent_at
+        }
+        for n in notifications
+    ]
+
+@app.post("/api/v1/notifications/send", tags=["Notifications"])
+def send_pending_notifications(db: Session = Depends(get_db)):
+
+    notify_user(db)
+    db.commit()
+
+    return {"status": "pending notifications sent"}
+
+
 
 @app.post("/api/v1/run-scheduler", tags= ["Scheduler"])
 def run_scheduler_manually():

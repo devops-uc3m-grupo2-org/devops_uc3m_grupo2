@@ -77,3 +77,20 @@ def create_user(session):
     session.refresh(n_user)
     return n_user
     
+@pytest.fixture
+def create_alert(session):
+    def _create(userId):
+        from app.models.models import Alert
+        alert = Alert(
+            name="Test Alert",
+            keyword="Madrid",
+            iptc_category="Deportes",
+            user_id= userId,
+            is_active=True
+        )
+        session.add(alert)
+        session.commit()
+        session.refresh(alert)
+        return alert
+    return _create
+    

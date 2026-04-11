@@ -2,7 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.core.database import SessionLocal
 from app.models.models import InformationSource, NewsItem, Alert, AlertNews, Notification
 from app.services.fetcher import fetch_feed
-from app.services.notifications import notify_user, build_email_body
+from app.services.notifications import notify_user, create_notification, build_email_body
 from app.services.alertLogic import match_alert
 import datetime
 
@@ -46,21 +46,12 @@ def process_alerts_for_items(db, items):
                             news_item_id=item.id)
                         db.add(alert_new)
 
-                        notification = Notification(
-                            alert_id=alert.id,
-                            news_item_id=item.id,
-                            user_id=alert.user_id,
-                            subject=f"Actualización de {alert.name}",
-                            body=build_email_body(alert, item),
-                            status="pending")
-                        db.add(notification)
+                        create_notification(db, alert, item)
                 else:
                     print(f"[NO MATCH] Alert {alert.id} No matched News") #Para Debugging, puede ser removido más tarde
-
-        notify_user(db)
         db.commit()
-
         notify_user(db)
+
     except Exception as e:
         db.rollback()
         raise e
