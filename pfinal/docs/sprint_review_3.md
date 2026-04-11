@@ -96,8 +96,8 @@ Asimismo tenemos una función start_scheduler que inicia este proceso y con ayud
 | POST   | /api/v1/alerts                    |        Crear alerta              |
 | PUT    | /api/v1/alerts/{alert_id}         |        Actualizar alerta         |
 | DELETE | /api/v1/alerts/{alert_id}         |        Borrar Alerta             |
-| POST   | /api/v1/run-matching              | Prueba el almacenamiento de todas las <br> noticias por alerta  |
-| GET    | /api/v1/matchAlert/{alert_id}     | Permite ver las noticias guardada en una <br> alerta específica |
+| POST   | /api/v1/run-matching              | Prueba el almacenamiento de todas las noticias por alerta  |
+| GET    | /api/v1/matchAlert/{alert_id}     | Permite ver las noticias guardada en una alerta específica |
 | POST   | /api/v1/run-scheduler             | Identifica si el scheduler lanza algún error |
 
 

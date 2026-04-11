@@ -1,6 +1,10 @@
 import os
-import google.generativeai as genai
+import google.genai as genai
 
+
+def generate_synonyms(keyword: str) -> list[str]:
+    return "Generating Synonyms"
+'''
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def generate_synonyms(keyword: str) -> list[str]:
@@ -15,3 +19,4 @@ def generate_synonyms(keyword: str) -> list[str]:
     text = response.text
 
     return [t.strip().lower() for t in text.split(",") if t.strip()]
+    '''
