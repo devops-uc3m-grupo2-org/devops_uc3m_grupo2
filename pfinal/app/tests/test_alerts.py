@@ -115,16 +115,9 @@ def test_delete_alert_not_found(client):
 
     assert response.status_code == 404
 
-def test_run_matching_creates_relations(client, create_news, create_user):
+def test_run_matching_creates_relations(client, create_news, create_user, create_source):
     user = create_user
-    source = client.post(
-        "/api/v1/sources",
-        json={
-            "name": "Test Source",
-            "rss_url": "http://test.com/rss",
-            "medium": "web"
-        }
-    ).json()
+    source = create_source
 
     alert = client.post(
         "/api/v1/alerts",
@@ -137,7 +130,7 @@ def test_run_matching_creates_relations(client, create_news, create_user):
         }
     ).json()
 
-    create_news(source["id"])
+    create_news(source.id)
 
     client.post("/api/v1/run-matching")
 
@@ -147,8 +140,8 @@ def test_run_matching_creates_relations(client, create_news, create_user):
     assert len(response.json()["news_ids"]) > 0
 
 
-def test_alert_match_not_found(client, create_user):
-    user = create_user
+def test_alert_match_not_found(client):
+    
     response = client.get("/api/v1/matchAlert/999999")
 
     assert response.status_code == 404

@@ -42,6 +42,18 @@ def client(session):
     #aislamiento
     app.dependency_overrides.clear()
 
+@pytest.fixture
+def create_source(session):
+    from app.models.models import InformationSource
+    source = InformationSource(
+        name="Test Source",
+        rss_url="http://test.com/rss",
+        medium="web"
+    )
+    session.add(source)
+    session.commit()
+    session.refresh(source)
+    return source
 
 @pytest.fixture
 def create_news(session):

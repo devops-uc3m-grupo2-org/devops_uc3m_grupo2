@@ -2,11 +2,13 @@ from app.models.models import Notification
 from app.services.notifications import notify_user, create_notification
 
 #Test capa DB, no de endpoint
-def test_create_notification(session, create_user, create_news, create_alert):
+def test_create_notification(session, create_user, create_news, create_alert, create_source):
     user = create_user
 
-    source_id = 1  # o crea source si lo necesitas
-    news = create_news(source_id)
+    from app.models.models import InformationSource
+
+    source = create_source
+    news = create_news(source.id)
     alert = create_alert(user.id)
 
     create_notification(session, alert, news)
@@ -19,16 +21,19 @@ def test_create_notification(session, create_user, create_news, create_alert):
     assert notifications[0].user_id == user.id
     assert notifications[0].news_item_id == news.id
 
-def test_get_notifications_returns_created_notification(
+#Endpoint test
+def test_list_notification(
     client,
     session,
     create_user,
     create_news,
-    create_alert
+    create_alert,
+    create_source
 ):
     user = create_user
+    source = create_source
 
-    news = create_news(source_id=1)
+    news = create_news(source.id)
     alert = create_alert(user.id)
 
     from app.models.models import Notification
