@@ -1,25 +1,21 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NewsRadar - Monitor de Noticias Inteligente</title>
+    <title>NewsRadar</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Navbar -->
         <nav class="navbar">
             <div class="navbar-content">
                 <div class="navbar-brand">
-                    <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
-                    </svg>
+                    <span class="logo">🛰️</span>
                     <span>NewsRadar</span>
                 </div>
                 <div class="navbar-menu">
-                    <button class="nav-item" onclick="window.open('/docs', '_blank')">📚 API Docs</button>
-                    <button class="nav-item" onclick="app.showSection('dashboard')">Dashboard</button>
+                    <button class="nav-item" onclick="app.showSection('dashboard')">Resumen</button>
                     <button class="nav-item" onclick="app.showSection('sources')">Fuentes</button>
                     <button class="nav-item" onclick="app.showSection('alerts')">Alertas</button>
                     <button class="nav-item" onclick="app.showSection('news')">Noticias</button>
@@ -28,19 +24,12 @@
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Login Section -->
-            <div id="login-section" class="section active">
+        <main class="main-content">
+            <section id="login-page" class="section active">
                 <div class="login-container">
-                    <div class="login-box">
-                        <div class="login-header">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
-                            </svg>
-                            <h1>NewsRadar</h1>
-                            <p>Monitor de Noticias Inteligente</p>
-                        </div>
+                    <div class="login-card">
+                        <h1>Iniciar sesión</h1>
+                        <p>Usa el usuario admin para entrar rápidamente.</p>
                         <form onsubmit="app.login(event)">
                             <div class="form-group">
                                 <label>Email</label>
@@ -50,174 +39,160 @@
                                 <label>Contraseña</label>
                                 <input type="password" id="login-password" placeholder="admin123" required>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-full">Iniciar Sesión</button>
-                            <div class="login-footer">
-                                <p>Credenciales por defecto: admin@newsradar.com / admin123</p>
-                            </div>
+                            <button type="submit" class="btn btn-primary btn-full">Iniciar sesión</button>
                         </form>
+                        <div class="login-footer">
+                            <p>Credenciales: admin@newsradar.com / admin123</p>
+                        </div>
                         <div id="login-error" class="error-message"></div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Dashboard Section -->
-            <div id="dashboard-section" class="section">
+            <section id="dashboard-page" class="section">
                 <div class="section-header">
-                    <h2>Dashboard</h2>
-                    <p>Estado general del sistema</p>
+                    <div>
+                        <h2>Resumen rápido</h2>
+                        <p>Operaciones principales disponibles al instante.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="app.loadDashboardData()">Actualizar</button>
                 </div>
                 <div class="dashboard-grid">
                     <div class="stat-card">
                         <div class="stat-icon">📡</div>
-                        <div class="stat-content">
+                        <div>
                             <div class="stat-value" id="stat-sources">0</div>
-                            <div class="stat-label">Fuentes RSS</div>
+                            <div class="stat-label">Fuentes</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">🔔</div>
-                        <div class="stat-content">
+                        <div>
                             <div class="stat-value" id="stat-alerts">0</div>
-                            <div class="stat-label">Alertas Activas</div>
+                            <div class="stat-label">Alertas activas</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">📰</div>
-                        <div class="stat-content">
+                        <div>
                             <div class="stat-value" id="stat-news">0</div>
-                            <div class="stat-label">Noticias Recientes</div>
+                            <div class="stat-label">Noticias</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">✅</div>
-                        <div class="stat-content">
-                            <div class="stat-value" id="stat-health">-</div>
-                            <div class="stat-label">Estado API</div>
+                        <div>
+                            <div class="stat-value" id="stat-health">...</div>
+                            <div class="stat-label">API</div>
                         </div>
                     </div>
                 </div>
-                <div class="action-cards">
-                    <div class="action-card">
-                        <h3>Acciones Rápidas</h3>
-                        <button class="btn btn-secondary" onclick="app.runMatching()">
-                            <span>⚡</span> Ejecutar Matching
-                        </button>
-                        <button class="btn btn-secondary" onclick="app.runScheduler()">
-                            <span>🔄</span> Ejecutar Scheduler
-                        </button>
-                    </div>
-                </div>
-            </div>
+            </section>
 
-            <!-- Sources Section -->
-            <div id="sources-section" class="section">
+            <section id="sources-page" class="section">
                 <div class="section-header">
-                    <h2>Gestionar Fuentes RSS</h2>
-                    <button class="btn btn-primary" onclick="app.toggleForm('add-source')">+ Nueva Fuente</button>
+                    <div>
+                        <h2>Fuentes RSS</h2>
+                        <p>Agrega y sincroniza tus fuentes de noticias.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.toggleForm('add-source')">+ Nueva fuente</button>
                 </div>
-
-                <!-- Add Source Form -->
                 <div id="add-source-form" class="form-container hidden">
-                    <h3>Agregar Nueva Fuente</h3>
+                    <h3>Agregar nueva fuente</h3>
                     <form onsubmit="app.createSource(event)">
                         <div class="form-group">
-                            <label>Nombre de la Fuente</label>
+                            <label>Nombre</label>
                             <input type="text" id="source-name" placeholder="BBC News" required>
                         </div>
                         <div class="form-group">
                             <label>Medio</label>
-                            <input type="text" id="source-medium" placeholder="Periódico, Agencia, etc." required>
+                            <input type="text" id="source-medium" placeholder="BBC" required>
                         </div>
                         <div class="form-group">
                             <label>URL RSS</label>
-                            <input type="url" id="source-rss-url" placeholder="https://feeds.bbc.co.uk/news/rss.xml" required>
+                            <input type="url" id="source-rss-url" placeholder="https://..." required>
                         </div>
                         <div class="form-group">
-                            <label>Categoría IPTC</label>
-                            <input type="text" id="source-iptc" placeholder="politics, sports, technology, etc.">
+                            <label>Categoría</label>
+                            <input type="text" id="source-iptc" placeholder="politics, technology">
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Crear Fuente</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
                             <button type="button" class="btn btn-secondary" onclick="app.toggleForm('add-source')">Cancelar</button>
                         </div>
                     </form>
                 </div>
-
-                <!-- Sources List -->
-                <div class="sources-list" id="sources-list">
+                <div class="list-grid" id="sources-list">
                     <div class="empty-state">
-                        <p>No hay fuentes configuradas. ¡Crea una nueva!</p>
+                        <p>No hay fuentes cargadas.</p>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Alerts Section -->
-            <div id="alerts-section" class="section">
+            <section id="alerts-page" class="section">
                 <div class="section-header">
-                    <h2>Gestionar Alertas</h2>
-                    <button class="btn btn-primary" onclick="app.toggleForm('add-alert')">+ Nueva Alerta</button>
+                    <div>
+                        <h2>Alertas</h2>
+                        <p>Configura alertas para tus palabras clave.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.toggleForm('add-alert')">+ Nueva alerta</button>
                 </div>
-
-                <!-- Add Alert Form -->
                 <div id="add-alert-form" class="form-container hidden">
-                    <h3>Crear Nueva Alerta</h3>
+                    <h3>Crear alerta</h3>
                     <form onsubmit="app.createAlert(event)">
                         <div class="form-group">
-                            <label>Nombre de la Alerta</label>
-                            <input type="text" id="alert-name" placeholder="Mi Alerta Importante" required>
+                            <label>Nombre</label>
+                            <input type="text" id="alert-name" placeholder="Alerta tecnología" required>
                         </div>
                         <div class="form-group">
-                            <label>Palabra Clave Principal</label>
+                            <label>Palabra clave</label>
                             <input type="text" id="alert-keyword" placeholder="tecnología" required>
-                            <button type="button" class="btn btn-small" onclick="app.getSuggestions()">Sugerencias IA</button>
                         </div>
                         <div class="form-group">
-                            <label>Sinónimos (separados por comas)</label>
-                            <input type="text" id="alert-synonyms" placeholder="tech, innovation, digital">
-                            <small id="synonym-suggestions"></small>
+                            <label>Sinónimos</label>
+                            <input type="text" id="alert-synonyms" placeholder="tech, innovation">
                         </div>
                         <div class="form-group">
                             <label>Categoría IPTC</label>
-                            <input type="text" id="alert-iptc" placeholder="technology">
+                            <input type="text" id="alert-iptc" placeholder="technology" required>
                         </div>
                         <div class="form-group">
-                            <label>Expresión Cron (Scheduler)</label>
+                            <label>Cron</label>
                             <input type="text" id="alert-cron" placeholder="*/5 * * * *" value="*/5 * * * *">
-                            <small>*/5 * * * * = cada 5 minutos</small>
                         </div>
                         <div class="form-group">
-                            <label>ID de Usuario</label>
+                            <label>ID de usuario</label>
                             <input type="number" id="alert-user-id" placeholder="1" value="1" required>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Crear Alerta</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
                             <button type="button" class="btn btn-secondary" onclick="app.toggleForm('add-alert')">Cancelar</button>
                         </div>
                     </form>
                 </div>
-
-                <!-- Alerts List -->
-                <div class="alerts-list" id="alerts-list">
+                <div class="list-grid" id="alerts-list">
                     <div class="empty-state">
-                        <p>No hay alertas configuradas. ¡Crea una nueva!</p>
+                        <p>No hay alertas configuradas.</p>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- News Section -->
-            <div id="news-section" class="section">
+            <section id="news-page" class="section">
                 <div class="section-header">
-                    <h2>Noticias Recientes</h2>
-                    <button class="btn btn-primary" onclick="app.refreshNews()">🔄 Actualizar</button>
+                    <div>
+                        <h2>Noticias recientes</h2>
+                        <p>Noticias extraídas de tus fuentes RSS.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.refreshNews()">Actualizar</button>
                 </div>
-
                 <div class="news-list" id="news-list">
-                    <div class="loading">Cargando noticias...</div>
+                    <div class="empty-state">
+                        <p>No hay noticias disponibles.</p>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
+        </main>
 
-        <!-- Toast Notifications -->
         <div id="toast-container"></div>
     </div>
 
