@@ -1,4 +1,5 @@
 # NewsRadar - Fase 1
+La API estará disponible en: `http://localhost:8000`
 
 ## Cómo ejecutar
 
