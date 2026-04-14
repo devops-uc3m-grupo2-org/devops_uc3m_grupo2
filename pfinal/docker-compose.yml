@@ -24,6 +24,7 @@ services:
       - db
     volumes:
       - ./app:/app/app
+      - ./static:/app/static
 
   pgadmin:
     image: dpage/pgadmin4
