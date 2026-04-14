@@ -163,7 +163,7 @@ const app = {
 
     async fetchSourceNews(sourceId) {
         try {
-            const result = await this.fetchAPI(`/sources/${sourceId}/fetch`);
+            const result = await this.fetchAPI(`/sources/${sourceId}/fetch`, 'POST');
             this.toast(`${result.new_items} noticias sincronizadas`, 'success');
             this.loadDashboardData();
         } catch (error) {
