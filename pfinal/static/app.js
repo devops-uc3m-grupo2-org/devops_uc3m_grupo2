@@ -1,39 +1,38 @@
-﻿const API_URL = '/api/v1';
+﻿// 1. URL base limpia
+// Si el backend se expone mediante el servicio Docker `newsradar_api`, puedes definir
+// window.NEWSRADAR_API_URL = 'http://newsradar_api:8000/api/v1' desde el HTML o la configuración.
+const API_URL = window.NEWSRADAR_API_URL || '/api/v1'; 
 
 const app = {
     token: localStorage.getItem('token'),
+    userID: 1, // ID por defecto para las rutas jerárquicas /users/1/...
 
     async init() {
         if (this.token) {
+            this.showNavbar();
             this.showSection('dashboard');
             await this.loadDashboardData();
         } else {
+            this.hideNavbar();
             this.showSection('login');
         }
     },
 
+    // --- AUTENTICACIÓN ---
     async login(event) {
         event.preventDefault();
         const email = document.getElementById('login-email').value.trim();
         const password = document.getElementById('login-password').value;
         const errorDiv = document.getElementById('login-error');
 
-        errorDiv.classList.remove('show');
-        errorDiv.textContent = '';
-
         try {
-            const payload = new URLSearchParams();
-            payload.append('username', email);
-            payload.append('password', password);
-
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
-                body: payload,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: password }),
             });
 
-            if (!response.ok) {
-                throw new Error('Credenciales inválidas');
-            }
+            if (!response.ok) throw new Error('Credenciales inválidas');
 
             const data = await response.json();
             this.token = data.access_token;
@@ -41,11 +40,8 @@ const app = {
 
             this.toast('Sesión iniciada', 'success');
             this.showSection('dashboard');
-            await this.loadDashboardData();
-            document.getElementById('login-email').value = '';
-            document.getElementById('login-password').value = '';
-        } catch (error) {
-            errorDiv.textContent = error.message;
+        } catch (err) {
+            errorDiv.textContent = err.message;
             errorDiv.classList.add('show');
         }
     },
@@ -53,269 +49,84 @@ const app = {
     logout() {
         this.token = null;
         localStorage.removeItem('token');
+        this.hideNavbar();
         this.showSection('login');
-        this.toast('Sesión cerrada', 'success');
+        this.toast('Sesión cerrada correctamente');
     },
 
+    showNavbar() {
+        document.querySelector('.navbar')?.classList.add('show');
+    },
+
+    hideNavbar() {
+        document.querySelector('.navbar')?.classList.remove('show');
+    },
+
+    // --- NAVEGACIÓN Y UI ---
     showSection(sectionId) {
-        document.querySelectorAll('.section').forEach(section => {
-            section.classList.remove('active');
-        });
+        // Ocultar todas las secciones
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        
+        // Mostrar la sección seleccionada
+        const section = document.getElementById(sectionId);
+        if (section) section.classList.add('active');
 
-        const section = document.getElementById(`${sectionId}-page`);
-        if (section) {
-            section.classList.add('active');
-        }
-
-        const navbar = document.querySelector('.navbar');
         if (sectionId === 'login') {
-            navbar.classList.remove('show');
+            this.hideNavbar();
         } else {
-            navbar.classList.add('show');
+            this.showNavbar();
         }
 
-        if (sectionId === 'dashboard') {
-            this.loadDashboardData();
-        }
-        if (sectionId === 'sources') {
-            this.loadSources();
-        }
-        if (sectionId === 'alerts') {
-            this.loadAlerts();
-        }
-        if (sectionId === 'news') {
-            this.loadNews();
-        }
-    },
-
-    async loadDashboardData() {
-        try {
-            const [health, sources, alerts, news] = await Promise.all([
-                this.fetchAPI('/health'),
-                this.fetchAPI('/sources'),
-                this.fetchAPI('/alerts'),
-                this.fetchAPI('/news'),
-            ]);
-
-            document.getElementById('stat-health').textContent = health.status === 'ok' ? '✅ OK' : '❌ Error';
-            document.getElementById('stat-sources').textContent = sources.length;
-            document.getElementById('stat-alerts').textContent = alerts.filter(a => a.is_active).length;
-            document.getElementById('stat-news').textContent = news.length;
-        } catch (error) {
-            console.error('Dashboard error:', error);
-            this.toast('Error al cargar el resumen', 'error');
-        }
-    },
-
-    async loadSources() {
-        try {
-            const sources = await this.fetchAPI('/sources');
-            const container = document.getElementById('sources-list');
-            if (!sources.length) {
-                container.innerHTML = '<div class="empty-state"><p>No hay fuentes cargadas.</p></div>';
-                return;
-            }
-
-            container.innerHTML = sources.map(source => `
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <div class="card-title">${this.escapeHtml(source.name)}</div>
-                            <div class="card-subtitle">${this.escapeHtml(source.medium)}</div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <strong>URL:</strong> <a href="${this.escapeHtml(source.rss_url)}" target="_blank">Ver feed</a><br>
-                        <strong>Categoría:</strong> ${this.escapeHtml(source.iptc_category || 'N/A')}<br>
-                        <strong>ID:</strong> ${source.id}
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn btn-secondary" onclick="app.fetchSourceNews(${source.id})">Sincronizar</button>
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            console.error('Sources error:', error);
-            this.toast('Error al cargar fuentes', 'error');
-        }
-    },
-
-    async createSource(event) {
-        event.preventDefault();
-        try {
-            const payload = {
-                name: document.getElementById('source-name').value,
-                medium: document.getElementById('source-medium').value,
-                rss_url: document.getElementById('source-rss-url').value,
-                iptc_category: document.getElementById('source-iptc').value,
-            };
-
-            await this.fetchAPI('/sources', 'POST', payload);
-            this.toast('Fuente creada', 'success');
-            this.toggleForm('add-source');
-            document.querySelector('#add-source-form form').reset();
-            this.loadSources();
-        } catch (error) {
-            console.error('Create source error:', error);
-            this.toast('No se pudo crear la fuente', 'error');
-        }
-    },
-
-    async fetchSourceNews(sourceId) {
-        try {
-            const result = await this.fetchAPI(`/sources/${sourceId}/fetch`, 'POST');
-            this.toast(`${result.new_items} noticias sincronizadas`, 'success');
-            this.loadDashboardData();
-        } catch (error) {
-            console.error('Fetch news error:', error);
-            this.toast('Error al sincronizar fuente', 'error');
-        }
-    },
-
-    async loadAlerts() {
-        try {
-            const alerts = await this.fetchAPI('/alerts');
-            const container = document.getElementById('alerts-list');
-            if (!alerts.length) {
-                container.innerHTML = '<div class="empty-state"><p>No hay alertas configuradas.</p></div>';
-                return;
-            }
-
-            container.innerHTML = alerts.map(alert => `
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <div class="card-title">${this.escapeHtml(alert.name)}</div>
-                            <div class="card-subtitle">${this.escapeHtml(alert.keyword)}</div>
-                        </div>
-                        <span class="card-status ${alert.is_active ? 'active' : 'inactive'}">${alert.is_active ? 'Activa' : 'Inactiva'}</span>
-                    </div>
-                    <div class="card-body">
-                        <strong>Sinónimos:</strong> ${this.escapeHtml(alert.synonyms.join(', ') || 'Ninguno')}<br>
-                        <strong>Categoría:</strong> ${this.escapeHtml(alert.iptc_category || 'N/A')}<br>
-                        <strong>ID:</strong> ${alert.id}
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn btn-secondary" onclick="app.toggleAlertStatus(${alert.id}, ${!alert.is_active})">${alert.is_active ? 'Desactivar' : 'Activar'}</button>
-                        <button class="btn btn-secondary" onclick="app.deleteAlert(${alert.id})">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            console.error('Alerts error:', error);
-            this.toast('Error al cargar alertas', 'error');
-        }
-    },
-
-    async createAlert(event) {
-        event.preventDefault();
-        try {
-            const payload = {
-                name: document.getElementById('alert-name').value,
-                keyword: document.getElementById('alert-keyword').value,
-                synonyms: document.getElementById('alert-synonyms').value
-                    .split(',')
-                    .map(item => item.trim())
-                    .filter(Boolean),
-                iptc_category: document.getElementById('alert-iptc').value,
-                cron_expression: document.getElementById('alert-cron').value,
-                user_id: Number(document.getElementById('alert-user-id').value),
-            };
-
-            await this.fetchAPI('/alerts', 'POST', payload);
-            this.toast('Alerta creada', 'success');
-            this.toggleForm('add-alert');
-            document.querySelector('#add-alert-form form').reset();
-            this.loadAlerts();
-        } catch (error) {
-            console.error('Create alert error:', error);
-            this.toast('No se pudo crear la alerta', 'error');
-        }
-    },
-
-    async toggleAlertStatus(alertId, isActive) {
-        try {
-            await this.fetchAPI(`/alerts/${alertId}`, 'PUT', { is_active: isActive });
-            this.toast(isActive ? 'Alerta activada' : 'Alerta desactivada', 'success');
-            this.loadAlerts();
-        } catch (error) {
-            console.error('Toggle alert error:', error);
-            this.toast('Error al actualizar la alerta', 'error');
-        }
-    },
-
-    async deleteAlert(alertId) {
-        if (!confirm('¿Eliminar esta alerta?')) return;
-        try {
-            await this.fetchAPI(`/alerts/${alertId}`, 'DELETE');
-            this.toast('Alerta eliminada', 'success');
-            this.loadAlerts();
-        } catch (error) {
-            console.error('Delete alert error:', error);
-            this.toast('Error al eliminar la alerta', 'error');
-        }
-    },
-
-    async loadNews() {
-        try {
-            const news = await this.fetchAPI('/news');
-            const container = document.getElementById('news-list');
-            if (!news.length) {
-                container.innerHTML = '<div class="empty-state"><p>No hay noticias disponibles.</p></div>';
-                return;
-            }
-
-            container.innerHTML = news.map(item => `
-                <article class="news-item">
-                    <h3 class="news-item-title"><a href="${this.escapeHtml(item.link)}" target="_blank">${this.escapeHtml(item.title)}</a></h3>
-                    <div class="news-item-meta">
-                        <span>📅 ${item.published ? new Date(item.published).toLocaleString() : 'Sin fecha'}</span>
-                        <span class="news-item-source">Fuente ID: ${item.source_id}</span>
-                    </div>
-                    <p class="news-item-summary">${this.escapeHtml(item.summary || 'Sin resumen')}</p>
-                </article>
-            `).join('');
-        } catch (error) {
-            console.error('News error:', error);
-            this.toast('Error al cargar noticias', 'error');
-        }
-    },
-
-    refreshNews() {
-        this.loadNews();
-        this.toast('Noticias actualizadas', 'success');
+        // Cargar datos automáticamente al cambiar de pestaña
+        if (sectionId === 'dashboard') this.loadDashboardData();
+        if (sectionId === 'sources') this.loadSources();
+        if (sectionId === 'alerts') this.loadAlerts();
+        if (sectionId === 'news') this.refreshNews();
     },
 
     toggleForm(formId) {
-        const form = document.getElementById(`${formId}-form`);
+        const form = document.getElementById(formId);
         if (form) form.classList.toggle('hidden');
     },
 
-    toast(message, type = 'info') {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        const icons = {
-            success: '✓',
-            error: '✗',
-            warning: '⚠',
-            info: 'ⓘ',
-        };
-        toast.innerHTML = `<span>${icons[type]}</span><span>${message}</span>`;
-        container.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+    // --- CARGA Y RENDERIZADO DE DATOS ---
+    async loadDashboardData() {
+        try {
+            const statsList = await this.fetchAPI('/stats');
+            const stats = statsList[0] || { metrics: [] };
+            this.renderDashboard(stats);
+        } catch (err) {
+            console.error(err);
+        }
     },
 
-    escapeHtml(value) {
-        if (value === null || value === undefined) return '';
-        const div = document.createElement('div');
-        div.textContent = String(value);
-        return div.innerHTML;
+    renderDashboard(stats) {
+        // Ponemos 0 por defecto si no hay métricas
+        let sources = 0, alerts = 0, news = 0;
+
+        if (stats && stats.metrics) {
+            stats.metrics.forEach(m => {
+                if (m.name === 'sources') sources = m.value;
+                if (m.name === 'alerts') alerts = m.value;
+                if (m.name === 'news') news = m.value;
+            });
+        }
+
+        // Pintamos los datos en el HTML
+        document.getElementById('stat-sources').textContent = sources;
+        document.getElementById('stat-alerts').textContent = alerts;
+        document.getElementById('stat-news').textContent = news;
+        document.getElementById('stat-health').textContent = 'OK';
     },
 
+    // --- UTILIDADES ---
     async fetchAPI(endpoint, method = 'GET', body = null) {
-        const options = { method, headers: {} };
-        if (body !== null) {
+        const options = { 
+            method, 
+            headers: { 'Accept': 'application/json' } 
+        };
+        
+        if (body) {
             options.headers['Content-Type'] = 'application/json';
             options.body = JSON.stringify(body);
         }
@@ -324,18 +135,184 @@ const app = {
         }
 
         const response = await fetch(`${API_URL}${endpoint}`, options);
+        
         if (response.status === 401) {
             this.logout();
-            throw new Error('No autorizado');
+            throw new Error('Sesión expirada');
         }
+        
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.detail || `HTTP ${response.status}`);
+            throw new Error(error.detail || 'Error en la petición');
         }
+        
         return response.json();
     },
+
+    toast(message, type = 'info') {
+        console.log(`[${type.toUpperCase()}] ${message}`);
+        const container = document.getElementById('toast-container');
+        if (container) {
+            const toastEl = document.createElement('div');
+            toastEl.style.padding = '10px';
+            toastEl.style.background = type === 'error' ? 'red' : 'green';
+            toastEl.style.color = 'white';
+            toastEl.style.marginTop = '5px';
+            toastEl.textContent = message;
+            container.appendChild(toastEl);
+            setTimeout(() => toastEl.remove(), 3000);
+        }
+    },
+
+    // --- FUENTES ---
+    async loadSources() {
+        try {
+            const sources = await this.fetchAPI('/information-sources');
+            this.renderSources(sources);
+        } catch (err) {
+            console.error(err);
+            this.toast('Error al cargar fuentes', 'error');
+        }
+    },
+
+    renderSources(sources) {
+        const container = document.getElementById('sources-list');
+        if (!container) return;
+
+        if (!sources || sources.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>No hay fuentes cargadas.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = sources.map(source => `
+            <div class="card source-card">
+                <div class="source-header">
+                    <strong>${source.name || 'Fuente'}</strong>
+                    <span>${source.rss_url || source.url || ''}</span>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    async createSource(e) {
+        e.preventDefault();
+        const name = document.getElementById('source-name').value.trim();
+        const medium = document.getElementById('source-medium').value.trim();
+        const url = document.getElementById('source-rss-url').value.trim();
+        const category = document.getElementById('source-iptc').value || null;
+
+        if (!url) {
+            this.toast('La URL es obligatoria', 'error');
+            return;
+        }
+
+        try {
+            await this.fetchAPI('/information-sources', 'POST', {
+                name: name || medium || 'Fuente RSS',
+                rss_url: url,
+                medium,
+                iptc_category: category
+            });
+            this.toast('Fuente creada', 'success');
+            this.toggleForm('add-source-form');
+            this.clearSourceForm();
+            this.loadSources();
+        } catch (err) {
+            this.toast(err.message || 'Error al crear fuente', 'error');
+        }
+    },
+
+    clearSourceForm() {
+        document.getElementById('source-name').value = '';
+        document.getElementById('source-medium').value = '';
+        document.getElementById('source-rss-url').value = '';
+        document.getElementById('source-iptc').value = '';
+    },
+
+    // --- ALERTAS Y NOTICIAS ---
+    async loadAlerts() {
+        try {
+            const alerts = await this.fetchAPI(`/users/${this.userID}/alerts`);
+            this.renderAlerts(alerts);
+        } catch (err) {
+            console.error(err);
+            this.toast('Error al cargar alertas', 'error');
+        }
+    },
+
+    renderAlerts(alerts) {
+        const container = document.getElementById('alerts-list');
+        if (!container) return;
+
+        if (!alerts || alerts.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>No hay alertas definidas.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = alerts.map(alert => `
+            <div class="card alert-card">
+                <div class="source-header">
+                    <strong>${alert.name}</strong>
+                    <span>${alert.cron_expression}</span>
+                </div>
+                <p>${alert.descriptors?.join(', ') || ''}</p>
+                <p>Categoria: ${alert.categories?.map(c => c.label).join(', ') || ''}</p>
+            </div>
+        `).join('');
+    },
+
+    async createAlert(e) {
+        e.preventDefault();
+        const name = document.getElementById('alert-name').value.trim();
+        const keyword = document.getElementById('alert-keyword').value.trim();
+        const synonyms = document.getElementById('alert-synonyms').value.split(',').map(s => s.trim()).filter(Boolean);
+        const iptcCategory = document.getElementById('alert-iptc').value;
+        const cronExpression = document.getElementById('alert-cron').value.trim();
+
+        if (!name || !keyword || !iptcCategory || !cronExpression) {
+            this.toast('Todos los campos de la alerta son obligatorios', 'error');
+            return;
+        }
+
+        const categories = [{ code: iptcCategory, label: iptcCategory }];
+        const descriptors = [keyword, ...synonyms];
+
+        try {
+            await this.fetchAPI(`/users/${this.userID}/alerts`, 'POST', {
+                name,
+                descriptors,
+                categories,
+                cron_expression: cronExpression
+            });
+            this.toast('Alerta creada', 'success');
+            this.toggleForm('add-alert-form');
+            this.clearAlertForm();
+            this.loadAlerts();
+        } catch (err) {
+            this.toast(err.message || 'Error al crear alerta', 'error');
+        }
+    },
+
+    clearAlertForm() {
+        document.getElementById('alert-name').value = '';
+        document.getElementById('alert-keyword').value = '';
+        document.getElementById('alert-synonyms').value = '';
+        document.getElementById('alert-iptc').value = '';
+        document.getElementById('alert-cron').value = '';
+    },
+
+    async refreshNews() { console.log('Simulando carga de noticias...'); }
 };
 
-window.addEventListener('DOMContentLoaded', () => {
-    app.init();
-});
+// Iniciar app
+
+// Iniciar app
+document.addEventListener('DOMContentLoaded', () => app.init());

@@ -1,19 +1,20 @@
 import time
 from datetime import datetime
 import feedparser
-
 from sqlalchemy.orm import Session
 
-from app.models.models import InformationSource, NewsItem
+# Importamos RSSChannel en lugar de InformationSource
+from app.models.models import RSSChannel, NewsItem
 
-
-def fetch_feed(db: Session, source_id: int, limit: int = 10) -> int:
+def fetch_feed(db: Session, channel_id: int, limit: int = 10) -> tuple[int, list]:
     created_items = []
-    src = db.query(InformationSource).get(source_id)
-    if not src:
-        raise ValueError("Fuente no encontrada")
+    # Consultamos el canal RSS específico en lugar de la fuente general
+    channel = db.query(RSSChannel).get(channel_id)
+    if not channel:
+        raise ValueError("Canal RSS no encontrado")
 
-    feed = feedparser.parse(src.rss_url)
+    # Usamos '.url' que es el campo correcto según models.py
+    feed = feedparser.parse(channel.url) 
     created = 0
     for entry in feed.entries[:limit]:
         link = getattr(entry, "link", None) or getattr(entry, "id", None)
@@ -34,7 +35,7 @@ def fetch_feed(db: Session, source_id: int, limit: int = 10) -> int:
             link=link,
             summary=getattr(entry, "summary", ""),
             published=published,
-            source_id=src.id,
+            channel_id=channel.id, # Usamos channel_id que es lo que espera NewsItem
         )
         db.add(item)
         created_items.append(item)

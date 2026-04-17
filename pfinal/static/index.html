@@ -25,7 +25,7 @@
         </nav>
 
         <main class="main-content">
-            <section id="login-page" class="section active">
+            <section id="login" class="section active">
                 <div class="login-container">
                     <div class="login-card">
                         <h1>Iniciar sesión</h1>
@@ -49,7 +49,7 @@
                 </div>
             </section>
 
-            <section id="dashboard-page" class="section">
+            <section id="dashboard" class="section">
                 <div class="section-header">
                     <div>
                         <h2>Resumen rápido</h2>
@@ -89,13 +89,13 @@
                 </div>
             </section>
 
-            <section id="sources-page" class="section">
+            <section id="sources" class="section">
                 <div class="section-header">
                     <div>
                         <h2>Fuentes RSS</h2>
                         <p>Agrega y sincroniza tus fuentes de noticias.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="app.toggleForm('add-source')">+ Nueva fuente</button>
+                    <button class="btn btn-primary" onclick="app.toggleForm('add-source-form')">+ Nueva fuente</button>
                 </div>
                 <div id="add-source-form" class="form-container hidden">
                     <h3>Agregar nueva fuente</h3>
@@ -113,12 +113,31 @@
                             <input type="url" id="source-rss-url" placeholder="https://..." required>
                         </div>
                         <div class="form-group">
-                            <label>Categoría</label>
-                            <input type="text" id="source-iptc" placeholder="politics, technology">
+                            <label>Categoría IPTC</label>
+                            <select id="source-iptc">
+                                <option value="">Selecciona una categoría</option>
+                                <option value="Arte, cultura y espectáculos">Arte, cultura y espectáculos</option>
+                                <option value="Crimen, derecho y justicia">Crimen, derecho y justicia</option>
+                                <option value="Desastres y accidentes">Desastres y accidentes</option>
+                                <option value="Economía, negocios y finanzas">Economía, negocios y finanzas</option>
+                                <option value="Educación">Educación</option>
+                                <option value="Medio ambiente">Medio ambiente</option>
+                                <option value="Salud">Salud</option>
+                                <option value="Interés humano">Interés humano</option>
+                                <option value="Trabajo">Trabajo</option>
+                                <option value="Estilo de vida y tiempo libre">Estilo de vida y tiempo libre</option>
+                                <option value="Política">Política</option>
+                                <option value="Religión y creencias">Religión y creencias</option>
+                                <option value="Ciencia y tecnología">Ciencia y tecnología</option>
+                                <option value="Sociedad">Sociedad</option>
+                                <option value="Deporte">Deporte</option>
+                                <option value="Conflictos, guerra y paz">Conflictos, guerra y paz</option>
+                                <option value="El tiempo">El tiempo</option>
+                            </select>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">Guardar</button>
-                            <button type="button" class="btn btn-secondary" onclick="app.toggleForm('add-source')">Cancelar</button>
+                            <button type="button" class="btn btn-secondary" onclick="app.toggleForm('add-source-form')">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -129,13 +148,13 @@
                 </div>
             </section>
 
-            <section id="alerts-page" class="section">
+            <section id="alerts" class="section">
                 <div class="section-header">
                     <div>
                         <h2>Alertas</h2>
                         <p>Configura alertas para tus palabras clave.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="app.toggleForm('add-alert')">+ Nueva alerta</button>
+                    <button class="btn btn-primary" onclick="app.toggleForm('add-alert-form')">+ Nueva alerta</button>
                 </div>
                 <div id="add-alert-form" class="form-container hidden">
                     <h3>Crear alerta</h3>
@@ -154,7 +173,26 @@
                         </div>
                         <div class="form-group">
                             <label>Categoría IPTC</label>
-                            <input type="text" id="alert-iptc" placeholder="technology" required>
+                            <select id="alert-iptc" required>
+                                <option value="">Selecciona una categoría</option>
+                                <option value="Arte, cultura y espectáculos">Arte, cultura y espectáculos</option>
+                                <option value="Crimen, derecho y justicia">Crimen, derecho y justicia</option>
+                                <option value="Desastres y accidentes">Desastres y accidentes</option>
+                                <option value="Economía, negocios y finanzas">Economía, negocios y finanzas</option>
+                                <option value="Educación">Educación</option>
+                                <option value="Medio ambiente">Medio ambiente</option>
+                                <option value="Salud">Salud</option>
+                                <option value="Interés humano">Interés humano</option>
+                                <option value="Trabajo">Trabajo</option>
+                                <option value="Estilo de vida y tiempo libre">Estilo de vida y tiempo libre</option>
+                                <option value="Política">Política</option>
+                                <option value="Religión y creencias">Religión y creencias</option>
+                                <option value="Ciencia y tecnología">Ciencia y tecnología</option>
+                                <option value="Sociedad">Sociedad</option>
+                                <option value="Deporte">Deporte</option>
+                                <option value="Conflictos, guerra y paz">Conflictos, guerra y paz</option>
+                                <option value="El tiempo">El tiempo</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Cron</label>
@@ -166,7 +204,7 @@
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">Guardar</button>
-                            <button type="button" class="btn btn-secondary" onclick="app.toggleForm('add-alert')">Cancelar</button>
+                            <button type="button" class="btn btn-secondary" onclick="app.toggleForm('add-alert-form')">Cancelar</button>
                         </div>
                     </form>
                 </div>
@@ -177,7 +215,7 @@
                 </div>
             </section>
 
-            <section id="news-page" class="section">
+            <section id="news" class="section">
                 <div class="section-header">
                     <div>
                         <h2>Noticias recientes</h2>

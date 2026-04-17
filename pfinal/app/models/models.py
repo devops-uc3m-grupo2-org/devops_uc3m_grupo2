@@ -1,14 +1,20 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Boolean
+import enum
+from sqlalchemy import Table, Column, Integer, String, ForeignKey, Text, DateTime, JSON, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-import json
+from datetime import datetime
 
+user_roles = Table(
+    "user_roles",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", Integer, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+)
 
 class Role(Base):
     __tablename__ = "roles"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, nullable=False)
-
 
 class User(Base):
     __tablename__ = "users"
@@ -18,62 +24,89 @@ class User(Base):
     last_name = Column(String(120), nullable=False)
     organization = Column(String(180), nullable=False)
     hashed_password = Column(String(128), nullable=False)
+    alerts = relationship("Alert", back_populates="user", cascade="all, delete-orphan")
+    roles = relationship("Role", secondary=user_roles, backref="users")
 
-    role_ids = []  # Se manejará en Fase 2 con tabla intermedia
+    @property
+    def role_ids(self):
+        return [role.id for role in self.roles]
 
 
-# Models for Sprint 2: InformationSource and NewsItem
+class IPTCCategoryEnum(str, enum.Enum):
+    ARTS_AND_ENTERTAINMENT = "Arte, cultura y espectáculos"
+    CRIME_LAW_AND_JUSTICE = "Crimen, derecho y justicia"
+    DISASTERS_AND_ACCIDENTS = "Desastres y accidentes"
+    ECONOMY_BUSINESS_AND_FINANCE = "Economía, negocios y finanzas"
+    EDUCATION = "Educación"
+    ENVIRONMENT = "Medio ambiente"
+    HEALTH = "Salud"
+    HUMAN_INTEREST = "Interés humano"
+    LABOUR = "Trabajo"
+    LIFESTYLE_AND_LEISURE = "Estilo de vida y tiempo libre"
+    POLITICS = "Política"
+    RELIGION_AND_BELIEF = "Religión y creencias"
+    SCIENCE_AND_TECHNOLOGY = "Ciencia y tecnología"
+    SOCIETY = "Sociedad"
+    SPORT = "Deporte"
+    CONFLICTS_WAR_AND_PEACE = "Conflictos, guerra y paz"
+    WEATHER = "El tiempo"
+
+class Category(Base):
+    __tablename__ = "categories"
+    id = Column(Integer, primary_key=True, index=True)
+    # 2. Aplicas el Enum a la columna
+    name = Column(SQLEnum(IPTCCategoryEnum), nullable=False)
+    source = Column(String, default="IPTC")
+
 class InformationSource(Base):
     __tablename__ = "information_sources"
-
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    medium = Column(String, nullable=False)  # p.ej. 'RTVE', 'El País'
-    rss_url = Column(String, unique=True, nullable=False)
-    iptc_category = Column(String, nullable=True)  # luego mapeas a IPTC
+    name = Column(String(120), nullable=False)
+    medium = Column(String(120), nullable=True)
+    rss_url = Column(String, nullable=False)
+    # Mantener compatibilidad con datos existentes en la DB
+    iptc_category = Column(String(120), nullable=True)
+    rss_channels = relationship("RSSChannel", back_populates="source", cascade="all, delete-orphan")
 
+class RSSChannel(Base):
+    __tablename__ = "rss_channels"
+    id = Column(Integer, primary_key=True, index=True)
+    url = Column(String, nullable=False, unique=True)
+    information_source_id = Column(Integer, ForeignKey("information_sources.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"))
+    source = relationship("InformationSource", back_populates="rss_channels")
+    news_items = relationship("NewsItem", back_populates="channel")
 
 class NewsItem(Base):
     __tablename__ = "news_items"
-
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     link = Column(String, nullable=False, unique=True)
     summary = Column(Text, nullable=True)
     published = Column(DateTime, nullable=True)
-    source_id = Column(Integer, ForeignKey("information_sources.id"))
-    source = relationship("InformationSource")
-    alerts = relationship("Alert", secondary="alert_news", passive_deletes=True, overlaps="news_items") #Evita que python busque eliminar huerfanos, confía en el delete Cascade de alerts
-
+    channel_id = Column(Integer, ForeignKey("rss_channels.id"))
+    channel = relationship("RSSChannel", back_populates="news_items")
 
 class Alert(Base):
     __tablename__ = "alerts"
-
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    keyword = Column(String, nullable=False)
-    synonyms = Column(String, default="[]")  
-    iptc_category = Column(String, nullable=False)
-    cron_expression = Column(String, default="*/5 * * * *")  # cada 5 min
-    is_active = Column(Boolean, default=True)
+    name = Column(String(200), nullable=False)
+    descriptors = Column(JSON, default=[]) 
+    categories = Column(JSON, default=[])
+    cron_expression = Column(String(120), default="*/5 * * * *")
     user_id = Column(Integer, ForeignKey("users.id"))
-    #Cada Alert pertenece a un user, y un user puede tener varias alerts (alert.user y user.alerts)
-    user = relationship("User", backref="alerts")
-    #Un news_item puede pertenecer a varias alerts y una alert tener varios NewsItems
-    news_items = relationship("NewsItem", secondary="alert_news", overlaps="alerts")
+    user = relationship("User", back_populates="alerts")
+    notifications = relationship("Notification", back_populates="alert", cascade="all, delete-orphan")
 
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    alert_id = Column(Integer, ForeignKey("alerts.id"))
+    metrics = Column(JSON, default=[]) 
+    alert = relationship("Alert", back_populates="notifications")
 
-    #Para la generación de sinónimos
-    def get_synonyms(self):
-        return json.loads(self.synonyms or "[]")
-
-    def set_synonyms(self, values):
-        self.synonyms = json.dumps(values)
-
-class AlertNews(Base):
-    __tablename__ = "alert_news"
-
-    id = Column(Integer, primary_key=True)
-    
-    alert_id = Column(Integer, ForeignKey("alerts.id", ondelete="CASCADE"))
-    news_item_id = Column(Integer, ForeignKey("news_items.id"))
+class Stats(Base):
+    __tablename__ = "stats"
+    id = Column(Integer, primary_key=True, index=True)
+    metrics = Column(JSON, default=[])

@@ -1,31 +1,55 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from __future__ import annotations
+import os
+import pathlib
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional
+
+from fastapi import FastAPI, Depends, HTTPException, status, Response, Body
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
-from fastapi import Body
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from dotenv import load_dotenv # Nueva importación
 
-import os
-import pathlib
+# --- CONFIGURACIÓN DE ENTORNO ---
+load_dotenv() # Carga las variables del .env
 
+# Importaciones de tu core y modelos refactorizados con ALIAS
 from app.core.database import engine, Base, get_db
-from app.models.models import User, Role, InformationSource, NewsItem, Alert, AlertNews
-import feedparser
-from app.services.fetcher import fetch_feed
-from app.services.alertLogic import match_alert
+from app.models.models import (
+    User as UserModel, 
+    Role as RoleModel, 
+    Alert as AlertModel, 
+    Notification as NotificationModel, 
+    Stats as StatsModel,
+    InformationSource as SourceModel,
+    RSSChannel as ChannelModel,
+    Category as CategoryModel,
+    IPTCCategoryEnum
+)
 from app.services.ai import generate_synonyms
-from app.core.scheduler import start_scheduler, fetch_all_sources_job
 
-load_dotenv()
+# --- CONFIGURACIÓN DE SEGURIDAD ---
+SECRET_KEY = os.getenv("SECRET_KEY", "tu_llave_secreta_super_segura")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 
-app = FastAPI(title="NewsRadar API", version="1.0")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
-# Configure CORS
+app = FastAPI(
+    title="NewsRadar API",
+    version="1.0.0",
+    description="API REST para gestión de usuarios, alertas, notificaciones, fuentes y canales RSS.",
+)
+
+API_PREFIX = "/api/v1"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{API_PREFIX}/auth/login")
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,57 +58,177 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
+# --- SERVIDO DE ARCHIVOS ESTÁTICOS (FRONTEND) ---
 static_dir = pathlib.Path(__file__).parent.parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# Root endpoint to serve frontend
 @app.get("/")
 async def root():
-    index_path = pathlib.Path(__file__).parent.parent / "static" / "index.html"
+    index_path = static_dir / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
-    return {"message": "NewsRadar API - Frontend en /static/index.html"}
+    return {"message": "NewsRadar API activa. Frontend no encontrado en /static"}
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+# --- ESQUEMAS PYDANTIC (NOMBRES SEGÚN NEWSRADAR_API) ---
 
-# Use pbkdf2_sha256 to avoid requiring the native bcrypt extension in the image
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
 
-# Crear tablas + seed al inicio
-@app.on_event("startup")
-def startup():
-    Base.metadata.create_all(bind=engine)
-    create_seed_data()
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
-def create_seed_data():
-    db = next(get_db())
-    if db.query(Role).count() == 0:
-        admin_role = Role(name="admin")
-        user_role = Role(name="user")
-        db.add_all([admin_role, user_role])
-        db.commit()
+class Metric(BaseModel):
+    name: str
+    value: float
 
-    if db.query(User).count() == 0:
-        admin = User(
-            email="admin@newsradar.com",
-            first_name="Admin",
-            last_name="NewsRadar",
-            organization="NewsRadar",
-            hashed_password=pwd_context.hash("admin123")
-        )
-        db.add(admin)
-        db.commit()
+class Role(BaseModel):
+    id: int
+    name: str
+    class Config: from_attributes = True
 
-def authenticate_user(db: Session, email: str, password: str):
-    user = db.query(User).filter(User.email == email).first()
-    if not user or not pwd_context.verify(password, user.hashed_password):
-        return False
-    return user
+class User(BaseModel):
+    id: int
+    email: EmailStr
+    first_name: str
+    last_name: str
+    organization: str
+    role_ids: List[int] = Field(default_factory=list)
+    class Config: from_attributes = True
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: str
+    organization: str
+    password: str
+    role_ids: List[int] = Field(default_factory=list)
+
+    class Config:
+        use_enum_values = True
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    organization: Optional[str] = None
+    password: Optional[str] = None
+    role_ids: Optional[List[int]] = None
+
+class RoleCreate(BaseModel):
+    name: str
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+
+class AlertCategoryItem(BaseModel):
+    code: IPTCCategoryEnum
+    label: IPTCCategoryEnum
+
+    class Config:
+        use_enum_values = True
+
+class AlertCreate(BaseModel):
+    name: str
+    descriptors: List[str] = Field(default_factory=list)
+    categories: List[AlertCategoryItem] = Field(default_factory=list)
+    cron_expression: str
+
+    class Config:
+        use_enum_values = True
+
+class AlertUpdate(BaseModel):
+    name: Optional[str] = None
+    descriptors: Optional[List[str]] = None
+    categories: Optional[List[AlertCategoryItem]] = None
+    cron_expression: Optional[str] = None
+
+    class Config:
+        use_enum_values = True
+
+class Alert(BaseModel):
+    id: int
+    name: str
+    descriptors: List[str] = Field(default_factory=list)
+    categories: List[AlertCategoryItem] = Field(default_factory=list)
+    cron_expression: str
+    user_id: int
+    class Config: from_attributes = True
+
+class NotificationCreate(BaseModel):
+    timestamp: datetime
+    metrics: List[Metric] = Field(default_factory=list)
+
+class NotificationUpdate(BaseModel):
+    timestamp: Optional[datetime] = None
+    metrics: Optional[List[Metric]] = None
+
+class Notification(BaseModel):
+    id: int
+    timestamp: datetime
+    alert_id: int
+    metrics: List[Metric] = Field(default_factory=list)
+    class Config: from_attributes = True
+
+class Stats(BaseModel):
+    id: int
+    metrics: List[Metric] = Field(default_factory=list)
+    class Config: from_attributes = True
+
+class InformationSourceCreate(BaseModel):
+    name: str
+    medium: Optional[str] = None
+    rss_url: HttpUrl
+    iptc_category: Optional[IPTCCategoryEnum] = None
+
+    class Config:
+        use_enum_values = True
+
+class CategoryBase(BaseModel):
+    name: IPTCCategoryEnum
+    source: str = "IPTC"
+
+    class Config:
+        use_enum_values = True
+
+class CategoryCreate(CategoryBase):
+    pass
+
+class CategoryUpdate(BaseModel):
+    name: Optional[IPTCCategoryEnum] = None
+    source: Optional[str] = None
+
+    class Config:
+        use_enum_values = True
+
+class Category(CategoryBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+        use_enum_values = True
+
+class RSSChannelBase(BaseModel):
+    url: HttpUrl
+    category_id: int
+
+class RSSChannelCreate(RSSChannelBase):
+    pass
+
+class RSSChannelUpdate(BaseModel):
+    url: Optional[HttpUrl] = None
+    category_id: Optional[int] = None
+
+class RSSChannel(RSSChannelBase):
+    id: int
+    information_source_id: int
+
+    class Config:
+        from_attributes = True
+
+# --- LÓGICA DE AUTENTICACIÓN ---
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -92,270 +236,631 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-@app.post("/api/v1/auth/login",tags=["Auth"])
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = authenticate_user(db, form_data.username, form_data.password)
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Token inválido")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+    user = db.query(UserModel).filter(UserModel.email == email).first()
     if not user:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
+
+    return user
+
+def get_user_or_404(user_id: int, db: Session) -> UserModel:
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return user
+
+
+def get_role_or_404(role_id: int, db: Session) -> RoleModel:
+    role = db.query(RoleModel).filter(RoleModel.id == role_id).first()
+    if not role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+    return role
+
+
+def get_alert_for_user(user_id: int, alert_id: int, db: Session) -> AlertModel:
+    user = get_user_or_404(user_id, db)
+    alert = db.query(AlertModel).filter(AlertModel.id == alert_id, AlertModel.user_id == user.id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alerta no encontrada para el usuario")
+    return alert
+
+
+def get_notification_for_alert(alert_id: int, notification_id: int, db: Session) -> NotificationModel:
+    notification = db.query(NotificationModel).filter(NotificationModel.id == notification_id, NotificationModel.alert_id == alert_id).first()
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada para la alerta")
+    return notification
+
+
+def is_role_assigned(role_id: int, db: Session) -> bool:
+    return (
+        db.query(UserModel)
+        .join(UserModel.roles)
+        .filter(RoleModel.id == role_id)
+        .first()
+        is not None
+    )
+
+
+def get_roles_for_ids(role_ids: List[int], db: Session) -> List[RoleModel]:
+    if not role_ids:
+        return []
+    roles = db.query(RoleModel).filter(RoleModel.id.in_(role_ids)).all()
+    if len(roles) != len(set(role_ids)):
+        raise HTTPException(status_code=400, detail="Alguno de los roles especificados no existe")
+    return roles
+
+
+@app.post(f"{API_PREFIX}/auth/login", response_model=TokenResponse, tags=["auth"])
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(UserModel).filter(UserModel.email == payload.email).first()
+    if not user or not pwd_context.verify(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
 
-@app.get("/api/v1/health")
+# --- ENDPOINTS JERÁRQUICOS ---
+# ... (Mantén tus importaciones y configuración de seguridad)
+
+# --- ENDPOINTS JERÁRQUICOS Y COMPLEMENTARIOS ---
+
+@app.get(f"{API_PREFIX}/health", tags=["system"])
 def health():
-    return {"status": "ok", "message": "NewsRadar listo con PostgreSQL + JWT"}
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
-# CRUD mínimo de usuarios (Fase 1)
-@app.get("/api/v1/users", tags=["Auth"])
-def list_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    return [
-        {
-            "id": u.id,
-            "email": u.email,
-            "first_name": u.first_name,
-            "last_name": u.last_name,
-            "organization": u.organization,
-        }
-        for u in users
-    ]
+@app.get(f"{API_PREFIX}/users", response_model=List[User], tags=["users"])
+def list_users(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(UserModel).all()
 
-@app.post("/api/v1/auth/register", tags=["Auth"])
-def register(user_payload: dict, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == user_payload.get("email")).first():
+@app.post(f"{API_PREFIX}/auth/register", response_model=User, status_code=201, tags=["auth"])
+def register(payload: UserCreate, db: Session = Depends(get_db)):
+    if db.query(UserModel).filter(UserModel.email == payload.email).first():
         raise HTTPException(status_code=409, detail="El email ya está registrado")
-    user = User(
-        email=user_payload.get("email"),
-        first_name=user_payload.get("first_name", ""),
-        last_name=user_payload.get("last_name", ""),
-        organization=user_payload.get("organization", ""),
-        hashed_password=pwd_context.hash(user_payload.get("password", ""))
+
+    roles = get_roles_for_ids(payload.role_ids, db)
+    new_user = UserModel(
+        email=payload.email,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        organization=payload.organization,
+        hashed_password=pwd_context.hash(payload.password),
+        roles=roles,
     )
-    db.add(user)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+@app.post(f"{API_PREFIX}/users", response_model=User, status_code=201, tags=["users"])
+def create_user(payload: UserCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    if db.query(UserModel).filter(UserModel.email == payload.email).first():
+        raise HTTPException(status_code=409, detail="El email ya está registrado")
+
+    roles = get_roles_for_ids(payload.role_ids, db)
+    new_user = UserModel(
+        email=payload.email,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        organization=payload.organization,
+        hashed_password=pwd_context.hash(payload.password),
+        roles=roles,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+@app.get(f"{API_PREFIX}/users/{{user_id}}", response_model=User, tags=["users"])
+def get_user(user_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    return get_user_or_404(user_id, db)
+
+
+@app.put(f"{API_PREFIX}/users/{{user_id}}", response_model=User, tags=["users"])
+def update_user(user_id: int, payload: UserUpdate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = get_user_or_404(user_id, db)
+    update_data = payload.model_dump(exclude_unset=True)
+
+    if "email" in update_data and db.query(UserModel).filter(UserModel.email == update_data["email"], UserModel.id != user_id).first():
+        raise HTTPException(status_code=409, detail="El email ya está registrado")
+
+    if "email" in update_data:
+        user.email = update_data["email"]
+    if "first_name" in update_data:
+        user.first_name = update_data["first_name"]
+    if "last_name" in update_data:
+        user.last_name = update_data["last_name"]
+    if "organization" in update_data:
+        user.organization = update_data["organization"]
+    if "password" in update_data:
+        user.hashed_password = pwd_context.hash(update_data["password"])
+    if "role_ids" in update_data:
+        user.roles = get_roles_for_ids(update_data["role_ids"], db)
+
     db.commit()
     db.refresh(user)
-    return {
-        "id": user.id,
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "organization": user.organization,
-    }
+    return user
 
 
-@app.post("/api/v1/sources", tags=["Sources"])
-def create_source(payload: dict = Body(...), db: Session = Depends(get_db)):
-    if db.query(InformationSource).filter(InformationSource.rss_url == payload["rss_url"]).first():
-        raise HTTPException(status_code=409, detail="La fuente ya existe")
-    src = InformationSource(
-        name=payload.get("name", "Fuente"),
-        medium=payload.get("medium", ""),
-        rss_url=payload["rss_url"],
-        iptc_category=payload.get("iptc_category", ""),
-    )
-    db.add(src)
+@app.delete(
+    f"{API_PREFIX}/users/{{user_id}}",
+    status_code=204,
+    response_model=None,
+    response_class=Response,
+    tags=["users"],
+)
+def delete_user(user_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    user = get_user_or_404(user_id, db)
+    db.delete(user)
     db.commit()
-    db.refresh(src)
-    return {"id": src.id, "name": src.name, "rss_url": src.rss_url}
-
-@app.get("/api/v1/sources", tags=["Sources"])
-def list_sources(db: Session = Depends(get_db)):
-    sources = db.query(InformationSource).all()
-    return [
-        {
-            "id": s.id,
-            "name": s.name,
-            "medium": s.medium,
-            "rss_url": s.rss_url,
-            "iptc_category": s.iptc_category,
-        }
-        for s in sources
-    ]
 
 
-@app.post("/api/v1/sources/{source_id}/fetch", tags=["Sources"])
-def fetch_source(source_id: int, db: Session = Depends(get_db), debug: bool = False):
-    # Modo debug: devuelve metadata del feed y primer entry para diagnóstico
-    src = db.query(InformationSource).get(source_id)
-    if not src:
-        raise HTTPException(status_code=404, detail="Fuente no encontrada")
-
-    if debug:
-        feed = feedparser.parse(src.rss_url)
-        first = None
-        if len(feed.entries) > 0:
-            e = feed.entries[0]
-            first = {
-                "title": getattr(e, "title", None),
-                "link": getattr(e, "link", None),
-                "published": getattr(e, "published", None),
-            }
-        return {
-            "source_id": source_id,
-            "feed_status": feed.get("status", None),
-            "entries_count": len(feed.entries),
-            "first_entry": first,
-        }
-
-    try:
-        created, _ = fetch_feed(db, source_id)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Fuente no encontrada")
-    
-    return {"source_id": source_id, "new_items": created}
+@app.get(f"{API_PREFIX}/roles", response_model=List[Role], tags=["roles"])
+def list_roles(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(RoleModel).all()
 
 
-@app.get("/api/v1/news", tags=["News"])
-def list_news(db: Session = Depends(get_db)):
-    items = db.query(NewsItem).order_by(NewsItem.published.desc()).limit(200).all()
-    return [
-        {
-            "id": i.id,
-            "title": i.title,
-            "link": i.link,
-            "summary": i.summary,
-            "published": i.published.isoformat() if i.published else None,
-            "source_id": i.source_id,
-        }
-        for i in items
-    ]
+@app.post(f"{API_PREFIX}/roles", response_model=Role, status_code=201, tags=["roles"])
+def create_role(payload: RoleCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    new_role = RoleModel(name=payload.name)
+    db.add(new_role)
+    db.commit()
+    db.refresh(new_role)
+    return new_role
 
 
-@app.get("/_routes")
-def debug_list_routes():
-    return [
-        {"path": r.path, "name": r.name, "methods": sorted(list(r.methods))}
-        for r in app.routes
-    ]
+@app.get(f"{API_PREFIX}/roles/{{role_id}}", response_model=Role, tags=["roles"])
+def get_role(role_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    return get_role_or_404(role_id, db)
 
 
-@app.post("/api/v1/alerts", tags=["Alerts"])
-def create_alert(payload: dict = Body(...), db: Session = Depends(get_db)):
+@app.put(f"{API_PREFIX}/roles/{{role_id}}", response_model=Role, tags=["roles"])
+def update_role(role_id: int, payload: RoleUpdate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    role = get_role_or_404(role_id, db)
+    update_data = payload.model_dump(exclude_unset=True)
+    if "name" in update_data:
+        role.name = update_data["name"]
+    db.commit()
+    db.refresh(role)
+    return role
 
-    alert = Alert(
-        name=payload["name"],
-        keyword=payload["keyword"],
-        iptc_category=payload["iptc_category"],
-        cron_expression=payload.get("cron_expression", "*/5 * * * *"),
-        user_id=payload["user_id"],
+
+@app.delete(
+    f"{API_PREFIX}/roles/{{role_id}}",
+    status_code=204,
+    response_model=None,
+    response_class=Response,
+    tags=["roles"],
+)
+def delete_role(role_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    role = get_role_or_404(role_id, db)
+    if is_role_assigned(role_id, db):
+        raise HTTPException(status_code=409, detail="No se puede eliminar un rol asignado a usuarios")
+    db.delete(role)
+    db.commit()
+
+
+# Alertas bajo usuario (Ruta jerárquica)
+@app.get(f"{API_PREFIX}/users/{{user_id}}/alerts", response_model=List[Alert], tags=["alerts"])
+def list_user_alerts(user_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = get_user_or_404(user_id, db)
+    return user.alerts
+
+@app.post(f"{API_PREFIX}/users/{{user_id}}/alerts", response_model=Alert, status_code=201, tags=["alerts"])
+def create_user_alert(user_id: int, payload: AlertCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    get_user_or_404(user_id, db)
+    new_alert = AlertModel(
+        name=payload.name,
+        descriptors=payload.descriptors,
+        categories=[cat.dict() for cat in payload.categories],
+        cron_expression=payload.cron_expression,
+        user_id=user_id,
     )
+    db.add(new_alert)
+    db.commit()
+    db.refresh(new_alert)
+    return new_alert
 
-    alert.set_synonyms(payload.get("synonyms", []))
 
-    db.add(alert)
+@app.get(
+    f"{API_PREFIX}/users/{{user_id}}/alerts/{{alert_id}}",
+    response_model=Alert,
+    tags=["alerts"],
+)
+def get_user_alert(user_id: int, alert_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    return get_alert_for_user(user_id, alert_id, db)
+
+
+@app.put(
+    f"{API_PREFIX}/users/{{user_id}}/alerts/{{alert_id}}",
+    response_model=Alert,
+    tags=["alerts"],
+)
+def update_user_alert(
+    user_id: int,
+    alert_id: int,
+    payload: AlertUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Alert:
+    alert = get_alert_for_user(user_id, alert_id, db)
+    update_data = payload.model_dump(exclude_unset=True)
+    if "name" in update_data:
+        alert.name = update_data["name"]
+    if "descriptors" in update_data:
+        alert.descriptors = update_data["descriptors"]
+    if "categories" in update_data:
+        alert.categories = [cat.dict() for cat in update_data["categories"]]
+    if "cron_expression" in update_data:
+        alert.cron_expression = update_data["cron_expression"]
     db.commit()
     db.refresh(alert)
-
-    return {
-        "id": alert.id,
-        "name": alert.name,
-        "keyword": alert.keyword,
-        "synonyms": alert.get_synonyms(),
-    }
-
-@app.get("/api/v1/alerts", tags=["Alerts"])
-def list_alerts(db: Session = Depends(get_db)):
-    alerts = db.query(Alert).all()
-
-    return [
-        {
-            "id": a.id,
-            "name": a.name,
-            "keyword": a.keyword,
-            "synonyms": a.get_synonyms(),
-            "iptc_category": a.iptc_category,
-            "is_active": a.is_active,
-        }
-        for a in alerts
-    ]
+    return alert
 
 
-@app.put("/api/v1/alerts/{alert_id}", tags=["Alerts"])
-def update_alert(alert_id: int, payload: dict, db: Session = Depends(get_db)):
-
-    alert = db.query(Alert).get(alert_id)
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
-
-    alert.name = payload.get("name", alert.name) #Payload contiene los datos a modificar
-    alert.keyword = payload.get("keyword", alert.keyword)
-    alert.iptc_category = payload.get("iptc_category", alert.iptc_category)
-    alert.is_active = payload.get("is_active", alert.is_active)
-
-    if "synonyms" in payload:
-        alert.set_synonyms(payload["synonyms"])
-
-    db.commit()
-    db.refresh(alert)
-
-    return {f"Alert {alert_id}": "updated"}
-
-
-@app.delete("/api/v1/alerts/{alert_id}", tags=["Alerts"])
-def delete_alert(alert_id: int, db: Session = Depends(get_db)):
-
-    alert = db.query(Alert).get(alert_id)
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
-
+@app.delete(
+    f"{API_PREFIX}/users/{{user_id}}/alerts/{{alert_id}}",
+    status_code=204,
+    response_model=None,
+    response_class=Response,
+    tags=["alerts"],
+)
+def delete_user_alert(user_id: int, alert_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    alert = get_alert_for_user(user_id, alert_id, db)
     db.delete(alert)
     db.commit()
 
-    return {f"Alert {alert_id}": "deleted"}
 
-@app.post("/api/v1/run-matching", tags=["Alerts"])
-def run_matching(db: Session = Depends(get_db)):
+@app.get(
+    f"{API_PREFIX}/users/{{user_id}}/alerts/{{alert_id}}/notifications",
+    response_model=List[Notification],
+    tags=["notifications"],
+)
+def list_alert_notifications(
+    user_id: int,
+    alert_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> List[Notification]:
+    get_alert_for_user(user_id, alert_id, db)
+    return db.query(NotificationModel).filter(NotificationModel.alert_id == alert_id).all()
 
-    items = db.query(NewsItem).all()
-    alerts = db.query(Alert).filter(Alert.is_active == True).all()
 
-    for item in items:
-        for alert in alerts:
-            if match_alert(alert, item):
+@app.post(
+    f"{API_PREFIX}/users/{{user_id}}/alerts/{{alert_id}}/notifications",
+    response_model=Notification,
+    status_code=201,
+    tags=["notifications"],
+)
+def create_alert_notification(
+    user_id: int,
+    alert_id: int,
+    payload: NotificationCreate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Notification:
+    get_alert_for_user(user_id, alert_id, db)
+    new_notification = NotificationModel(
+        timestamp=payload.timestamp,
+        metrics=[metric.model_dump() for metric in payload.metrics],
+        alert_id=alert_id,
+    )
+    db.add(new_notification)
+    db.commit()
+    db.refresh(new_notification)
+    return new_notification
 
-                exists = db.query(AlertNews).filter_by(
-                    alert_id=alert.id,
-                    news_item_id=item.id
-                ).first()
 
-                if not exists:
-                    db.add(AlertNews(
-                        alert_id=alert.id,
-                        news_item_id=item.id
-                    ))
+@app.get(
+    f"{API_PREFIX}/users/{{user_id}}/alerts/{{alert_id}}/notifications/{{notification_id}}",
+    response_model=Notification,
+    tags=["notifications"],
+)
+def get_alert_notification(
+    user_id: int,
+    alert_id: int,
+    notification_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Notification:
+    get_alert_for_user(user_id, alert_id, db)
+    return get_notification_for_alert(alert_id, notification_id, db)
 
+
+@app.put(
+    f"{API_PREFIX}/users/{{user_id}}/alerts/{{alert_id}}/notifications/{{notification_id}}",
+    response_model=Notification,
+    tags=["notifications"],
+)
+def update_alert_notification(
+    user_id: int,
+    alert_id: int,
+    notification_id: int,
+    payload: NotificationUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Notification:
+    get_alert_for_user(user_id, alert_id, db)
+    notification = get_notification_for_alert(alert_id, notification_id, db)
+    update_data = payload.model_dump(exclude_unset=True)
+    if "timestamp" in update_data:
+        notification.timestamp = update_data["timestamp"]
+    if "metrics" in update_data:
+        notification.metrics = [metric.model_dump() for metric in update_data["metrics"]]
+    db.commit()
+    db.refresh(notification)
+    return notification
+
+
+@app.delete(
+    f"{API_PREFIX}/users/{{user_id}}/alerts/{{alert_id}}/notifications/{{notification_id}}",
+    status_code=204,
+    response_model=None,
+    response_class=Response,
+    tags=["notifications"],
+)
+def delete_alert_notification(
+    user_id: int,
+    alert_id: int,
+    notification_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    get_alert_for_user(user_id, alert_id, db)
+    get_notification_for_alert(alert_id, notification_id, db)
+    notification = db.query(NotificationModel).filter(NotificationModel.id == notification_id).first()
+    db.delete(notification)
     db.commit()
 
-    return {"status": "matching executed"}
 
-@app.get("/api/v1/matchAlert/{alert_id}", tags=["Alerts"])
-def alert_match(alert_id: int, db: Session = Depends(get_db)):
+# Gestión de Fuentes (Endpoint requerido para la pestaña Fuentes)
+@app.get(f"{API_PREFIX}/information-sources", tags=["information-sources"])
+def list_sources(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(SourceModel).all()
 
-    matching_news = db.query(AlertNews).filter(
-        AlertNews.alert_id == alert_id
-    ).all()
+@app.post(f"{API_PREFIX}/information-sources", status_code=201, tags=["information-sources"])
+def create_source(payload: InformationSourceCreate = Body(...), current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    rss_url = str(payload.rss_url)
+    # Verificamos si ya existe por la URL RSS
+    if db.query(SourceModel).filter(SourceModel.rss_url == rss_url).first():
+        raise HTTPException(status_code=409, detail="La fuente ya existe")
+    
+    iptc_category = payload.iptc_category
+    if hasattr(iptc_category, 'value'):
+        iptc_category = iptc_category.value
 
-    if not matching_news:
-        raise HTTPException(status_code=404, detail="Alert News not found")
+    new_src = SourceModel(
+        name=payload.name,
+        medium=payload.medium,
+        rss_url=rss_url,
+        iptc_category=iptc_category
+    )
+    db.add(new_src)
+    db.commit()
+    db.refresh(new_src)
+    return new_src
 
-    return {
-        "alert_id": alert_id,
-        "news_ids": [m.news_item_id for m in matching_news]
-    }
+@app.get(
+    f"{API_PREFIX}/information-sources/{{source_id}}/rss-channels",
+    response_model=List[RSSChannel],
+    tags=["rss-channels"],
+)
+def list_source_channels(source_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> List[RSSChannel]:
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+    return db.query(ChannelModel).filter(ChannelModel.information_source_id == source_id).all()
 
-# Starter del schdule, está comentaod para no arriesgar llenar la base de datos
-#@app.on_event("startup")
-#def startup_event():
-#    start_scheduler()
+@app.post(
+    f"{API_PREFIX}/information-sources/{{source_id}}/rss-channels",
+    response_model=RSSChannel,
+    status_code=201,
+    tags=["rss-channels"],
+)
+def create_source_channel(
+    source_id: int,
+    payload: RSSChannelCreate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> RSSChannel:
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
 
+    category = db.query(CategoryModel).filter(CategoryModel.id == payload.category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
 
-@app.get("/api/v1/suggestions", tags=["AI"])
-def get_suggestions(keyword: str):
+    new_channel = ChannelModel(
+        url=str(payload.url),
+        information_source_id=source_id,
+        category_id=payload.category_id,
+    )
+    db.add(new_channel)
+    db.commit()
+    db.refresh(new_channel)
+    return new_channel
+
+@app.get(
+    f"{API_PREFIX}/information-sources/{{source_id}}/rss-channels/{{channel_id}}",
+    response_model=RSSChannel,
+    tags=["rss-channels"],
+)
+def get_source_channel(
+    source_id: int,
+    channel_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> RSSChannel:
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+
+    channel = db.query(ChannelModel).filter(ChannelModel.id == channel_id, ChannelModel.information_source_id == source_id).first()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Canal RSS no encontrado para la fuente")
+    return channel
+
+@app.put(
+    f"{API_PREFIX}/information-sources/{{source_id}}/rss-channels/{{channel_id}}",
+    response_model=RSSChannel,
+    tags=["rss-channels"],
+)
+def update_source_channel(
+    source_id: int,
+    channel_id: int,
+    payload: RSSChannelUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> RSSChannel:
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+
+    channel = db.query(ChannelModel).filter(ChannelModel.id == channel_id, ChannelModel.information_source_id == source_id).first()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Canal RSS no encontrado para la fuente")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    if "url" in update_data:
+        channel.url = str(update_data["url"])
+    if "category_id" in update_data:
+        category = db.query(CategoryModel).filter(CategoryModel.id == update_data["category_id"]).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Categoría no encontrada")
+        channel.category_id = update_data["category_id"]
+
+    db.commit()
+    db.refresh(channel)
+    return channel
+
+@app.delete(
+    f"{API_PREFIX}/information-sources/{{source_id}}/rss-channels/{{channel_id}}",
+    status_code=204,
+    response_model=None,
+    response_class=Response,
+    tags=["rss-channels"],
+)
+def delete_source_channel(
+    source_id: int,
+    channel_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+
+    channel = db.query(ChannelModel).filter(ChannelModel.id == channel_id, ChannelModel.information_source_id == source_id).first()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Canal RSS no encontrado para la fuente")
+
+    db.delete(channel)
+    db.commit()
+
+# Noticias (Endpoint requerido para la pestaña Resumen/Noticias)
+@app.get(f"{API_PREFIX}/news", tags=["News"])
+def list_news(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(NotificationModel).order_by(NotificationModel.timestamp.desc()).limit(100).all()
+
+# Estadísticas (Dashboard)
+@app.get(f"{API_PREFIX}/stats", response_model=List[Stats], tags=["stats"])
+def get_stats(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    stats = db.query(StatsModel).all()
+    if not stats:
+        # Fallback para evitar error en el frontend si la DB está vacía
+        return [{"id": 1, "metrics": [{"name": "Cargando...", "value": 0}]}]
+    return stats
+
+@app.get(f"{API_PREFIX}/suggestions", tags=["AI"])
+def get_suggestions(keyword: str, current_user: UserModel = Depends(get_current_user)):
     suggestions = generate_synonyms(keyword)
-    return {
-        "keyword": keyword,
-        "suggestions": suggestions
-    }
-@app.post("/api/v1/run-scheduler")
-def run_scheduler_manually():
-    fetch_all_sources_job()
-    return {"status": "scheduler executed manually"}
+    return {"keyword": keyword, "suggestions": suggestions}
+
+@app.get(f"{API_PREFIX}/categories", response_model=List[Category], tags=["categories"])
+def list_categories(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> List[Category]:
+    return db.query(CategoryModel).all()
+
+@app.post(f"{API_PREFIX}/categories", response_model=Category, status_code=201, tags=["categories"])
+def create_category(payload: CategoryCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> Category:
+    new_category = CategoryModel(name=payload.name, source=payload.source)
+    db.add(new_category)
+    db.commit()
+    db.refresh(new_category)
+    return new_category
+
+@app.get(f"{API_PREFIX}/categories/{{category_id}}", response_model=Category, tags=["categories"])
+def get_category(category_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> Category:
+    category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    return category
+
+@app.put(f"{API_PREFIX}/categories/{{category_id}}", response_model=Category, tags=["categories"])
+def update_category(category_id: int, payload: CategoryUpdate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> Category:
+    category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    update_data = payload.model_dump(exclude_unset=True)
+    if "name" in update_data:
+        category.name = update_data["name"]
+    if "source" in update_data:
+        category.source = update_data["source"]
+    db.commit()
+    db.refresh(category)
+    return category
+
+@app.delete(
+    f"{API_PREFIX}/categories/{{category_id}}",
+    status_code=204,
+    response_model=None,
+    response_class=Response,
+    tags=["categories"],
+)
+def delete_category(category_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    db.delete(category)
+    db.commit()
+
+# --- SEED DATA CORREGIDO (USANDO ALIAS) ---
+
+@app.on_event("startup")
+def startup_event():
+    Base.metadata.create_all(bind=engine)
+    create_seed_data()
+
+def create_seed_data():
+    db = next(get_db())
+    # Corregido: Usar RoleModel y UserModel en lugar de Role y User
+    if db.query(RoleModel).count() == 0:
+        admin_role = RoleModel(name="admin")
+        user_role = RoleModel(name="user")
+        db.add_all([admin_role, user_role])
+        db.commit()
+    else:
+        admin_role = db.query(RoleModel).filter(RoleModel.name == "admin").first()
+        user_role = db.query(RoleModel).filter(RoleModel.name == "user").first()
+
+    if db.query(UserModel).count() == 0:
+        admin = UserModel(
+            email="admin@newsradar.com",
+            first_name="Admin",
+            last_name="NewsRadar",
+            organization="NewsRadar",
+            hashed_password=pwd_context.hash("admin123"),
+            roles=[admin_role] if admin_role else [],
+        )
+        db.add(admin)
+        db.commit()
