@@ -17,13 +17,13 @@ def _auth_context(client):
             "organization": "QA",
         },
     )
-    assert register_response.status_code == 201
+    assert register_response.status_code == 200
 
     user_id = register_response.json()["id"]
 
     login_response = client.post(
         "/api/v1/auth/login",
-        json={"email": email, "password": password},
+        data={"username": email, "password": password},
     )
     assert login_response.status_code == 200
 
