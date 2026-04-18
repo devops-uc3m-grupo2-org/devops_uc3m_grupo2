@@ -632,7 +632,7 @@ def update_alert_notification(
     if "timestamp" in update_data:
         notification.timestamp = update_data["timestamp"]
     if "metrics" in update_data:
-        notification.metrics = [metric.model_dump() for metric in update_data["metrics"]]
+        notification.metrics = update_data["metrics"]
     db.commit()
     db.refresh(notification)
     return notification
