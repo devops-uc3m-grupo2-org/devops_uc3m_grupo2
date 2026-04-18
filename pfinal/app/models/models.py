@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Table, Column, Integer, String, ForeignKey, Text, DateTime, JSON, Enum as SQLEnum
+from sqlalchemy import Table, Column, Integer, String, ForeignKey, Text, DateTime, JSON, Boolean, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from datetime import datetime
@@ -75,6 +75,7 @@ class RSSChannel(Base):
     information_source_id = Column(Integer, ForeignKey("information_sources.id"))
     category_id = Column(Integer, ForeignKey("categories.id"))
     source = relationship("InformationSource", back_populates="rss_channels")
+    category = relationship("Category")
     news_items = relationship("NewsItem", back_populates="channel")
 
 class NewsItem(Base):
@@ -86,24 +87,35 @@ class NewsItem(Base):
     published = Column(DateTime, nullable=True)
     channel_id = Column(Integer, ForeignKey("rss_channels.id"))
     channel = relationship("RSSChannel", back_populates="news_items")
+    matched_alerts = relationship("AlertNews", back_populates="news_item", cascade="all, delete-orphan")
 
 class Alert(Base):
     __tablename__ = "alerts"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False)
-    descriptors = Column(JSON, default=[]) 
+    descriptors = Column(JSON, default=[])
     categories = Column(JSON, default=[])
     cron_expression = Column(String(120), default="*/5 * * * *")
+    is_active = Column(Boolean, default=True, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="alerts")
     notifications = relationship("Notification", back_populates="alert", cascade="all, delete-orphan")
+    matched_news = relationship("AlertNews", back_populates="alert", cascade="all, delete-orphan")
+
+class AlertNews(Base):
+    __tablename__ = "alert_news"
+    id = Column(Integer, primary_key=True, index=True)
+    alert_id = Column(Integer, ForeignKey("alerts.id", ondelete="CASCADE"))
+    news_item_id = Column(Integer, ForeignKey("news_items.id", ondelete="CASCADE"))
+    alert = relationship("Alert", back_populates="matched_news")
+    news_item = relationship("NewsItem", back_populates="matched_alerts")
 
 class Notification(Base):
     __tablename__ = "notifications"
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
     alert_id = Column(Integer, ForeignKey("alerts.id"))
-    metrics = Column(JSON, default=[]) 
+    metrics = Column(JSON, default=[])
     alert = relationship("Alert", back_populates="notifications")
 
 class Stats(Base):

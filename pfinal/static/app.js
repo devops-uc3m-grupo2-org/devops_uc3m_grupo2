@@ -309,7 +309,52 @@ const app = {
         document.getElementById('alert-cron').value = '';
     },
 
-    async refreshNews() { console.log('Simulando carga de noticias...'); }
+    async refreshNews() {
+        try {
+            const result = await this.fetchAPI('/news/fetch', 'POST');
+            this.toast(`${result.new_items} noticias nuevas sincronizadas`, 'success');
+            const news = await this.fetchAPI('/news/latest');
+            this.renderNews(news);
+        } catch (err) {
+            console.error(err);
+            this.toast(err.message || 'Error al cargar noticias', 'error');
+        }
+    },
+
+    renderNews(news) {
+        const container = document.getElementById('news-list');
+        if (!container) return;
+
+        if (!news || news.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>No hay noticias disponibles.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = news
+            .map(item => `
+                <article class="card news-card">
+                    <div class="news-header">
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer">
+                            <h3>${item.title}</h3>
+                        </a>
+                        <div class="news-meta">
+                            <span>${item.source_name || 'Fuente desconocida'}</span>
+                            <span>${item.category_name || 'Sin categoría'}</span>
+                            <span>${item.published ? new Date(item.published).toLocaleString() : ''}</span>
+                        </div>
+                    </div>
+                    <p>${item.summary || ''}</p>
+                    <div class="news-footer">
+                        <small>Canal: <a href="${item.channel_url}" target="_blank" rel="noopener noreferrer">${item.channel_url}</a></small>
+                    </div>
+                </article>
+            `)
+            .join('');
+    }
 };
 
 // Iniciar app

@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -28,10 +29,13 @@ from app.models.models import (
     Stats as StatsModel,
     InformationSource as SourceModel,
     RSSChannel as ChannelModel,
+    NewsItem as NewsItemModel,
     Category as CategoryModel,
     IPTCCategoryEnum
 )
 from app.services.ai import generate_synonyms
+from app.services.fetcher import fetch_feed
+from app.core.scheduler import start_scheduler
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
 SECRET_KEY = os.getenv("SECRET_KEY", "tu_llave_secreta_super_segura")
@@ -135,6 +139,7 @@ class AlertCreate(BaseModel):
     descriptors: List[str] = Field(default_factory=list)
     categories: List[AlertCategoryItem] = Field(default_factory=list)
     cron_expression: str
+    is_active: Optional[bool] = True
 
     class Config:
         use_enum_values = True
@@ -144,6 +149,7 @@ class AlertUpdate(BaseModel):
     descriptors: Optional[List[str]] = None
     categories: Optional[List[AlertCategoryItem]] = None
     cron_expression: Optional[str] = None
+    is_active: Optional[bool] = None
 
     class Config:
         use_enum_values = True
@@ -155,6 +161,7 @@ class Alert(BaseModel):
     categories: List[AlertCategoryItem] = Field(default_factory=list)
     cron_expression: str
     user_id: int
+    is_active: bool
     class Config: from_attributes = True
 
 class NotificationCreate(BaseModel):
@@ -171,6 +178,32 @@ class Notification(BaseModel):
     alert_id: int
     metrics: List[Metric] = Field(default_factory=list)
     class Config: from_attributes = True
+
+class NewsItem(BaseModel):
+    id: int
+    title: str
+    link: str
+    summary: Optional[str] = None
+    published: Optional[datetime] = None
+    channel_id: int
+    class Config:
+        from_attributes = True
+
+class NewsItemEnriched(BaseModel):
+    id: int
+    title: str
+    link: str
+    summary: Optional[str] = None
+    published: Optional[datetime] = None
+    channel_id: int
+    channel_url: str
+    source_name: str
+    source_iptc_category: Optional[str] = None
+    category_id: int
+    category_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 class Stats(BaseModel):
     id: int
@@ -464,6 +497,7 @@ def create_user_alert(user_id: int, payload: AlertCreate, current_user: UserMode
         descriptors=payload.descriptors,
         categories=[cat.dict() for cat in payload.categories],
         cron_expression=payload.cron_expression,
+        is_active=payload.is_active,
         user_id=user_id,
     )
     db.add(new_alert)
@@ -503,6 +537,8 @@ def update_user_alert(
         alert.categories = [cat.dict() for cat in update_data["categories"]]
     if "cron_expression" in update_data:
         alert.cron_expression = update_data["cron_expression"]
+    if "is_active" in update_data:
+        alert.is_active = update_data["is_active"]
     db.commit()
     db.refresh(alert)
     return alert
@@ -648,7 +684,35 @@ def create_source(payload: InformationSourceCreate = Body(...), current_user: Us
     db.add(new_src)
     db.commit()
     db.refresh(new_src)
+
+    if payload.iptc_category:
+        category = db.query(CategoryModel).filter(CategoryModel.name == payload.iptc_category).first()
+        if not category:
+            category = CategoryModel(name=payload.iptc_category, source="IPTC")
+            db.add(category)
+            db.commit()
+            db.refresh(category)
+
+        if not db.query(ChannelModel).filter(ChannelModel.url == rss_url).first():
+            new_channel = ChannelModel(
+                url=rss_url,
+                information_source_id=new_src.id,
+                category_id=category.id,
+            )
+            db.add(new_channel)
+            db.commit()
+            db.refresh(new_channel)
+
     return new_src
+
+@app.post(f"{API_PREFIX}/news/fetch", tags=["news"])
+def fetch_news(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    channels = db.query(ChannelModel).all()
+    total_new = 0
+    for channel in channels:
+        created, _ = fetch_feed(db, channel.id, limit=10)
+        total_new += created
+    return {"new_items": total_new}
 
 @app.get(
     f"{API_PREFIX}/information-sources/{{source_id}}/rss-channels",
@@ -660,6 +724,33 @@ def list_source_channels(source_id: int, current_user: UserModel = Depends(get_c
     if not source:
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
     return db.query(ChannelModel).filter(ChannelModel.information_source_id == source_id).all()
+
+@app.post(
+    f"{API_PREFIX}/information-sources/{{source_id}}/fetch",
+    tags=["information-sources"],
+)
+def fetch_source_news(
+    source_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+
+    channels = db.query(ChannelModel).filter(ChannelModel.information_source_id == source_id).all()
+    if not channels:
+        raise HTTPException(
+            status_code=404,
+            detail="No hay canales RSS definidos para esta fuente",
+        )
+
+    total_new = 0
+    for channel in channels:
+        created, _ = fetch_feed(db, channel.id, limit=10)
+        total_new += created
+
+    return {"source_id": source_id, "new_items": total_new}
 
 @app.post(
     f"{API_PREFIX}/information-sources/{{source_id}}/rss-channels",
@@ -769,9 +860,38 @@ def delete_source_channel(
     db.commit()
 
 # Noticias (Endpoint requerido para la pestaña Resumen/Noticias)
-@app.get(f"{API_PREFIX}/news", tags=["News"])
+@app.get(f"{API_PREFIX}/news", response_model=List[NewsItem], tags=["news"])
 def list_news(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(NotificationModel).order_by(NotificationModel.timestamp.desc()).limit(100).all()
+    return db.query(NewsItemModel).order_by(NewsItemModel.published.desc().nullslast(), NewsItemModel.id.desc()).limit(100).all()
+
+@app.get(f"{API_PREFIX}/news/latest", response_model=List[NewsItemEnriched], tags=["news"])
+def list_latest_news(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    items = (
+        db.query(NewsItemModel)
+        .join(ChannelModel, NewsItemModel.channel_id == ChannelModel.id)
+        .join(SourceModel, ChannelModel.information_source_id == SourceModel.id)
+        .join(CategoryModel, ChannelModel.category_id == CategoryModel.id)
+        .order_by(NewsItemModel.published.desc().nullslast(), NewsItemModel.id.desc())
+        .limit(100)
+        .all()
+    )
+
+    return [
+        NewsItemEnriched(
+            id=item.id,
+            title=item.title,
+            link=item.link,
+            summary=item.summary,
+            published=item.published,
+            channel_id=item.channel_id,
+            channel_url=item.channel.url,
+            source_name=item.channel.source.name,
+            source_iptc_category=item.channel.source.iptc_category,
+            category_id=item.channel.category_id,
+            category_name=item.channel.category.name if item.channel.category else None,
+        )
+        for item in items
+    ]
 
 # Estadísticas (Dashboard)
 @app.get(f"{API_PREFIX}/stats", response_model=List[Stats], tags=["stats"])
@@ -836,10 +956,27 @@ def delete_category(category_id: int, current_user: UserModel = Depends(get_curr
 
 # --- SEED DATA CORREGIDO (USANDO ALIAS) ---
 
+def ensure_database_schema():
+    inspector = inspect(engine)
+
+    if inspector.has_table("news_items"):
+        columns = [column["name"] for column in inspector.get_columns("news_items")]
+        if "channel_id" not in columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE news_items ADD COLUMN channel_id INTEGER"))
+
+    if inspector.has_table("alerts"):
+        alert_columns = [column["name"] for column in inspector.get_columns("alerts")]
+        if "is_active" not in alert_columns:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE alerts ADD COLUMN is_active BOOLEAN DEFAULT TRUE NOT NULL"))
+
 @app.on_event("startup")
 def startup_event():
     Base.metadata.create_all(bind=engine)
+    ensure_database_schema()
     create_seed_data()
+    start_scheduler()
 
 def create_seed_data():
     db = next(get_db())
