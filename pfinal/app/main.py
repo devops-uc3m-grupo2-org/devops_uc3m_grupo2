@@ -904,11 +904,14 @@ def list_latest_news(db: Session = Depends(get_db)):
 # Estadísticas (Dashboard)
 @app.get(f"{API_PREFIX}/stats", response_model=List[Stats], tags=["stats"])
 def get_stats(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
-    stats = db.query(StatsModel).all()
-    if not stats:
-        # Fallback para evitar error en el frontend si la DB está vacía
-        return [{"id": 1, "metrics": [{"name": "Cargando...", "value": 0}]}]
-    return stats
+    return [{
+        "id": 1,
+        "metrics": [
+            {"name": "total_news", "value": db.query(NewsItemModel).count()},
+            {"name": "total_sources", "value": db.query(SourceModel).count()},
+            {"name": "total_alerts", "value": db.query(AlertModel).count()},
+        ],
+    }]
 
 @app.get(f"{API_PREFIX}/suggestions", tags=["AI"])
 def get_suggestions(keyword: str, current_user: UserModel = Depends(get_current_user)):
