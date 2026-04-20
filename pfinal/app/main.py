@@ -705,8 +705,8 @@ def create_source(payload: InformationSourceCreate = Body(...), current_user: Us
             )
             db.add(new_channel)
             db.commit()
-            db.refresh(new_channel)
 
+    db.refresh(new_src)
     return new_src
 
 

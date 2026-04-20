@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST http://192.168.1.172:8000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"admin@newsradar.com\",\"password\":\"admin123\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://192.168.1.172:8000/api/v1/stats)",
+      "Bash(curl -s http://192.168.1.172:8000/api/v1/users -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBuZXdzcmFkYXIuY29tIiwiZXhwIjoxNzc2Njg2OTg4fQ.RPXzhHCO1H-8tx0JYJDcidznRGuee1StbN8MlIUTgfA')",
+      "Bash(curl -s -X POST http://192.168.1.172:8000/api/v1/information-sources -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBuZXdzcmFkYXIuY29tIiwiZXhwIjoxNzc2Njg2OTg4fQ.RPXzhHCO1H-8tx0JYJDcidznRGuee1StbN8MlIUTgfA' -H 'Content-Type: application/json' -d '{\"name\":\"El País\",\"rss_url\":\"https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada\",\"medium\":\"digital\",\"iptc_category\":\"Política\"}')",
+      "Bash(curl -s -X POST http://192.168.1.172:8000/api/v1/information-sources -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBuZXdzcmFkYXIuY29tIiwiZXhwIjoxNzc2Njg2OTg4fQ.RPXzhHCO1H-8tx0JYJDcidznRGuee1StbN8MlIUTgfA' -H 'Content-Type: application/json' -d '{\"name\":\"El Pais\",\"rss_url\":\"https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada\",\"medium\":\"digital\"}')"
+    ]
+  }
+}
