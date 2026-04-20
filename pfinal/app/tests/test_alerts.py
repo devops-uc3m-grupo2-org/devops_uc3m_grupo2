@@ -23,7 +23,7 @@ def _auth_context(client):
 
     login_response = client.post(
         "/api/v1/auth/login",
-        data={"username": email, "password": password},
+        json={"email": email, "password": password},
     )
     assert login_response.status_code == 200
 

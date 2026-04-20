@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import FastAPI, Depends, HTTPException, status, Response, Body
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -334,9 +334,9 @@ def get_roles_for_ids(role_ids: List[int], db: Session) -> List[RoleModel]:
 
 
 @app.post(f"{API_PREFIX}/auth/login", response_model=TokenResponse, tags=["auth"])
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(UserModel).filter(UserModel.email == form_data.username).first()
-    if not user or not pwd_context.verify(form_data.password, user.hashed_password):
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(UserModel).filter(UserModel.email == payload.email).first()
+    if not user or not pwd_context.verify(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
@@ -668,10 +668,6 @@ def list_sources(current_user: UserModel = Depends(get_current_user), db: Sessio
     return db.query(SourceModel).all()
 
 
-@app.get(f"{API_PREFIX}/sources", tags=["sources"])
-def list_sources_alias(db: Session = Depends(get_db)):
-    return db.query(SourceModel).all()
-
 @app.post(f"{API_PREFIX}/information-sources", status_code=201, tags=["information-sources"])
 def create_source(payload: InformationSourceCreate = Body(...), current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     rss_url = str(payload.rss_url)
@@ -714,26 +710,6 @@ def create_source(payload: InformationSourceCreate = Body(...), current_user: Us
     return new_src
 
 
-@app.post(f"{API_PREFIX}/sources", status_code=200, tags=["sources"])
-def create_source_alias(payload: dict = Body(...), db: Session = Depends(get_db)):
-    rss_url = payload.get("rss_url")
-    if not rss_url:
-        raise HTTPException(status_code=422, detail="rss_url es obligatorio")
-
-    if db.query(SourceModel).filter(SourceModel.rss_url == rss_url).first():
-        raise HTTPException(status_code=409, detail="La fuente ya existe")
-
-    new_src = SourceModel(
-        name=payload.get("name", "Sin nombre"),
-        medium=payload.get("medium"),
-        rss_url=rss_url,
-        iptc_category=payload.get("iptc_category"),
-    )
-    db.add(new_src)
-    db.commit()
-    db.refresh(new_src)
-    return new_src
-
 @app.post(f"{API_PREFIX}/news/fetch", tags=["news"])
 def fetch_news(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     channels = db.query(ChannelModel).all()
@@ -760,6 +736,7 @@ def list_source_channels(source_id: int, current_user: UserModel = Depends(get_c
 )
 def fetch_source_news(
     source_id: int,
+    debug: bool = False,
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -767,41 +744,20 @@ def fetch_source_news(
     if not source:
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
 
-    channels = db.query(ChannelModel).filter(ChannelModel.information_source_id == source_id).all()
-    if not channels:
-        raise HTTPException(
-            status_code=404,
-            detail="No hay canales RSS definidos para esta fuente",
-        )
-
-    total_new = 0
-    for channel in channels:
-        created, _ = fetch_feed(db, channel.id, limit=10)
-        total_new += created
-
-    return {"source_id": source_id, "new_items": total_new}
-
-
-@app.post(f"{API_PREFIX}/sources/{{source_id}}/fetch", tags=["sources"])
-def fetch_source_news_alias(source_id: int, debug: bool = False, db: Session = Depends(get_db)):
-    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
-    if not source:
-        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
-
     if debug:
         import feedparser
-
         feed = feedparser.parse(source.rss_url)
-        return {
-            "source_id": source_id,
-            "entries_count": len(getattr(feed, "entries", [])),
-        }
+        return {"source_id": source_id, "entries_count": len(getattr(feed, "entries", []))}
 
     channels = db.query(ChannelModel).filter(ChannelModel.information_source_id == source_id).all()
+    if not channels:
+        raise HTTPException(status_code=404, detail="No hay canales RSS definidos para esta fuente")
+
     total_new = 0
     for channel in channels:
         created, _ = fetch_feed(db, channel.id, limit=10)
         total_new += created
+
     return {"source_id": source_id, "new_items": total_new}
 
 @app.post(
