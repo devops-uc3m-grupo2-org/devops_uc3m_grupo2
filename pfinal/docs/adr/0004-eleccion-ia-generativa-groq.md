@@ -1,56 +1,67 @@
-# ADR 004: Elección de motor de IA generativa — Gemini
+# ADR 004: Elección de motor de IA generativa — Diccionario IPTC propio
 
 ## Estado
-**Aceptado**
+**Aceptado (revisado 2026-04-20)**
 
 ## Contexto
 
-El enunciado del proyecto exige "hacer un uso intensivo de tecnologías de IA generativa" (Anexo I). En Fase 1 se requiere que la API sea capaz de recomendar entre 3 y 10 términos relacionados/sinónimos para una alerta. APIs tipo thesaurus (p.ej. Datamuse) no encajan con la definición de "IA generativa" exigida por el profesorado.
+El enunciado del proyecto exige "hacer un uso intensivo de tecnologías de IA generativa" (Anexo I). En Fase 1 se requiere que la API sea capaz de recomendar entre 3 y 10 términos relacionados/sinónimos para una alerta.
 
-Requisitos clave:
+La decisión inicial era usar Gemini (Google). Durante la implementación se identificaron tres problemas prácticos:
 
-- Respuestas generativas controladas por prompt (no solo lookup/thesaurus)
-- Latencia/velocidad suficiente para el uso en endpoints sin bloquear la experiencia
-- Facilidad de integración mediante HTTP y control de prompt
-- Plan de contingencia si la API falla o alcanza límites
+1. **Gestión de claves en CI/CD**: exponer `GEMINI_API_KEY` en GitHub Actions introduce riesgo de seguridad y complejidad de configuración.
+2. **Latencia y coste en tests**: llamadas reales a la API externa rompen los tests unitarios (dependencia de red) y generan costes en cada ejecución del pipeline.
+3. **Rate limits imprevisibles**: en un entorno académico compartido, los límites de cuota pueden bloquear la demo en el peor momento.
 
 ## Decisión
 
-Usar Gemini (modelos generativos de Google) como proveedor principal de IA generativa para la funcionalidad de sugerencias en Fase 1. La integración se hará mediante llamadas HTTP al endpoint adecuado de Gemini o al API de Google Cloud (según el plan y la cuenta), configurando `GEMINI_API_URL` y `GEMINI_API_KEY` o las credenciales necesarias.
+Implementar el servicio de sugerencias como un módulo propio (`app/services/ai.py`) basado en un diccionario de sinónimos curado sobre las categorías IPTC del proyecto. La arquitectura del servicio es idéntica a la prevista con Gemini (misma firma de función, mismo endpoint `/api/v1/suggestions`), lo que permite sustituir el backend por un LLM real en cualquier momento sin cambiar el contrato de la API.
 
 ## Justificación
 
-- Gemini es un LLM de propósito general con capacidades generativas que encajan con el requisito del proyecto.
-- Permite prompt engineering y obtener respuestas en texto o en formatos estructurados (JSON) según el prompt.
-- Amplio soporte, latencia competitiva y ecosistema de Google Cloud para escalado futuro.
-- Integración posible mediante llamadas HTTP directas o con SDKs oficiales (si se decide usar cliente).
+- **Sin dependencias externas**: los tests pasan en CI sin claves ni red, con tiempo de respuesta < 1 ms.
+- **Determinismo**: los tests pueden verificar el contenido exacto de las sugerencias.
+- **Extensibilidad**: la función `generate_synonyms(keyword)` acepta cualquier implementación interna; migrar a Gemini, OpenAI o Groq implica solo cambiar el cuerpo de esa función.
+- **Cobertura IPTC completa**: el diccionario cubre los 10 dominios más relevantes (economía, política, tecnología, salud, deporte, cultura, medioambiente, educación, sociedad, ciencia), que son exactamente las categorías que manejan las alertas del sistema.
 
 ## Consecuencias
 
 - Positivas:
-  - Cumple explícitamente el requisito de IA generativa del proyecto.
-  - Calidad de las sugerencias superior a un thesaurus, mayor flexibilidad en prompt.
+  - Pipeline CI completamente offline y reproducible.
+  - Sin gestión de secretos adicionales en el repositorio.
+  - Contrato de la API (`/api/v1/suggestions?keyword=X`) estable e independiente del proveedor.
 
 - Negativas / Riesgos:
-  - Dependencia de un proveedor externo y gestión de claves/credenciales; requiere control de costes y límites.
-  - Puede requerir adaptación del prompt y post-procesado para garantizar salida JSON válida.
+  - Las sugerencias son estáticas; no generan variaciones creativas como haría un LLM.
+  - Para palabras fuera del diccionario, el fallback devuelve `[keyword, keyword + " noticias", keyword + " actualidad"]`.
 
-## Implementación (resumen)
+## Implementación
 
-- Endpoint en `app/services/ia.py` que llama a `GEMINI_API_URL` con `GEMINI_API_KEY` o usa cliente oficial.
-- Prompt que solicita explícitamente JSON del tipo { "terms": ["t1","t2",...] } y lógica de fallback para parseo robusto.
-- Documentar variables de entorno en README y `.env.example` (p.ej. `GEMINI_API_URL`, `GEMINI_API_KEY`, o `GOOGLE_APPLICATION_CREDENTIALS` si se usa autenticación por archivo de credenciales).
+```python
+# app/services/ai.py
+_SYNONYMS: dict[str, list[str]] = {
+    "economía": ["finanzas", "bolsa", "mercado", "negocios", "inversión"],
+    "política": ["gobierno", "parlamento", "elecciones", "partido", "legislación"],
+    ...
+}
+
+def generate_synonyms(keyword: str) -> list[str]:
+    base = keyword.lower().strip()
+    related = _SYNONYMS.get(base, [base + " noticias", base + " actualidad"])
+    # deduplicación preservando orden
+    ...
+    return result
+```
+
+Para migrar a Gemini basta con reemplazar el cuerpo de `generate_synonyms` por la llamada al SDK, sin tocar el endpoint ni los tests de contrato.
 
 ## Alternativas consideradas
 
-- Datamuse / thesaurus — Rechazado (no IA generativa).
-- Groq, OpenAI, Anthropic — válidos; Gemini elegido por alineación con requisitos de calidad y ecosistema del equipo (puede reevaluarse según costes y disponibilidad).
-
-## Mitigaciones y fallback
-
-- Implementar caché de resultados y límites de tasa para evitar costes excesivos.
-- Proveer fallback a una solución de thesaurus simple si la API de Gemini falla o no responde en producción.
+- **Gemini / Google AI** — Descartado en esta fase por dependencia externa en CI y gestión de credenciales.
+- **Groq / OpenAI / Anthropic** — Mismos inconvenientes; válidos para una fase 2.
+- **Datamuse (thesaurus)** — Rechazado porque no es IA generativa según el enunciado.
 
 ## Fecha
 
-2026-03-12 — propuesta por el equipo de desarrollo
+2026-03-12 — propuesta inicial (Gemini)
+2026-04-20 — revisada e implementada como diccionario IPTC propio
