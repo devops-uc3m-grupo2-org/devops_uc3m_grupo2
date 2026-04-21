@@ -106,9 +106,9 @@ const app = {
 
         if (stats && stats.metrics) {
             stats.metrics.forEach(m => {
-                if (m.name === 'sources') sources = m.value;
-                if (m.name === 'alerts') alerts = m.value;
-                if (m.name === 'news') news = m.value;
+                if (m.name === 'total_sources') sources = m.value;
+                if (m.name === 'total_alerts') alerts = m.value;
+                if (m.name === 'total_news') news = m.value;
             });
         }
 
@@ -276,9 +276,10 @@ const app = {
         const synonyms = document.getElementById('alert-synonyms').value.split(',').map(s => s.trim()).filter(Boolean);
         const iptcCategory = document.getElementById('alert-iptc').value;
         const cronExpression = document.getElementById('alert-cron').value.trim();
+        const userId = parseInt(document.getElementById('alert-user-id').value) || this.userID;
 
         if (!name || !keyword || !iptcCategory || !cronExpression) {
-            this.toast('Todos los campos de la alerta son obligatorios', 'error');
+            this.toast('Rellena todos los campos obligatorios (nombre, keyword, categoría y cron)', 'error');
             return;
         }
 
@@ -286,11 +287,12 @@ const app = {
         const descriptors = [keyword, ...synonyms];
 
         try {
-            await this.fetchAPI(`/users/${this.userID}/alerts`, 'POST', {
+            await this.fetchAPI(`/users/${userId}/alerts`, 'POST', {
                 name,
                 descriptors,
                 categories,
-                cron_expression: cronExpression
+                cron_expression: cronExpression,
+                is_active: true
             });
             this.toast('Alerta creada', 'success');
             this.toggleForm('add-alert-form');
