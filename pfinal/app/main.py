@@ -245,7 +245,7 @@ class Category(CategoryBase):
 
 class RSSChannelBase(BaseModel):
     url: HttpUrl
-    category_id: int
+    category_id: Optional[int] = None
 
 class RSSChannelCreate(RSSChannelBase):
     pass
@@ -689,6 +689,7 @@ def create_source(payload: InformationSourceCreate = Body(...), current_user: Us
     db.commit()
     db.refresh(new_src)
 
+    category_id = None
     if payload.iptc_category:
         category = db.query(CategoryModel).filter(CategoryModel.name == payload.iptc_category).first()
         if not category:
@@ -696,15 +697,16 @@ def create_source(payload: InformationSourceCreate = Body(...), current_user: Us
             db.add(category)
             db.commit()
             db.refresh(category)
+        category_id = category.id
 
-        if not db.query(ChannelModel).filter(ChannelModel.url == rss_url).first():
-            new_channel = ChannelModel(
-                url=rss_url,
-                information_source_id=new_src.id,
-                category_id=category.id,
-            )
-            db.add(new_channel)
-            db.commit()
+    if not db.query(ChannelModel).filter(ChannelModel.url == rss_url).first():
+        new_channel = ChannelModel(
+            url=rss_url,
+            information_source_id=new_src.id,
+            category_id=category_id,
+        )
+        db.add(new_channel)
+        db.commit()
 
     db.refresh(new_src)
     return new_src
@@ -776,9 +778,10 @@ def create_source_channel(
     if not source:
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
 
-    category = db.query(CategoryModel).filter(CategoryModel.id == payload.category_id).first()
-    if not category:
-        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    if payload.category_id is not None:
+        category = db.query(CategoryModel).filter(CategoryModel.id == payload.category_id).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Categoría no encontrada")
 
     new_channel = ChannelModel(
         url=str(payload.url),
@@ -878,7 +881,7 @@ def list_latest_news(db: Session = Depends(get_db)):
         db.query(NewsItemModel)
         .join(ChannelModel, NewsItemModel.channel_id == ChannelModel.id)
         .join(SourceModel, ChannelModel.information_source_id == SourceModel.id)
-        .join(CategoryModel, ChannelModel.category_id == CategoryModel.id)
+        .outerjoin(CategoryModel, ChannelModel.category_id == CategoryModel.id)
         .order_by(NewsItemModel.published.desc().nullslast(), NewsItemModel.id.desc())
         .limit(100)
         .all()
