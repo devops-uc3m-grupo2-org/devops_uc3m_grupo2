@@ -71,7 +71,7 @@ const app = {
         const section = document.getElementById(sectionId);
         if (section) section.classList.add('active');
 
-        if (sectionId === 'login') {
+        if (sectionId === 'login' || sectionId === 'register') {
             this.hideNavbar();
         } else {
             this.showNavbar();
@@ -223,6 +223,49 @@ const app = {
             this.loadSources();
         } catch (err) {
             this.toast(err.message || 'Error al crear fuente', 'error');
+        }
+    },
+
+    // --- REGISTRO ---
+    async register(event) {
+        event.preventDefault();
+        const first_name = document.getElementById('reg-first-name').value.trim();
+        const last_name = document.getElementById('reg-last-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const errorDiv = document.getElementById('register-error');
+
+        errorDiv.textContent = '';
+
+        if (!first_name || !last_name || !email || !password) {
+            errorDiv.textContent = 'Rellena todos los campos obligatorios.';
+            errorDiv.classList.add('show');
+            return;
+        }
+
+        try {
+            const resp = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, first_name, last_name })
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail || 'Error al registrar usuario');
+            }
+
+            this.toast('Cuenta creada correctamente. Inicia sesión.', 'success');
+            this.showSection('login');
+            // Prefill login email
+            document.getElementById('login-email').value = email;
+            document.getElementById('reg-first-name').value = '';
+            document.getElementById('reg-last-name').value = '';
+            document.getElementById('reg-email').value = '';
+            document.getElementById('reg-password').value = '';
+        } catch (err) {
+            errorDiv.textContent = err.message || 'Error al registrar usuario';
+            errorDiv.classList.add('show');
         }
     },
 
