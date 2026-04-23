@@ -35,6 +35,7 @@ from app.models.models import (
 )
 from app.services.ai import generate_synonyms
 from app.services.fetcher import fetch_feed
+from app.services.alertLogic import process_alerts_for_items
 from app.core.scheduler import start_scheduler
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
@@ -716,9 +717,13 @@ def create_source(payload: InformationSourceCreate = Body(...), current_user: Us
 def fetch_news(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     channels = db.query(ChannelModel).all()
     total_new = 0
+    all_new_items = []
     for channel in channels:
-        created, _ = fetch_feed(db, channel.id, limit=10)
+        created, new_items = fetch_feed(db, channel.id, limit=10)
         total_new += created
+        all_new_items.extend(new_items)
+    if all_new_items:
+        process_alerts_for_items(db, all_new_items)
     return {"new_items": total_new}
 
 @app.get(
