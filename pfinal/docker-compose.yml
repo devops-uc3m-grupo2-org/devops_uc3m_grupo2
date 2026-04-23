@@ -22,17 +22,9 @@ services:
       - .env
     depends_on:
       - db
-      - mailhog
     volumes:
       - ./app:/app/app
       - ./static:/app/static
-
-  mailhog:
-    image: mailhog/mailhog
-    restart: always
-    ports:
-      - "8025:8025"
-      - "1025:1025"
 
   pgadmin:
     image: dpage/pgadmin4
