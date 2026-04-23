@@ -15,36 +15,44 @@
                     <span>NewsRadar</span>
                 </div>
                 <div class="navbar-menu">
-                    <button class="nav-item" onclick="app.showSection('dashboard')">Resumen</button>
-                    <button class="nav-item" onclick="app.showSection('sources')">Fuentes</button>
-                    <button class="nav-item" onclick="app.showSection('alerts')">Alertas</button>
-                    <button class="nav-item" onclick="app.showSection('news')">Noticias</button>
-                    <button class="nav-item logout-btn" onclick="app.logout()">Salir</button>
+                            <button class="nav-item" data-i18n="nav.dashboard" onclick="app.showSection('dashboard')">Resumen</button>
+                            <button class="nav-item" data-i18n="nav.sources" onclick="app.showSection('sources')">Fuentes</button>
+                            <button class="nav-item" data-i18n="nav.alerts" onclick="app.showSection('alerts')">Alertas</button>
+                            <button class="nav-item" data-i18n="nav.news" onclick="app.showSection('news')">Noticias</button>
+                            <button class="nav-item logout-btn" data-i18n="nav.logout" onclick="app.logout()">Salir</button>
                 </div>
             </div>
         </nav>
+
+        <!-- Selector global de idioma: aparece una sola vez y está posicionado en CSS -->
+        <select id="lang-select" onchange="app.setLanguage(this.value)">
+            <option value="es">ES</option>
+            <option value="en">EN</option>
+        </select>
 
         <main class="main-content">
             <section id="login" class="section active">
                 <div class="login-container">
                     <div class="login-card">
-                        <h1>Iniciar sesión</h1>
-                        <p>Usa el usuario admin para entrar rápidamente.</p>
+                        <div class="card-top">
+                            <h1 data-i18n="login.title">Iniciar sesión</h1>
+                        </div>
+                        <p data-i18n="login.note">Usa el usuario admin para entrar rápidamente.</p>
                         <form onsubmit="app.login(event)">
                             <div class="form-group">
-                                <label>Email</label>
-                                <input type="email" id="login-email" placeholder="admin@newsradar.com" required>
+                                <label data-i18n="login.email_label">Email</label>
+                                <input type="email" id="login-email" data-i18n-placeholder="login.email_placeholder" placeholder="admin@newsradar.com" required>
                             </div>
                             <div class="form-group">
-                                <label>Contraseña</label>
-                                <input type="password" id="login-password" placeholder="admin123" required>
+                                <label data-i18n="login.password_label">Contraseña</label>
+                                <input type="password" id="login-password" data-i18n-placeholder="login.password_placeholder" placeholder="admin123" required>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-full">Iniciar sesión</button>
+                            <button type="submit" class="btn btn-primary btn-full" data-i18n="login.submit">Iniciar sesión</button>
                         </form>
                         <div class="login-footer">
-                            <p>Credenciales: admin@newsradar.com / admin123</p>
+                            <p data-i18n="login.credentials">Credenciales: admin@newsradar.com / admin123</p>
                             <div class="footer-actions">
-                                <button class="btn btn-secondary" onclick="app.showSection('register')">Crear cuenta</button>
+                                <button class="btn btn-secondary" data-i18n="login.create_account" onclick="app.showSection('register')">Crear cuenta</button>
                             </div>
                         </div>
                         <div id="login-error" class="error-message"></div>
@@ -55,29 +63,31 @@
             <section id="register" class="section">
                 <div class="login-container">
                     <div class="login-card">
-                        <h1>Crear cuenta</h1>
-                        <p>Regístrate para crear alertas y guardar tus preferencias.</p>
+                        <div class="card-top">
+                            <h1 data-i18n="register.title">Crear cuenta</h1>
+                        </div>
+                        <p data-i18n="register.note">Regístrate para crear alertas y guardar tus preferencias.</p>
                         <form onsubmit="app.register(event)">
                             <div class="form-group">
-                                <label>Nombre</label>
-                                <input type="text" id="reg-first-name" placeholder="Nombre" required>
+                                <label data-i18n="register.first_name_label">Nombre</label>
+                                <input type="text" id="reg-first-name" data-i18n-placeholder="register.first_name_placeholder" placeholder="Nombre" required>
                             </div>
                             <div class="form-group">
-                                <label>Apellido</label>
-                                <input type="text" id="reg-last-name" placeholder="Apellido" required>
+                                <label data-i18n="register.last_name_label">Apellido</label>
+                                <input type="text" id="reg-last-name" data-i18n-placeholder="register.last_name_placeholder" placeholder="Apellido" required>
                             </div>
                             <div class="form-group">
-                                <label>Email</label>
-                                <input type="email" id="reg-email" placeholder="usuario@correo.com" required>
+                                <label data-i18n="register.email_label">Email</label>
+                                <input type="email" id="reg-email" data-i18n-placeholder="register.email_placeholder" placeholder="usuario@correo.com" required>
                             </div>
                             <!-- Organización retirada del formulario de registro según petición -->
                             <div class="form-group">
-                                <label>Contraseña</label>
-                                <input type="password" id="reg-password" placeholder="Contraseña" required>
+                                <label data-i18n="register.password_label">Contraseña</label>
+                                <input type="password" id="reg-password" data-i18n-placeholder="register.password_placeholder" placeholder="Contraseña" required>
                             </div>
                             <div class="form-actions">
-                                <button type="submit" class="btn btn-primary btn-full">Crear cuenta</button>
-                                <button type="button" class="btn btn-secondary" onclick="app.showSection('login')">Volver</button>
+                                <button type="submit" class="btn btn-primary btn-full" data-i18n="register.submit">Crear cuenta</button>
+                                <button type="button" class="btn btn-secondary" data-i18n="register.back" onclick="app.showSection('login')">Volver</button>
                             </div>
                         </form>
                         <div id="register-error" class="error-message"></div>
@@ -88,38 +98,38 @@
             <section id="dashboard" class="section">
                 <div class="section-header">
                     <div>
-                        <h2>Resumen rápido</h2>
-                        <p>Operaciones principales disponibles al instante.</p>
+                        <h2 data-i18n="dashboard.title">Resumen rápido</h2>
+                        <p data-i18n="dashboard.note">Operaciones principales disponibles al instante.</p>
                     </div>
-                    <button class="btn btn-secondary" onclick="app.loadDashboardData()">Actualizar</button>
+                    <button class="btn btn-secondary" data-i18n="dashboard.refresh" onclick="app.loadDashboardData()">Actualizar</button>
                 </div>
                 <div class="dashboard-grid">
                     <div class="stat-card">
                         <div class="stat-icon">📡</div>
                         <div>
                             <div class="stat-value" id="stat-sources">0</div>
-                            <div class="stat-label">Fuentes</div>
+                            <div class="stat-label" data-i18n="stats.sources">Fuentes</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">🔔</div>
                         <div>
                             <div class="stat-value" id="stat-alerts">0</div>
-                            <div class="stat-label">Alertas activas</div>
+                            <div class="stat-label" data-i18n="stats.alerts">Alertas activas</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">📰</div>
                         <div>
                             <div class="stat-value" id="stat-news">0</div>
-                            <div class="stat-label">Noticias</div>
+                            <div class="stat-label" data-i18n="stats.news">Noticias</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">✅</div>
                         <div>
                             <div class="stat-value" id="stat-health">...</div>
-                            <div class="stat-label">API</div>
+                            <div class="stat-label" data-i18n="stats.api">API</div>
                         </div>
                     </div>
                 </div>
@@ -128,25 +138,25 @@
             <section id="sources" class="section">
                 <div class="section-header">
                     <div>
-                        <h2>Fuentes RSS</h2>
-                        <p>Agrega y sincroniza tus fuentes de noticias.</p>
+                        <h2 data-i18n="sources.title">Fuentes RSS</h2>
+                        <p data-i18n="sources.note">Agrega y sincroniza tus fuentes de noticias.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="app.toggleForm('add-source-form')">+ Nueva fuente</button>
+                    <button class="btn btn-primary" data-i18n="sources.new" onclick="app.toggleForm('add-source-form')">+ Nueva fuente</button>
                 </div>
                 <div id="add-source-form" class="form-container hidden">
-                    <h3>Agregar nueva fuente</h3>
+                    <h3 data-i18n="sources.add_title">Agregar nueva fuente</h3>
                     <form onsubmit="app.createSource(event)">
                         <div class="form-group">
-                            <label>Nombre</label>
-                            <input type="text" id="source-name" placeholder="BBC News" required>
+                            <label data-i18n="sources.name_label">Nombre</label>
+                            <input type="text" id="source-name" data-i18n-placeholder="sources.name_placeholder" placeholder="BBC News" required>
                         </div>
                         <div class="form-group">
-                            <label>Medio</label>
-                            <input type="text" id="source-medium" placeholder="BBC" required>
+                            <label data-i18n="sources.medium_label">Medio</label>
+                            <input type="text" id="source-medium" data-i18n-placeholder="sources.medium_placeholder" placeholder="BBC" required>
                         </div>
                         <div class="form-group">
-                            <label>URL RSS</label>
-                            <input type="url" id="source-rss-url" placeholder="https://..." required>
+                            <label data-i18n="sources.url_label">URL RSS</label>
+                            <input type="url" id="source-rss-url" data-i18n-placeholder="sources.url_placeholder" placeholder="https://..." required>
                         </div>
                         <div class="form-group">
                             <label>Categoría IPTC</label>
@@ -172,14 +182,14 @@
                             </select>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Guardar</button>
-                            <button type="button" class="btn btn-secondary" onclick="app.toggleForm('add-source-form')">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" data-i18n="sources.save">Guardar</button>
+                            <button type="button" class="btn btn-secondary" data-i18n="sources.cancel" onclick="app.toggleForm('add-source-form')">Cancelar</button>
                         </div>
                     </form>
                 </div>
                 <div class="list-grid" id="sources-list">
                     <div class="empty-state">
-                        <p>No hay fuentes cargadas.</p>
+                        <p data-i18n="empty.sources">No hay fuentes cargadas.</p>
                     </div>
                 </div>
             </section>
@@ -187,21 +197,21 @@
             <section id="alerts" class="section">
                 <div class="section-header">
                     <div>
-                        <h2>Alertas</h2>
-                        <p>Configura alertas para tus palabras clave.</p>
+                        <h2 data-i18n="alerts.title">Alertas</h2>
+                        <p data-i18n="alerts.note">Configura alertas para tus palabras clave.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="app.toggleForm('add-alert-form')">+ Nueva alerta</button>
+                    <button class="btn btn-primary" data-i18n="alerts.new" onclick="app.toggleForm('add-alert-form')">+ Nueva alerta</button>
                 </div>
                 <div id="add-alert-form" class="form-container hidden">
-                    <h3>Crear alerta</h3>
+                    <h3 data-i18n="alerts.create_title">Crear alerta</h3>
                     <form onsubmit="app.createAlert(event)">
                         <div class="form-group">
-                            <label>Nombre</label>
-                            <input type="text" id="alert-name" placeholder="Alerta tecnología" required>
+                            <label data-i18n="alerts.name_label">Nombre</label>
+                            <input type="text" id="alert-name" data-i18n-placeholder="alerts.name_placeholder" placeholder="Alerta tecnología" required>
                         </div>
                         <div class="form-group">
-                            <label>Palabra clave</label>
-                            <input type="text" id="alert-keyword" placeholder="tecnología" required>
+                            <label data-i18n="alerts.keyword_label">Palabra clave</label>
+                            <input type="text" id="alert-keyword" data-i18n-placeholder="alerts.keyword_placeholder" placeholder="tecnología" required>
                         </div>
                         <div class="form-group">
                             <label>Sinónimos</label>
@@ -239,14 +249,14 @@
                             <input type="number" id="alert-user-id" placeholder="1" value="1" required>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Guardar</button>
-                            <button type="button" class="btn btn-secondary" onclick="app.toggleForm('add-alert-form')">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" data-i18n="alerts.save">Guardar</button>
+                            <button type="button" class="btn btn-secondary" data-i18n="alerts.cancel" onclick="app.toggleForm('add-alert-form')">Cancelar</button>
                         </div>
                     </form>
                 </div>
                 <div class="list-grid" id="alerts-list">
                     <div class="empty-state">
-                        <p>No hay alertas configuradas.</p>
+                        <p data-i18n="empty.alerts">No hay alertas configuradas.</p>
                     </div>
                 </div>
             </section>
@@ -254,14 +264,14 @@
             <section id="news" class="section">
                 <div class="section-header">
                     <div>
-                        <h2>Noticias recientes</h2>
-                        <p>Noticias extraídas de tus fuentes RSS.</p>
+                        <h2 data-i18n="news.title">Noticias recientes</h2>
+                        <p data-i18n="news.note">Noticias extraídas de tus fuentes RSS.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="app.refreshNews()">Actualizar</button>
+                    <button class="btn btn-primary" data-i18n="news.refresh" onclick="app.refreshNews()">Actualizar</button>
                 </div>
                 <div class="news-list" id="news-list">
                     <div class="empty-state">
-                        <p>No hay noticias disponibles.</p>
+                        <p data-i18n="empty.news">No hay noticias disponibles.</p>
                     </div>
                 </div>
             </section>

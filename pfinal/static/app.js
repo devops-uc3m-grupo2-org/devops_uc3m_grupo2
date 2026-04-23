@@ -3,11 +3,241 @@
 // window.NEWSRADAR_API_URL = 'http://newsradar_api:8000/api/v1' desde el HTML o la configuración.
 const API_URL = window.NEWSRADAR_API_URL || '/api/v1'; 
 
+// Traducciones básicas (extensible)
+const TRANSLATIONS = {
+    es: {
+        "nav.dashboard": "Resumen",
+        "nav.sources": "Fuentes",
+        "nav.alerts": "Alertas",
+        "nav.news": "Noticias",
+        "nav.logout": "Salir",
+
+        "login.title": "Iniciar sesión",
+        "login.note": "Usa el usuario admin para entrar rápidamente.",
+        "login.email_label": "Email",
+        "login.email_placeholder": "admin@newsradar.com",
+        "login.password_label": "Contraseña",
+        "login.password_placeholder": "admin123",
+        "login.submit": "Iniciar sesión",
+        "login.credentials": "Credenciales: admin@newsradar.com / admin123",
+        "login.create_account": "Crear cuenta",
+        "login.success": "Sesión iniciada",
+
+        "register.title": "Crear cuenta",
+        "register.note": "Regístrate para crear alertas y guardar tus preferencias.",
+        "register.first_name_label": "Nombre",
+        "register.first_name_placeholder": "Nombre",
+        "register.last_name_label": "Apellido",
+        "register.last_name_placeholder": "Apellido",
+        "register.email_label": "Email",
+        "register.email_placeholder": "usuario@correo.com",
+        "register.password_label": "Contraseña",
+        "register.password_placeholder": "Contraseña",
+        "register.submit": "Crear cuenta",
+        "register.back": "Volver",
+        "register.success": "Cuenta creada correctamente. Inicia sesión.",
+        "register.fill_required": "Rellena todos los campos obligatorios.",
+
+        "dashboard.title": "Resumen rápido",
+        "dashboard.note": "Operaciones principales disponibles al instante.",
+        "dashboard.refresh": "Actualizar",
+
+        "stats.sources": "Fuentes",
+        "stats.alerts": "Alertas activas",
+        "stats.news": "Noticias",
+        "stats.api": "API",
+
+        "sources.title": "Fuentes RSS",
+        "sources.note": "Agrega y sincroniza tus fuentes de noticias.",
+        "sources.new": "+ Nueva fuente",
+        "sources.add_title": "Agregar nueva fuente",
+        "sources.name_label": "Nombre",
+        "sources.name_placeholder": "BBC News",
+        "sources.medium_label": "Medio",
+        "sources.medium_placeholder": "BBC",
+        "sources.url_label": "URL RSS",
+        "sources.url_placeholder": "https://...",
+        "sources.save": "Guardar",
+        "sources.cancel": "Cancelar",
+        "sources.created": "Fuente creada",
+        "sources.url_required": "La URL es obligatoria",
+
+        "alerts.title": "Alertas",
+        "alerts.note": "Configura alertas para tus palabras clave.",
+        "alerts.new": "+ Nueva alerta",
+        "alerts.create_title": "Crear alerta",
+        "alerts.name_label": "Nombre",
+        "alerts.name_placeholder": "Alerta tecnología",
+        "alerts.keyword_label": "Palabra clave",
+        "alerts.keyword_placeholder": "tecnología",
+        "alerts.save": "Guardar",
+        "alerts.cancel": "Cancelar",
+        "alerts.created": "Alerta creada",
+
+        "news.title": "Noticias recientes",
+        "news.note": "Noticias extraídas de tus fuentes RSS.",
+        "news.refresh": "Actualizar",
+        "news.synced": "{count} noticias nuevas sincronizadas",
+
+        "empty.sources": "No hay fuentes cargadas.",
+        "empty.alerts": "No hay alertas configuradas.",
+        "empty.news": "No hay noticias disponibles.",
+
+        "logout.success": "Sesión cerrada correctamente",
+        "session.expired": "Sesión expirada",
+        "error.request": "Error en la petición",
+    },
+    en: {
+        "nav.dashboard": "Overview",
+        "nav.sources": "Sources",
+        "nav.alerts": "Alerts",
+        "nav.news": "News",
+        "nav.logout": "Logout",
+
+        "login.title": "Sign in",
+        "login.note": "Use the admin account to quickly log in.",
+        "login.email_label": "Email",
+        "login.email_placeholder": "admin@newsradar.com",
+        "login.password_label": "Password",
+        "login.password_placeholder": "admin123",
+        "login.submit": "Sign in",
+        "login.credentials": "Credentials: admin@newsradar.com / admin123",
+        "login.create_account": "Create account",
+        "login.success": "Signed in",
+
+        "register.title": "Create account",
+        "register.note": "Register to create alerts and save preferences.",
+        "register.first_name_label": "First name",
+        "register.first_name_placeholder": "First name",
+        "register.last_name_label": "Last name",
+        "register.last_name_placeholder": "Last name",
+        "register.email_label": "Email",
+        "register.email_placeholder": "user@example.com",
+        "register.password_label": "Password",
+        "register.password_placeholder": "Password",
+        "register.submit": "Create account",
+        "register.back": "Back",
+        "register.success": "Account created successfully. Sign in.",
+        "register.fill_required": "Fill all required fields.",
+
+        "dashboard.title": "Quick overview",
+        "dashboard.note": "Main operations available instantly.",
+        "dashboard.refresh": "Refresh",
+
+        "stats.sources": "Sources",
+        "stats.alerts": "Active alerts",
+        "stats.news": "News",
+        "stats.api": "API",
+
+        "sources.title": "RSS Sources",
+        "sources.note": "Add and sync your news sources.",
+        "sources.new": "+ New source",
+        "sources.add_title": "Add new source",
+        "sources.name_label": "Name",
+        "sources.name_placeholder": "BBC News",
+        "sources.medium_label": "Medium",
+        "sources.medium_placeholder": "BBC",
+        "sources.url_label": "RSS URL",
+        "sources.url_placeholder": "https://...",
+        "sources.save": "Save",
+        "sources.cancel": "Cancel",
+        "sources.created": "Source created",
+        "sources.url_required": "URL is required",
+
+        "alerts.title": "Alerts",
+        "alerts.note": "Configure alerts for your keywords.",
+        "alerts.new": "+ New alert",
+        "alerts.create_title": "Create alert",
+        "alerts.name_label": "Name",
+        "alerts.name_placeholder": "Tech alert",
+        "alerts.keyword_label": "Keyword",
+        "alerts.keyword_placeholder": "technology",
+        "alerts.save": "Save",
+        "alerts.cancel": "Cancel",
+        "alerts.created": "Alert created",
+
+        "news.title": "Recent news",
+        "news.note": "News fetched from your RSS sources.",
+        "news.refresh": "Refresh",
+        "news.synced": "{count} new items synchronized",
+
+        "empty.sources": "No sources loaded.",
+        "empty.alerts": "No alerts configured.",
+        "empty.news": "No news available.",
+
+        "logout.success": "Signed out successfully",
+        "session.expired": "Session expired",
+        "error.request": "Request error",
+    }
+};
+
+// Gestión de idioma y traducción en DOM
+function getTranslation(lang, key) {
+    return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || null;
+}
+
 const app = {
     token: localStorage.getItem('token'),
     userID: 1, // ID por defecto para las rutas jerárquicas /users/1/...
+    currentLang: localStorage.getItem('lang') || (navigator.language && navigator.language.startsWith('en') ? 'en' : 'es'),
+
+    t(key) {
+        const tr = getTranslation(this.currentLang, key) || getTranslation('es', key) || getTranslation('en', key);
+        return tr || key;
+    },
+
+    setLanguage(lang) {
+        if (!TRANSLATIONS[lang]) return;
+        this.currentLang = lang;
+        localStorage.setItem('lang', lang);
+        // actualizar todos los selects de idioma (navbar + login/register)
+        document.querySelectorAll('.lang-select').forEach(s => { try { s.value = lang; } catch(e){} });
+        const nav = document.getElementById('lang-select');
+        if (nav) nav.value = lang;
+        // actualizar atributo lang del HTML
+        try { document.documentElement.lang = lang; } catch (e) {}
+        this.translatePage();
+    },
+
+    translatePage() {
+        // elementos con texto
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            const txt = this.t(key);
+            if (el.tagName.toLowerCase() === 'input' || el.tagName.toLowerCase() === 'textarea') {
+                el.value = txt;
+            } else {
+                el.textContent = txt;
+            }
+        });
+
+        // atributos placeholder
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            const txt = this.t(key);
+            if (txt) el.setAttribute('placeholder', txt);
+        });
+    },
 
     async init() {
+        // Aplicar idioma guardado al inicio
+        this.setLanguage(this.currentLang);
+
+        // Asegurar que el selector global esté sincronizado (no tocar estilos inline)
+        const globalSel = document.getElementById('lang-select');
+        if (globalSel) {
+            try {
+                globalSel.value = this.currentLang;
+                // asegurarnos de que use estilos CSS
+                globalSel.style.removeProperty('position');
+                globalSel.style.removeProperty('top');
+                globalSel.style.removeProperty('right');
+                globalSel.style.removeProperty('z-index');
+            } catch (e) { /* ignore */ }
+        }
+        // Ocultar cualquier selector local remanente
+        document.querySelectorAll('.lang-select').forEach(s => { try { s.style.display = 'none'; } catch(e){} });
+
         if (this.token) {
             this.showNavbar();
             this.showSection('dashboard');
@@ -38,7 +268,7 @@ const app = {
             this.token = data.access_token;
             localStorage.setItem('token', this.token);
 
-            this.toast('Sesión iniciada', 'success');
+            this.toast(this.t('login.success'), 'success');
             this.showSection('dashboard');
         } catch (err) {
             errorDiv.textContent = err.message;
@@ -51,7 +281,7 @@ const app = {
         localStorage.removeItem('token');
         this.hideNavbar();
         this.showSection('login');
-        this.toast('Sesión cerrada correctamente');
+        this.toast(this.t('logout.success'));
     },
 
     showNavbar() {
@@ -138,12 +368,12 @@ const app = {
         
         if (response.status === 401) {
             this.logout();
-            throw new Error('Sesión expirada');
+            throw new Error(this.t('session.expired') || 'Sesión expirada');
         }
         
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.detail || 'Error en la petición');
+            throw new Error(error.detail || this.t('error.request') || 'Error en la petición');
         }
         
         return response.json();
@@ -171,7 +401,7 @@ const app = {
             this.renderSources(sources);
         } catch (err) {
             console.error(err);
-            this.toast('Error al cargar fuentes', 'error');
+            this.toast(err.message || this.t('error.request'), 'error');
         }
     },
 
@@ -182,7 +412,7 @@ const app = {
         if (!sources || sources.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <p>No hay fuentes cargadas.</p>
+                    <p>${this.t('empty.sources')}</p>
                 </div>
             `;
             return;
@@ -206,7 +436,7 @@ const app = {
         const category = document.getElementById('source-iptc').value || null;
 
         if (!url) {
-            this.toast('La URL es obligatoria', 'error');
+            this.toast(this.t('sources.url_required') || 'La URL es obligatoria', 'error');
             return;
         }
 
@@ -217,12 +447,12 @@ const app = {
                 medium,
                 iptc_category: category
             });
-            this.toast('Fuente creada', 'success');
+            this.toast(this.t('sources.created') || 'Fuente creada', 'success');
             this.toggleForm('add-source-form');
             this.clearSourceForm();
             this.loadSources();
         } catch (err) {
-            this.toast(err.message || 'Error al crear fuente', 'error');
+            this.toast(err.message || this.t('error.request') || 'Error al crear fuente', 'error');
         }
     },
 
@@ -238,7 +468,7 @@ const app = {
         errorDiv.textContent = '';
 
         if (!first_name || !last_name || !email || !password) {
-            errorDiv.textContent = 'Rellena todos los campos obligatorios.';
+            errorDiv.textContent = this.t('register.fill_required') || 'Rellena todos los campos obligatorios.';
             errorDiv.classList.add('show');
             return;
         }
@@ -255,7 +485,7 @@ const app = {
                 throw new Error(err.detail || 'Error al registrar usuario');
             }
 
-            this.toast('Cuenta creada correctamente. Inicia sesión.', 'success');
+            this.toast(this.t('register.success') || 'Cuenta creada correctamente. Inicia sesión.', 'success');
             this.showSection('login');
             // Prefill login email
             document.getElementById('login-email').value = email;
@@ -264,7 +494,7 @@ const app = {
             document.getElementById('reg-email').value = '';
             document.getElementById('reg-password').value = '';
         } catch (err) {
-            errorDiv.textContent = err.message || 'Error al registrar usuario';
+            errorDiv.textContent = err.message || (this.t('error.request') || 'Error al registrar usuario');
             errorDiv.classList.add('show');
         }
     },
@@ -283,7 +513,7 @@ const app = {
             this.renderAlerts(alerts);
         } catch (err) {
             console.error(err);
-            this.toast('Error al cargar alertas', 'error');
+            this.toast(err.message || this.t('error.request'), 'error');
         }
     },
 
@@ -294,7 +524,7 @@ const app = {
         if (!alerts || alerts.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <p>No hay alertas definidas.</p>
+                    <p>${this.t('empty.alerts')}</p>
                 </div>
             `;
             return;
@@ -337,12 +567,12 @@ const app = {
                 cron_expression: cronExpression,
                 is_active: true
             });
-            this.toast('Alerta creada', 'success');
+            this.toast(this.t('alerts.created') || 'Alerta creada', 'success');
             this.toggleForm('add-alert-form');
             this.clearAlertForm();
             this.loadAlerts();
         } catch (err) {
-            this.toast(err.message || 'Error al crear alerta', 'error');
+            this.toast(err.message || this.t('error.request') || 'Error al crear alerta', 'error');
         }
     },
 
@@ -357,7 +587,9 @@ const app = {
     async refreshNews() {
         try {
             const result = await this.fetchAPI('/news/fetch', 'POST');
-            this.toast(`${result.new_items} noticias nuevas sincronizadas`, 'success');
+            const template = this.t('news.synced');
+            const syncedMsg = template ? template.replace('{count}', result.new_items) : `${result.new_items} noticias nuevas sincronizadas`;
+            this.toast(syncedMsg, 'success');
             const news = await this.fetchAPI('/news/latest');
             this.renderNews(news);
         } catch (err) {
@@ -373,7 +605,7 @@ const app = {
         if (!news || news.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <p>No hay noticias disponibles.</p>
+                    <p>${this.t('empty.news')}</p>
                 </div>
             `;
             return;

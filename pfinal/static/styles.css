@@ -26,6 +26,10 @@ body {
     line-height: 1.6;
 }
 
+.app-container {
+    position: relative;
+}
+
 /* Navbar */
 .navbar {
     background: var(--surface);
@@ -68,6 +72,7 @@ body {
     display: flex;
     gap: 1rem;
     align-items: center;
+    margin-right: 9rem; /* espacio extra para el selector de idioma */
 }
 
 .nav-item {
@@ -566,6 +571,29 @@ body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+/* Language selector positioned top-right */
+#lang-select, .lang-select {
+    position: absolute;
+    top: 80px; /* bajado para no solapar con la navbar */
+    right: 12px;
+    z-index: 3000;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+@media (max-width: 480px) {
+    #lang-select, .lang-select {
+        top: 12px;
+        right: 8px;
+        padding: 5px 6px;
+        font-size: 0.9rem;
+    }
 }
 
 .toast {
