@@ -139,6 +139,8 @@ class AlertCreate(BaseModel):
     name: str
     descriptors: List[str] = Field(default_factory=list)
     categories: List[AlertCategoryItem] = Field(default_factory=list)
+    rss_channels_ids: List[str] = Field(default_factory=list)
+    information_sources_ids: List[str] = Field(default_factory=list)
     cron_expression: str
     is_active: Optional[bool] = True
 
@@ -149,6 +151,8 @@ class AlertUpdate(BaseModel):
     name: Optional[str] = None
     descriptors: Optional[List[str]] = None
     categories: Optional[List[AlertCategoryItem]] = None
+    rss_channels_ids: List[str] = Field(default_factory=list)
+    information_sources_ids: List[str] = Field(default_factory=list)
     cron_expression: Optional[str] = None
     is_active: Optional[bool] = None
 
@@ -160,6 +164,8 @@ class Alert(BaseModel):
     name: str
     descriptors: List[str] = Field(default_factory=list)
     categories: List[AlertCategoryItem] = Field(default_factory=list)
+    rss_channels_ids: List[str] = Field(default_factory=list)
+    information_sources_ids: List[str] = Field(default_factory=list)
     cron_expression: str
     user_id: int
     is_active: bool
@@ -500,6 +506,8 @@ def create_user_alert(user_id: int, payload: AlertCreate, current_user: UserMode
         name=payload.name,
         descriptors=payload.descriptors,
         categories=[cat.dict() for cat in payload.categories],
+        rss_channels_ids=payload.rss_channels_ids,
+        information_sources_ids=payload.information_sources_ids,
         cron_expression=payload.cron_expression,
         is_active=payload.is_active,
         user_id=user_id,
@@ -539,6 +547,10 @@ def update_user_alert(
         alert.descriptors = update_data["descriptors"]
     if "categories" in update_data:
         alert.categories = [cat.dict() for cat in update_data["categories"]]
+    if "rss_channels_ids" in update_data:
+        alert.rss_channels_ids = update_data["rss_channels_ids"]
+    if "information_sources_ids" in update_data:
+        alert.information_sources_ids = update_data["information_sources_ids"]
     if "cron_expression" in update_data:
         alert.cron_expression = update_data["cron_expression"]
     if "is_active" in update_data:

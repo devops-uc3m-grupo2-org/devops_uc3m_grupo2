@@ -95,6 +95,8 @@ class Alert(Base):
     name = Column(String(200), nullable=False)
     descriptors = Column(JSON, default=[])
     categories = Column(JSON, default=[])
+    rss_channels_ids = Column(JSON, default=[])
+    information_sources_ids = Column(JSON, default=[])
     cron_expression = Column(String(120), default="*/5 * * * *")
     is_active = Column(Boolean, default=True, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"))
