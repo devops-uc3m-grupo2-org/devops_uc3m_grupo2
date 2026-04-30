@@ -4,7 +4,7 @@ import pathlib
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import FastAPI, Depends, HTTPException, status, Response, Body
+from fastapi import FastAPI, Depends, HTTPException, status, Response, Body, Request
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
@@ -38,6 +38,7 @@ from app.services.ai import generate_synonyms
 from app.services.fetcher import fetch_feed
 from app.services.alertLogic import process_alerts_for_items
 from app.services.seed_rss import seed_rss_channels
+from app.services.notifications import send_verification_email
 from app.core.scheduler import start_scheduler
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
@@ -392,7 +393,7 @@ def list_users(current_user: UserModel = Depends(get_current_user), db: Session 
     return db.query(UserModel).all()
 
 @app.post(f"{API_PREFIX}/auth/register", response_model=User, status_code=200, tags=["auth"])
-def register(payload: UserCreate, db: Session = Depends(get_db)):
+def register(payload: UserCreate, request: Request, db: Session = Depends(get_db)):
     if db.query(UserModel).filter(UserModel.email == payload.email).first():
         raise HTTPException(status_code=409, detail="El email ya está registrado")
 
@@ -408,7 +409,27 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    verification_token = create_access_token({"sub": payload.email, "purpose": "verify"})
+    base_url = str(request.base_url).rstrip("/")
+    send_verification_email(payload.email, payload.first_name, verification_token, base_url)
+
     return new_user
+
+
+@app.get(f"{API_PREFIX}/auth/verify", tags=["auth"])
+def verify_email(token: str, db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("purpose") != "verify":
+            raise HTTPException(status_code=400, detail="Token inválido")
+        email = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token expirado o inválido")
+    user = db.query(UserModel).filter(UserModel.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"message": f"Cuenta de {email} verificada correctamente"}
 
 
 @app.post(f"{API_PREFIX}/users", response_model=User, status_code=201, tags=["users"])

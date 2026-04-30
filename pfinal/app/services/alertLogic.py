@@ -1,6 +1,6 @@
 import re
 from app.models.models import Alert, AlertNews, Notification
-from app.services.notifications import notify_user
+from app.services.notifications import notify_alert
 
 
 def match_alert(alert, news_item):
@@ -38,8 +38,11 @@ def process_alerts_for_items(db, news_items):
 
                     db.add(AlertNews(alert_id=alert.id, news_item_id=item.id))
                     db.add(Notification(alert_id=alert.id, metrics=[{"name": "news_matched", "value": 1}]))
-                    notify_user(alert, item)
         db.commit()
+        for alert in alerts:
+            matched = [i for i in news_items if match_alert(alert, i)]
+            if matched:
+                notify_alert(alert, matched)
     except Exception:
         db.rollback()
         raise

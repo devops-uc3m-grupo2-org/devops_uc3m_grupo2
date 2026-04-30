@@ -50,20 +50,34 @@ def send_email(to_email: str, subject: str, body: str, html: Optional[str] = Non
         return False
 
 
-def notify_user(alert, news_item=None):
+def notify_alert(alert, matched_news: list) -> bool:
+    from datetime import datetime
     user = getattr(alert, "user", None)
     if not user or not getattr(user, "email", None):
-        print(f"[NOTIFY] No se puede notificar al usuario de la alerta {alert.id}: usuario o email no disponible")
+        print(f"[NOTIFY] Alerta {alert.id}: usuario o email no disponible")
         return False
 
-    subject = f"NewsRadar: nueva noticia detectada para alerta '{alert.name}'"
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    subject = f"Actualización de {alert.name} en {now}"
+
     body = f"Hola {getattr(user, 'first_name', 'usuario')},\n\n"
-    body += f"Se ha detectado una nueva noticia que coincide con tu alerta '{alert.name}'.\n\n"
-    if news_item is not None:
-        body += f"Título: {news_item.title or 'Sin título'}\n"
-        body += f"Enlace: {news_item.link or 'No disponible'}\n"
-        body += f"Resumen: {news_item.summary or 'No hay resumen disponible'}\n\n"
-    body += "Puedes ver más detalles en la aplicación NewsRadar.\n\n"
-    body += "Saludos,\nNewsRadar"
+    body += f"Se han detectado {len(matched_news)} noticia(s) que coinciden con tu alerta '{alert.name}'.\n\n"
+    for item in matched_news:
+        body += f"- Título: {item.title or 'Sin título'}\n"
+        body += f"  Fuente: {getattr(getattr(item, 'channel', None), 'url', 'desconocida')}\n"
+        body += f"  Fecha: {item.published or 'desconocida'}\n"
+        body += f"  Resumen: {(item.summary or '')[:200]}\n"
+        body += f"  Enlace: {item.link or ''}\n\n"
+    body += "Puedes ver más detalles en la aplicación NewsRadar.\n\nSaludos,\nNewsRadar"
 
     return send_email(user.email, subject, body)
+
+
+def send_verification_email(to_email: str, first_name: str, token: str, base_url: str) -> bool:
+    subject = "NewsRadar: verifica tu cuenta (válido 24h)"
+    link = f"{base_url}/api/v1/auth/verify?token={token}"
+    body = f"Hola {first_name},\n\n"
+    body += f"Gracias por registrarte en NewsRadar. Verifica tu cuenta haciendo click en el siguiente enlace:\n\n"
+    body += f"{link}\n\n"
+    body += "Este enlace caduca en 24 horas.\n\nSaludos,\nNewsRadar"
+    return send_email(to_email, subject, body)
