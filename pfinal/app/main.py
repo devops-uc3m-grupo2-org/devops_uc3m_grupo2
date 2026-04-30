@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import FastAPI, Depends, HTTPException, status, Response, Body
+from fastapi.openapi.utils import get_openapi
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -49,6 +50,7 @@ app = FastAPI(
     title="NewsRadar API",
     version="1.0.0",
     description="API REST para gestión de usuarios, alertas, notificaciones, fuentes y canales RSS.",
+    swagger_ui_parameters={"persistAuthorization": True},
 )
 
 API_PREFIX = "/api/v1"
@@ -62,6 +64,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema.setdefault("components", {})["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    for path in schema.get("paths", {}).values():
+        for operation in path.values():
+            operation["security"] = [{"BearerAuth": []}]
+    app.openapi_schema = schema
+    return schema
+
+app.openapi = custom_openapi
 
 # --- SERVIDO DE ARCHIVOS ESTÁTICOS (FRONTEND) ---
 static_dir = pathlib.Path(__file__).parent.parent / "static"
