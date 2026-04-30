@@ -283,8 +283,9 @@ class RSSChannelBase(BaseModel):
     url: HttpUrl
     category_id: Optional[int] = None
 
-class RSSChannelCreate(RSSChannelBase):
-    pass
+class RSSChannelCreate(BaseModel):
+    url: HttpUrl
+    category_id: int
 
 class RSSChannelUpdate(BaseModel):
     url: Optional[HttpUrl] = None
