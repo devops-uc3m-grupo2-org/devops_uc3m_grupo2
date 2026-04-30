@@ -37,7 +37,7 @@ from app.models.models import (
 from app.services.ai import generate_synonyms
 from app.services.fetcher import fetch_feed
 from app.services.alertLogic import process_alerts_for_items
-xfrom app.services.seed_rss import seed_rss_channels
+from app.services.seed_rss import seed_rss_channels
 from app.core.scheduler import start_scheduler
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
