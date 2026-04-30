@@ -15,9 +15,13 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
 SMTP_USE_SSL = os.getenv("SMTP_USE_SSL", "false").lower() in ("1", "true", "yes")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "no-reply@newsradar.com")
+SEND_EMAILS = os.getenv("SEND_EMAILS", "true").lower() in ("1", "true", "yes")
 
 
 def send_email(to_email: str, subject: str, body: str, html: Optional[str] = None) -> bool:
+    if not SEND_EMAILS:
+        print(f"[EMAIL] Envío deshabilitado (SEND_EMAILS=false), se omite: {subject}")
+        return False
     if not SMTP_HOST:
         print("[EMAIL] SMTP no configurado, se omite el envío de correo")
         return False

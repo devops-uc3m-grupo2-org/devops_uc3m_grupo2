@@ -51,6 +51,7 @@ jobs:
         run: |
           echo "DATABASE_URL=postgresql://test:test@localhost:5432/test_db" >> $GITHUB_ENV
           echo "PYTHONPATH=$PWD/pfinal" >> $GITHUB_ENV
+          echo "SEND_EMAILS=false" >> $GITHUB_ENV
 
       #Corre los tests
       - name: Run tests
