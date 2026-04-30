@@ -1004,6 +1004,7 @@ def get_stats(current_user: UserModel = Depends(get_current_user), db: Session =
 @app.get(f"{API_PREFIX}/stats/wordcloud", tags=["stats"])
 def get_wordcloud(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     import re
+    import html as html_module
     from collections import Counter
 
     STOP_WORDS = {
@@ -1016,10 +1017,16 @@ def get_wordcloud(current_user: UserModel = Depends(get_current_user), db: Sessi
         "otras", "otra", "él", "tanto", "esa", "estos", "mucho", "quienes", "nada",
         "muchos", "cual", "poco", "ella", "estar", "estas", "algunas", "algo", "nosotros",
         "que", "son", "fue", "han", "ha", "será", "era", "ser", "están", "tiene",
-        "sido", "han", "había", "tras", "son", "dos", "tres", "así", "puede", "han",
-        "parte", "hace", "año", "años", "vez", "cada", "tras", "aún", "bien", "días",
-        "tras", "solo", "está", "nuevo", "gran", "dice", "según", "vez", "tras",
+        "sido", "había", "dos", "tres", "así", "puede", "parte", "hace", "año", "años",
+        "vez", "cada", "aún", "bien", "días", "solo", "está", "nuevo", "gran", "dice",
+        "según", "más", "menos", "sino", "sea", "sido", "mismo", "misma", "aunque",
     }
+
+    def clean_text(raw: str) -> str:
+        text = html_module.unescape(raw or "")
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'https?://\S+', ' ', text)
+        return text
 
     items = (
         db.query(NewsItemModel)
@@ -1030,8 +1037,8 @@ def get_wordcloud(current_user: UserModel = Depends(get_current_user), db: Sessi
 
     category_words: dict[str, Counter] = {}
     for item in items:
-        cat_name = item.channel.category.name if (item.channel.category) else "Sin categoría"
-        text = (item.title or "") + " " + (item.summary or "")
+        cat_name = item.channel.category.name if item.channel.category else "Sin categoría"
+        text = clean_text(item.title or "") + " " + clean_text(item.summary or "")
         words = re.findall(r'\b[a-záéíóúñü]{4,}\b', text.lower())
         words = [w for w in words if w not in STOP_WORDS]
         if cat_name not in category_words:
