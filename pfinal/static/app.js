@@ -81,6 +81,16 @@ const TRANSLATIONS = {
         "news.refresh": "Actualizar",
         "news.synced": "{count} noticias nuevas sincronizadas",
 
+        "nav.wordcloud": "Nube",
+        "wordcloud.title": "Nube de palabras por categoría",
+        "wordcloud.note": "Términos más frecuentes en las noticias de cada categoría IPTC.",
+        "wordcloud.refresh": "Actualizar",
+        "wordcloud.category_label": "Categoría",
+        "wordcloud.loading": "Cargando...",
+        "wordcloud.empty": "Selecciona una categoría para ver la nube de palabras.",
+        "wordcloud.error": "Error al cargar la nube de palabras",
+        "wordcloud.no_categories": "Sin categorías",
+
         "empty.sources": "No hay fuentes cargadas.",
         "empty.alerts": "No hay alertas configuradas.",
         "empty.news": "No hay noticias disponibles.",
@@ -164,6 +174,16 @@ const TRANSLATIONS = {
         "news.note": "News fetched from your RSS sources.",
         "news.refresh": "Refresh",
         "news.synced": "{count} new items synchronized",
+
+        "nav.wordcloud": "Cloud",
+        "wordcloud.title": "Word cloud by category",
+        "wordcloud.note": "Most frequent terms in the news of each IPTC category.",
+        "wordcloud.refresh": "Refresh",
+        "wordcloud.category_label": "Category",
+        "wordcloud.loading": "Loading...",
+        "wordcloud.empty": "Select a category to view the word cloud.",
+        "wordcloud.error": "Error loading word cloud",
+        "wordcloud.no_categories": "No categories",
 
         "empty.sources": "No sources loaded.",
         "empty.alerts": "No alerts configured.",
@@ -702,15 +722,23 @@ const app = {
             this._wordcloudData = await this.fetchAPI('/stats/wordcloud');
             const select = document.getElementById('wc-category-select');
             if (!select) return;
+            
             const categories = Object.keys(this._wordcloudData).sort();
-            select.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            
             if (categories.length > 0) {
+                // Si hay categorías, llenamos el desplegable
+                select.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
                 select.value = categories[0];
                 this.renderWordCloudForCategory(categories[0]);
+            } else {
+                // Si no hay categorías, mostramos una opción de "Sin datos"
+                const emptyText = this.currentLang === 'en' ? 'No categories' : 'Sin categorías';
+                select.innerHTML = `<option value="" data-i18n="wordcloud.no_categories">${emptyText}</option>`;
+                this.renderWordCloudForCategory('');
             }
         } catch (err) {
             console.error(err);
-            this.toast('Error al cargar la nube de palabras', 'error');
+            this.toast(this.t('wordcloud.error') || 'Error al cargar la nube de palabras', 'error');
         }
     },
 
