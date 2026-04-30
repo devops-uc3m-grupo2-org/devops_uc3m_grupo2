@@ -158,11 +158,9 @@ class RoleUpdate(BaseModel):
     name: Optional[str] = None
 
 class AlertCategoryItem(BaseModel):
-    code: IPTCCategoryEnum
-    label: IPTCCategoryEnum
+    code: str
+    label: str
 
-    class Config:
-        use_enum_values = True
 
 class AlertBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
