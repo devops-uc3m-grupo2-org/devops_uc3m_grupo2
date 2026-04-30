@@ -135,25 +135,25 @@ class AlertCategoryItem(BaseModel):
     class Config:
         use_enum_values = True
 
-class AlertCreate(BaseModel):
-    name: str
+class AlertBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
     descriptors: List[str] = Field(default_factory=list)
     categories: List[AlertCategoryItem] = Field(default_factory=list)
     rss_channels_ids: List[str] = Field(default_factory=list)
     information_sources_ids: List[str] = Field(default_factory=list)
-    cron_expression: str
+    cron_expression: str = Field(..., min_length=1, max_length=120)
     is_active: Optional[bool] = True
 
     class Config:
         use_enum_values = True
 
 class AlertUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
     descriptors: Optional[List[str]] = None
     categories: Optional[List[AlertCategoryItem]] = None
     rss_channels_ids: List[str] = Field(default_factory=list)
     information_sources_ids: List[str] = Field(default_factory=list)
-    cron_expression: Optional[str] = None
+    cron_expression: Optional[str] = Field(None, min_length=1, max_length=120)
     is_active: Optional[bool] = None
 
     class Config:
@@ -500,7 +500,7 @@ def list_user_alerts(user_id: int, current_user: UserModel = Depends(get_current
     return user.alerts
 
 @app.post(f"{API_PREFIX}/users/{{user_id}}/alerts", response_model=Alert, status_code=201, tags=["alerts"])
-def create_user_alert(user_id: int, payload: AlertCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     get_user_or_404(user_id, db)
     new_alert = AlertModel(
         name=payload.name,
