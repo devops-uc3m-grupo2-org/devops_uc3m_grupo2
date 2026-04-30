@@ -685,3 +685,36 @@ body {
         min-width: unset;
     }
 }
+
+/* ---- Nube de palabras ---- */
+.wordcloud-box {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 2rem;
+    min-height: 220px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1rem;
+    line-height: 1.4;
+}
+
+.wc-word {
+    display: inline-block;
+    color: var(--primary-color);
+    font-weight: 600;
+    cursor: default;
+    transition: color 0.2s, transform 0.2s;
+    white-space: nowrap;
+}
+
+.wc-word:nth-child(3n)   { color: #7c3aed; }
+.wc-word:nth-child(3n+1) { color: #0891b2; }
+.wc-word:nth-child(3n+2) { color: #059669; }
+
+.wc-word:hover {
+    color: var(--danger-color);
+    transform: scale(1.12);
+}
+

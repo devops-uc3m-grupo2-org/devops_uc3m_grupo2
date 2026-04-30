@@ -1001,6 +1001,49 @@ def get_stats(current_user: UserModel = Depends(get_current_user), db: Session =
         ],
     }]
 
+@app.get(f"{API_PREFIX}/stats/wordcloud", tags=["stats"])
+def get_wordcloud(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    import re
+    from collections import Counter
+
+    STOP_WORDS = {
+        "de", "la", "el", "en", "y", "a", "los", "del", "se", "las", "por", "un",
+        "para", "con", "una", "su", "al", "lo", "como", "más", "pero", "sus", "le",
+        "ya", "o", "este", "si", "porque", "esta", "entre", "cuando", "muy", "sin",
+        "sobre", "también", "me", "hasta", "hay", "donde", "quien", "desde", "todo",
+        "nos", "durante", "todos", "uno", "les", "ni", "contra", "ese", "eso", "ante",
+        "ellos", "e", "esto", "mí", "antes", "algunos", "qué", "unos", "yo", "otro",
+        "otras", "otra", "él", "tanto", "esa", "estos", "mucho", "quienes", "nada",
+        "muchos", "cual", "poco", "ella", "estar", "estas", "algunas", "algo", "nosotros",
+        "que", "son", "fue", "han", "ha", "será", "era", "ser", "están", "tiene",
+        "sido", "han", "había", "tras", "son", "dos", "tres", "así", "puede", "han",
+        "parte", "hace", "año", "años", "vez", "cada", "tras", "aún", "bien", "días",
+        "tras", "solo", "está", "nuevo", "gran", "dice", "según", "vez", "tras",
+    }
+
+    items = (
+        db.query(NewsItemModel)
+        .join(ChannelModel, NewsItemModel.channel_id == ChannelModel.id)
+        .outerjoin(CategoryModel, ChannelModel.category_id == CategoryModel.id)
+        .all()
+    )
+
+    category_words: dict[str, Counter] = {}
+    for item in items:
+        cat_name = item.channel.category.name if (item.channel.category) else "Sin categoría"
+        text = (item.title or "") + " " + (item.summary or "")
+        words = re.findall(r'\b[a-záéíóúñü]{4,}\b', text.lower())
+        words = [w for w in words if w not in STOP_WORDS]
+        if cat_name not in category_words:
+            category_words[cat_name] = Counter()
+        category_words[cat_name].update(words)
+
+    return {
+        cat: [{"word": w, "count": c} for w, c in counter.most_common(40)]
+        for cat, counter in category_words.items()
+    }
+
+
 @app.get(f"{API_PREFIX}/suggestions", tags=["AI"])
 def get_suggestions(keyword: str, current_user: UserModel = Depends(get_current_user)):
     suggestions = generate_synonyms(keyword)

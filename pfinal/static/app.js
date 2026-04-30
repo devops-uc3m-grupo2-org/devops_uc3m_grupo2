@@ -312,6 +312,7 @@ const app = {
         if (sectionId === 'sources') this.loadSources();
         if (sectionId === 'alerts') this.loadAlerts();
         if (sectionId === 'news') this.refreshNews();
+        if (sectionId === 'wordcloud') this.loadWordCloud();
     },
 
     toggleForm(formId) {
@@ -601,6 +602,41 @@ const app = {
         } catch (err) {
             console.error(err);
         }
+    },
+
+    // --- NUBE DE PALABRAS ---
+    async loadWordCloud() {
+        try {
+            this._wordcloudData = await this.fetchAPI('/stats/wordcloud');
+            const select = document.getElementById('wc-category-select');
+            if (!select) return;
+            const categories = Object.keys(this._wordcloudData).sort();
+            select.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            if (categories.length > 0) {
+                select.value = categories[0];
+                this.renderWordCloudForCategory(categories[0]);
+            }
+        } catch (err) {
+            console.error(err);
+            this.toast('Error al cargar la nube de palabras', 'error');
+        }
+    },
+
+    renderWordCloudForCategory(category) {
+        const container = document.getElementById('wordcloud-container');
+        if (!container || !this._wordcloudData) return;
+        const words = this._wordcloudData[category] || [];
+        if (words.length === 0) {
+            container.innerHTML = '<p class="empty-state">No hay datos para esta categoría.</p>';
+            return;
+        }
+        const maxCount = words[0].count || 1;
+        const minSize = 13, maxSize = 54;
+        container.innerHTML = words.map(({ word, count }) => {
+            const size = Math.round(minSize + (count / maxCount) * (maxSize - minSize));
+            const opacity = 0.55 + 0.45 * (count / maxCount);
+            return `<span class="wc-word" style="font-size:${size}px;opacity:${opacity}" title="${count} menciones">${word}</span>`;
+        }).join(' ');
     },
 
     renderNews(news) {
