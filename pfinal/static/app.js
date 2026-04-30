@@ -586,6 +586,12 @@ const app = {
 
     async refreshNews() {
         try {
+            const news = await this.fetchAPI('/news/latest');
+            this.renderNews(news);
+        } catch (err) {
+            console.error(err);
+        }
+        try {
             const result = await this.fetchAPI('/news/fetch', 'POST');
             const template = this.t('news.synced');
             const syncedMsg = template ? template.replace('{count}', result.new_items) : `${result.new_items} noticias nuevas sincronizadas`;
@@ -594,7 +600,6 @@ const app = {
             this.renderNews(news);
         } catch (err) {
             console.error(err);
-            this.toast(err.message || 'Error al cargar noticias', 'error');
         }
     },
 
