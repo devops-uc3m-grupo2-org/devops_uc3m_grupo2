@@ -738,6 +738,12 @@ def fetch_news(current_user: UserModel = Depends(get_current_user), db: Session 
         process_alerts_for_items(db, all_new_items)
     return {"new_items": total_new}
 
+@app.post(f"{API_PREFIX}/alerts/check", tags=["alerts"])
+def check_alerts(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    recent_items = db.query(NewsItemModel).order_by(NewsItemModel.id.desc()).limit(200).all()
+    process_alerts_for_items(db, recent_items)
+    return {"checked_items": len(recent_items)}
+
 @app.get(
     f"{API_PREFIX}/information-sources/{{source_id}}/rss-channels",
     response_model=List[RSSChannel],
