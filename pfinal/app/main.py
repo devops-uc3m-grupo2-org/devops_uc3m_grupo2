@@ -417,7 +417,7 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
     db.commit()
     db.refresh(new_user)
 
-    verification_token = create_access_token({"sub": payload.email, "purpose": "verify"})
+    verification_token = create_access_token({"sub": payload.email, "purpose": "verify"}, expires_minutes=1440)
     base_url = str(request.base_url).rstrip("/")
     send_verification_email(payload.email, payload.first_name, verification_token, base_url)
 

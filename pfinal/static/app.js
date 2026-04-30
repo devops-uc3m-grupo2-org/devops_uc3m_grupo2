@@ -31,6 +31,8 @@ const TRANSLATIONS = {
         "register.last_name_placeholder": "Apellido",
         "register.email_label": "Email",
         "register.email_placeholder": "usuario@correo.com",
+        "register.org_label": "Organización",
+        "register.org_placeholder": "UC3M",
         "register.password_label": "Contraseña",
         "register.password_placeholder": "Contraseña",
         "register.submit": "Crear cuenta",
@@ -113,6 +115,8 @@ const TRANSLATIONS = {
         "register.last_name_placeholder": "Last name",
         "register.email_label": "Email",
         "register.email_placeholder": "user@example.com",
+        "register.org_label": "Organization",
+        "register.org_placeholder": "UC3M",
         "register.password_label": "Password",
         "register.password_placeholder": "Password",
         "register.submit": "Create account",
@@ -480,12 +484,13 @@ const app = {
         const first_name = document.getElementById('reg-first-name').value.trim();
         const last_name = document.getElementById('reg-last-name').value.trim();
         const email = document.getElementById('reg-email').value.trim();
+        const organization = document.getElementById('reg-organization').value.trim();
         const password = document.getElementById('reg-password').value;
         const errorDiv = document.getElementById('register-error');
 
         errorDiv.textContent = '';
 
-        if (!first_name || !last_name || !email || !password) {
+        if (!first_name || !last_name || !email || !organization || !password) {
             errorDiv.textContent = this.t('register.fill_required') || 'Rellena todos los campos obligatorios.';
             errorDiv.classList.add('show');
             return;
@@ -495,7 +500,7 @@ const app = {
             const resp = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, first_name, last_name })
+                body: JSON.stringify({ email, password, first_name, last_name, organization })
             });
 
             if (!resp.ok) {
@@ -510,6 +515,7 @@ const app = {
             document.getElementById('reg-first-name').value = '';
             document.getElementById('reg-last-name').value = '';
             document.getElementById('reg-email').value = '';
+            document.getElementById('reg-organization').value = '';
             document.getElementById('reg-password').value = '';
         } catch (err) {
             errorDiv.textContent = err.message || (this.t('error.request') || 'Error al registrar usuario');

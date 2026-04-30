@@ -53,6 +53,12 @@ jobs:
           echo "PYTHONPATH=$PWD/pfinal" >> $GITHUB_ENV
           echo "SEND_EMAILS=false" >> $GITHUB_ENV
 
-      #Corre los tests
+      #Corre los tests y genera informe de cobertura
       - name: Run tests
-        run: pytest pfinal/app/tests -v --cov=app --cov-report=term
+        run: pytest pfinal/app/tests -v --cov=app --cov-report=term --cov-report=xml:pfinal/coverage.xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: pfinal/coverage.xml
