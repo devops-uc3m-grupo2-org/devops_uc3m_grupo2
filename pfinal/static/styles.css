@@ -686,6 +686,45 @@ body {
     }
 }
 
+/* ---- Tabla stats por categoría ---- */
+.cat-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.cat-stats-table th {
+    background: var(--primary-color);
+    color: #fff;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.cat-stats-table td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.cat-stats-table tr:last-child td { border-bottom: none; }
+.cat-stats-table tr:hover td { background: #f0f6ff; }
+
+.cat-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.82rem;
+}
+
+.cat-news   { background: #dbeafe; color: #1d4ed8; }
+.cat-alerts { background: #fef3c7; color: #b45309; }
+
 /* ---- Nube de palabras ---- */
 .wordcloud-box {
     background: var(--surface);

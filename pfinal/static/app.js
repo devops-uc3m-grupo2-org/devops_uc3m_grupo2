@@ -329,6 +329,12 @@ const app = {
         } catch (err) {
             console.error(err);
         }
+        try {
+            const byCategory = await this.fetchAPI('/stats/by-category');
+            this.renderStatsByCategory(byCategory);
+        } catch (err) {
+            console.error(err);
+        }
     },
 
     renderDashboard(stats) {
@@ -602,6 +608,23 @@ const app = {
         } catch (err) {
             console.error(err);
         }
+    },
+
+    // --- STATS POR CATEGORÍA ---
+    renderStatsByCategory(data) {
+        const tbody = document.getElementById('cat-stats-body');
+        if (!tbody) return;
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-secondary)">Sin datos</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.map(row => `
+            <tr>
+                <td>${row.category}</td>
+                <td><span class="cat-badge cat-news">${row.news_count}</span></td>
+                <td><span class="cat-badge cat-alerts">${row.alerts_count}</span></td>
+            </tr>
+        `).join('');
     },
 
     // --- NUBE DE PALABRAS ---

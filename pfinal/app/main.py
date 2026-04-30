@@ -1001,6 +1001,41 @@ def get_stats(current_user: UserModel = Depends(get_current_user), db: Session =
         ],
     }]
 
+@app.get(f"{API_PREFIX}/stats/by-category", tags=["stats"])
+def get_stats_by_category(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    from collections import defaultdict
+
+    news_by_cat: dict[str, int] = defaultdict(int)
+    items = (
+        db.query(NewsItemModel)
+        .join(ChannelModel, NewsItemModel.channel_id == ChannelModel.id)
+        .outerjoin(CategoryModel, ChannelModel.category_id == CategoryModel.id)
+        .all()
+    )
+    for item in items:
+        cat = item.channel.category.name if item.channel.category else "Sin categoría"
+        news_by_cat[cat] += 1
+
+    alerts_by_cat: dict[str, int] = defaultdict(int)
+    for alert in db.query(AlertModel).all():
+        cats = alert.categories or []
+        if not cats:
+            alerts_by_cat["Sin categoría"] += 1
+        for cat in cats:
+            label = cat.get("label") or cat.get("code") or "Sin categoría"
+            alerts_by_cat[label] += 1
+
+    all_cats = set(news_by_cat.keys()) | set(alerts_by_cat.keys())
+    return sorted(
+        [
+            {"category": cat, "news_count": news_by_cat.get(cat, 0), "alerts_count": alerts_by_cat.get(cat, 0)}
+            for cat in all_cats
+        ],
+        key=lambda x: x["news_count"],
+        reverse=True,
+    )
+
+
 @app.get(f"{API_PREFIX}/stats/wordcloud", tags=["stats"])
 def get_wordcloud(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     import re
