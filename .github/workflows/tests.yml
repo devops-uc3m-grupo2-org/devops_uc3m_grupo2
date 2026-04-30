@@ -43,7 +43,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r pfinal/requirements.txt
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov flake8 bandit
 
       #Define las variables de entorno del pipeline
       #Añade el directorio al proyecto para que los imports sean correctos (hecho gracias a debugging)
@@ -52,6 +52,25 @@ jobs:
           echo "DATABASE_URL=postgresql://test:test@localhost:5432/test_db" >> $GITHUB_ENV
           echo "PYTHONPATH=$PWD/pfinal" >> $GITHUB_ENV
           echo "SEND_EMAILS=false" >> $GITHUB_ENV
+
+      # Calidad de código Python — Flake8
+      - name: Flake8 lint
+        run: flake8 pfinal/app --config pfinal/.flake8 || true
+
+      # Seguridad Python — Bandit
+      - name: Bandit security scan
+        run: bandit -r pfinal/app -ll -q || true
+
+      # Calidad de código JavaScript — ESLint
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: ESLint lint
+        run: |
+          npm install -g eslint@8
+          eslint pfinal/static/app.js -c pfinal/static/.eslintrc.json || true
 
       #Corre los tests y genera informe de cobertura
       - name: Run tests
