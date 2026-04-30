@@ -100,6 +100,124 @@ GET /api/v1/suggestions?keyword=economía  — Sinónimos y términos relacionad
 GET /api/v1/stats                         — Métricas: total_news, total_sources, total_alerts [JWT]
 ```
 
+## Demo completa paso a paso (email incluido)
+
+### Requisitos previos
+- Docker Desktop corriendo
+- Cuenta Gmail con App Password configurada en `.env` (ver sección Email)
+
+### 1. Arrancar el proyecto
+```bash
+docker compose up --build -d
+```
+Espera ~30 segundos. La app carga automáticamente:
+- Roles (admin, user)
+- Usuario admin (`admin@newsradar.com` / `admin123`)
+- 10 fuentes RSS + 100 canales IPTC
+
+### 2. Registrar usuario con email real (para recibir notificaciones)
+```
+POST http://localhost:8000/api/v1/auth/register
+```
+```json
+{
+  "email": "tuemail@real.com",
+  "first_name": "Tu Nombre",
+  "last_name": "Apellido",
+  "organization": "UC3M",
+  "password": "tu_password",
+  "role_ids": [2]
+}
+```
+Recibirás un **email de verificación** con enlace de 24h de caducidad.
+
+### 3. Login y obtener token
+```
+POST http://localhost:8000/api/v1/auth/login
+```
+```json
+{
+  "email": "tuemail@real.com",
+  "password": "tu_password"
+}
+```
+Copia el `access_token`. En Swagger: botón **Authorize** → pega el token.
+
+### 4. Crear alerta con descriptores de economía
+```
+POST http://localhost:8000/api/v1/users/2/alerts
+```
+```json
+{
+  "name": "Alerta Economía",
+  "descriptors": ["bolsa", "mercado", "ibex", "banco"],
+  "categories": [],
+  "rss_channels_ids": [],
+  "information_sources_ids": [],
+  "cron_expression": "0 * * * *"
+}
+```
+
+### 5. Descargar noticias de los 100 canales RSS
+```
+POST http://localhost:8000/api/v1/news/fetch
+```
+Devuelve `{"new_items": N}` con las noticias nuevas.
+
+### 6. Procesar alertas contra noticias
+```
+POST http://localhost:8000/api/v1/alerts/check
+```
+Devuelve `{"checked_items": 200}`. Si hay coincidencias:
+- Se crea una `Notification` en la BD
+- Se envía email a `tuemail@real.com` con asunto **"Actualización de Alerta Economía en DD/MM/YYYY HH:MM"**
+
+### 7. Ver notificaciones generadas
+```
+GET http://localhost:8000/api/v1/users/2/alerts/1/notifications
+```
+
+### 8. Verificar sugerencias IA
+```
+GET http://localhost:8000/api/v1/suggestions?keyword=economía
+GET http://localhost:8000/api/v1/suggestions?keyword=deporte
+```
+
+### 9. Ver estadísticas
+```
+GET http://localhost:8000/api/v1/stats
+```
+Muestra total de noticias, fuentes y alertas.
+
+### Resetear y volver a probar desde cero
+```bash
+docker compose down -v   # borra contenedores Y base de datos
+docker compose up --build -d  # arranca limpio con seed automático
+```
+
+---
+
+## Configuración email (SMTP Gmail)
+
+Para que funcionen los emails de verificación y alertas:
+
+1. Crea una cuenta Gmail (ej: `newsradargrupo@gmail.com`)
+2. Activa verificación en dos pasos en [myaccount.google.com/security](https://myaccount.google.com/security)
+3. Genera una **App Password**: Seguridad → Contraseñas de aplicación → nombre: `NewsRadar`
+4. Edita el `.env`:
+```
+SMTP_USER=newsradargrupo@gmail.com
+SMTP_PASSWORD=xxxxxxxxxxxxxxxxxxxx   # 16 caracteres sin espacios
+EMAIL_FROM=newsradargrupo@gmail.com
+```
+5. Reinicia el contenedor: `docker compose restart app`
+
+Los emails que se envían automáticamente:
+- **Registro**: correo de verificación con enlace JWT (caduca en 24h)
+- **Alerta disparada**: "Actualización de \<alerta\> en \<día/hora\>" con título, fuente, fecha y resumen de cada noticia coincidente
+
+---
+
 ## Guía rápida de demo
 
 ```bash
