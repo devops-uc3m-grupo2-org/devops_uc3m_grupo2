@@ -7,8 +7,31 @@ from app.core.database import Base, engine, get_db
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
-    Base.metadata.drop_all(bind=engine)    # Crea tablas definidas en modelos en PostgreSQL
+    from sqlalchemy.orm import Session as SASession
+    from app.models.models import Role as RoleModel, User as UserModel
+    from passlib.context import CryptContext
+
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    # Seed roles y admin (necesarios para los tests con role_ids)
+    pwd = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+    with SASession(engine) as db:
+        if db.query(RoleModel).count() == 0:
+            db.add_all([RoleModel(name="admin"), RoleModel(name="user")])
+            db.commit()
+        if db.query(UserModel).count() == 0:
+            admin_role = db.query(RoleModel).filter(RoleModel.name == "admin").first()
+            db.add(UserModel(
+                email="admin@newsradar.com",
+                first_name="Admin",
+                last_name="NewsRadar",
+                organization="NewsRadar",
+                hashed_password=pwd.hash("admin123"),
+                roles=[admin_role],
+            ))
+            db.commit()
+
     yield
     Base.metadata.drop_all(bind=engine)
 
