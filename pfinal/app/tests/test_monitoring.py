@@ -81,6 +81,7 @@ def test_monitoring_pipeline(client, session):
             "first_name": "Monitor",
             "last_name": "Tester",
             "organization": "QA",
+            "role_ids": [1],
         },
     )
     assert reg.status_code == 200

@@ -13,6 +13,7 @@ def _auth_context(client):
             "first_name": "Stats",
             "last_name": "Tester",
             "organization": "QA",
+            "role_ids": [1],
         },
     )
     assert r.status_code == 200

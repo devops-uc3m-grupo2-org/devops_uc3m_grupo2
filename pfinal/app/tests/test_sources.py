@@ -13,6 +13,7 @@ def _auth_context(client):
             "first_name": "Sources",
             "last_name": "Tester",
             "organization": "QA",
+            "role_ids": [1],
         },
     )
     assert register_response.status_code == 200
