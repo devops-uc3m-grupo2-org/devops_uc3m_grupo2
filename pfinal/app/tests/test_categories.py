@@ -18,10 +18,14 @@ def test_list_categories_requires_auth(client):
     assert response.status_code == 401
 
 
+VALID_NAME = "Política"
+VALID_NAME_2 = "Salud"
+
+
 def test_create_category(client):
     headers = _auth(client)
     response = client.post("/api/v1/categories", headers=headers, json={
-        "name": f"Cat_{uuid.uuid4()}", "source": "manual"
+        "name": VALID_NAME, "source": "IPTC"
     })
     assert response.status_code == 201
     data = response.json()
@@ -31,7 +35,7 @@ def test_create_category(client):
 
 def test_list_categories(client):
     headers = _auth(client)
-    client.post("/api/v1/categories", headers=headers, json={"name": f"Cat_{uuid.uuid4()}", "source": "manual"})
+    client.post("/api/v1/categories", headers=headers, json={"name": VALID_NAME, "source": "IPTC"})
     response = client.get("/api/v1/categories", headers=headers)
     assert response.status_code == 200
     assert isinstance(response.json(), list)
@@ -40,7 +44,7 @@ def test_list_categories(client):
 def test_get_category_by_id(client):
     headers = _auth(client)
     created = client.post("/api/v1/categories", headers=headers, json={
-        "name": f"Cat_{uuid.uuid4()}", "source": "manual"
+        "name": VALID_NAME, "source": "IPTC"
     }).json()
     response = client.get(f"/api/v1/categories/{created['id']}", headers=headers)
     assert response.status_code == 200
@@ -56,24 +60,23 @@ def test_get_category_not_found(client):
 def test_update_category(client):
     headers = _auth(client)
     created = client.post("/api/v1/categories", headers=headers, json={
-        "name": f"Cat_{uuid.uuid4()}", "source": "manual"
+        "name": VALID_NAME, "source": "IPTC"
     }).json()
-    new_name = f"Updated_{uuid.uuid4()}"
-    response = client.put(f"/api/v1/categories/{created['id']}", headers=headers, json={"name": new_name})
+    response = client.put(f"/api/v1/categories/{created['id']}", headers=headers, json={"name": VALID_NAME_2})
     assert response.status_code == 200
-    assert response.json()["name"] == new_name
+    assert response.json()["name"] == VALID_NAME_2
 
 
 def test_update_category_not_found(client):
     headers = _auth(client)
-    response = client.put("/api/v1/categories/99999", headers=headers, json={"name": "X"})
+    response = client.put("/api/v1/categories/99999", headers=headers, json={"name": VALID_NAME})
     assert response.status_code == 404
 
 
 def test_delete_category(client):
     headers = _auth(client)
     created = client.post("/api/v1/categories", headers=headers, json={
-        "name": f"Cat_{uuid.uuid4()}", "source": "manual"
+        "name": VALID_NAME, "source": "IPTC"
     }).json()
     response = client.delete(f"/api/v1/categories/{created['id']}", headers=headers)
     assert response.status_code == 204

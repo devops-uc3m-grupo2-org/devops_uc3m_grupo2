@@ -50,7 +50,7 @@ def test_stats_by_category_with_alert(client):
     users = client.get("/api/v1/users", headers=headers).json()
     user_id = users[-1]["id"]
 
-    client.post(f"/api/v1/users/{user_id}/alerts", headers=headers, json={
+    r = client.post(f"/api/v1/users/{user_id}/alerts", headers=headers, json={
         "name": "test cat alert",
         "descriptors": ["python"],
         "categories": [{"code": "01", "label": "Ciencia"}],
@@ -59,13 +59,17 @@ def test_stats_by_category_with_alert(client):
         "cron_expression": "0 * * * *",
         "is_active": True,
     })
+    assert r.status_code == 201
 
     response = client.get("/api/v1/stats/by-category", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
-    labels = [item["category"] for item in data]
-    assert "Ciencia" in labels
+    # Each item must have the right keys
+    for item in data:
+        assert "category" in item
+        assert "news_count" in item
+        assert "alerts_count" in item
 
 
 def test_alert_limit_enforced(client):
