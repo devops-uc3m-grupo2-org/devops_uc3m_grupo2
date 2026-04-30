@@ -597,6 +597,9 @@ def list_user_alerts(user_id: int, current_user: UserModel = Depends(get_current
 def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     require_gestor(current_user)
     get_user_or_404(user_id, db)
+    alert_count = db.query(AlertModel).filter(AlertModel.user_id == user_id).count()
+    if alert_count >= 20:
+        raise HTTPException(status_code=422, detail="Límite alcanzado: un usuario no puede tener más de 20 alertas")
     new_alert = AlertModel(
         name=payload.name,
         descriptors=payload.descriptors,
