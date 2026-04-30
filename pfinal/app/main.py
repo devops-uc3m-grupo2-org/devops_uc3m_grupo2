@@ -320,6 +320,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     return user
 
+def require_gestor(current_user: UserModel) -> UserModel:
+    role_names = {role.name for role in current_user.roles}
+    if "admin" not in role_names:
+        raise HTTPException(status_code=403, detail="Acceso denegado: se requiere rol gestor")
+    return current_user
+
+
 def get_user_or_404(user_id: int, db: Session) -> UserModel:
     user = db.query(UserModel).filter(UserModel.id == user_id).first()
     if not user:
@@ -549,6 +556,7 @@ def list_user_alerts(user_id: int, current_user: UserModel = Depends(get_current
 
 @app.post(f"{API_PREFIX}/users/{{user_id}}/alerts", response_model=Alert, status_code=201, tags=["alerts"])
 def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    require_gestor(current_user)
     get_user_or_404(user_id, db)
     new_alert = AlertModel(
         name=payload.name,
@@ -587,6 +595,7 @@ def update_user_alert(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Alert:
+    require_gestor(current_user)
     alert = get_alert_for_user(user_id, alert_id, db)
     update_data = payload.model_dump(exclude_unset=True)
     if "name" in update_data:
@@ -616,6 +625,7 @@ def update_user_alert(
     tags=["alerts"],
 )
 def delete_user_alert(user_id: int, alert_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    require_gestor(current_user)
     alert = get_alert_for_user(user_id, alert_id, db)
     db.delete(alert)
     db.commit()
