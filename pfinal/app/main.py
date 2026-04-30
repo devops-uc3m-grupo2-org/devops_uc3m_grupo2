@@ -26,6 +26,7 @@ from app.models.models import (
     User as UserModel,
     Role as RoleModel,
     Alert as AlertModel,
+    AlertNews as AlertNewsModel,
     Notification as NotificationModel,
     Stats as StatsModel,
     InformationSource as SourceModel,
@@ -1034,12 +1035,18 @@ def list_latest_news(db: Session = Depends(get_db)):
 # Estadísticas (Dashboard)
 @app.get(f"{API_PREFIX}/stats", response_model=List[Stats], tags=["stats"])
 def get_stats(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    user_alert_ids = [a.id for a in current_user.alerts]
+    matched_news = (
+        db.query(AlertNewsModel.news_item_id)
+        .filter(AlertNewsModel.alert_id.in_(user_alert_ids))
+        .distinct().count()
+    ) if user_alert_ids else 0
     return [{
         "id": 1,
         "metrics": [
-            {"name": "total_news", "value": db.query(NewsItemModel).count()},
+            {"name": "total_news", "value": matched_news},
             {"name": "total_sources", "value": db.query(SourceModel).count()},
-            {"name": "total_alerts", "value": db.query(AlertModel).count()},
+            {"name": "total_alerts", "value": len(user_alert_ids)},
         ],
     }]
 
@@ -1047,19 +1054,30 @@ def get_stats(current_user: UserModel = Depends(get_current_user), db: Session =
 def get_stats_by_category(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     from collections import defaultdict
 
+    user_alert_ids = [a.id for a in current_user.alerts]
+    matched_news_ids = []
+    if user_alert_ids:
+        matched_news_ids = [
+            r[0] for r in db.query(AlertNewsModel.news_item_id)
+            .filter(AlertNewsModel.alert_id.in_(user_alert_ids))
+            .distinct().all()
+        ]
+
     news_by_cat: dict[str, int] = defaultdict(int)
-    items = (
-        db.query(NewsItemModel)
-        .join(ChannelModel, NewsItemModel.channel_id == ChannelModel.id)
-        .outerjoin(CategoryModel, ChannelModel.category_id == CategoryModel.id)
-        .all()
-    )
-    for item in items:
-        cat = item.channel.category.name if item.channel.category else "Sin categoría"
-        news_by_cat[cat] += 1
+    if matched_news_ids:
+        items = (
+            db.query(NewsItemModel)
+            .filter(NewsItemModel.id.in_(matched_news_ids))
+            .join(ChannelModel, NewsItemModel.channel_id == ChannelModel.id)
+            .outerjoin(CategoryModel, ChannelModel.category_id == CategoryModel.id)
+            .all()
+        )
+        for item in items:
+            cat = item.channel.category.name if item.channel.category else "Sin categoría"
+            news_by_cat[cat] += 1
 
     alerts_by_cat: dict[str, int] = defaultdict(int)
-    for alert in db.query(AlertModel).all():
+    for alert in current_user.alerts:
         cats = alert.categories or []
         if not cats:
             alerts_by_cat["Sin categoría"] += 1
@@ -1105,8 +1123,20 @@ def get_wordcloud(current_user: UserModel = Depends(get_current_user), db: Sessi
         text = re.sub(r'https?://\S+', ' ', text)
         return text
 
+    user_alert_ids = [a.id for a in current_user.alerts]
+    if not user_alert_ids:
+        return {}
+    matched_ids = [
+        r[0] for r in db.query(AlertNewsModel.news_item_id)
+        .filter(AlertNewsModel.alert_id.in_(user_alert_ids))
+        .distinct().all()
+    ]
+    if not matched_ids:
+        return {}
+
     items = (
         db.query(NewsItemModel)
+        .filter(NewsItemModel.id.in_(matched_ids))
         .join(ChannelModel, NewsItemModel.channel_id == ChannelModel.id)
         .outerjoin(CategoryModel, ChannelModel.category_id == CategoryModel.id)
         .all()
