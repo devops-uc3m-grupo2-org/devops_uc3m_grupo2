@@ -741,6 +741,7 @@ def list_sources(current_user: UserModel = Depends(get_current_user), db: Sessio
 
 @app.post(f"{API_PREFIX}/information-sources", status_code=201, tags=["information-sources"])
 def create_source(payload: InformationSourceCreate = Body(...), current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    require_gestor(current_user)
     rss_url = str(payload.rss_url)
     # Verificamos si ya existe por la URL RSS
     if db.query(SourceModel).filter(SourceModel.rss_url == rss_url).first():
@@ -855,6 +856,7 @@ def create_source_channel(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> RSSChannel:
+    require_gestor(current_user)
     source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
     if not source:
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
@@ -906,6 +908,7 @@ def update_source_channel(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> RSSChannel:
+    require_gestor(current_user)
     source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
     if not source:
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
@@ -940,6 +943,7 @@ def delete_source_channel(
     current_user: UserModel = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
+    require_gestor(current_user)
     source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
     if not source:
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
