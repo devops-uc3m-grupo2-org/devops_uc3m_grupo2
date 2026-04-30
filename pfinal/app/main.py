@@ -38,7 +38,7 @@ from app.services.ai import generate_synonyms
 from app.services.fetcher import fetch_feed
 from app.services.alertLogic import process_alerts_for_items
 from app.services.seed_rss import seed_rss_channels
-from app.services.notifications import send_verification_email
+from app.services.notifications import send_verification_email, send_reset_email
 from app.core.scheduler import start_scheduler
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
@@ -298,9 +298,9 @@ class RSSChannel(RSSChannelBase):
 
 # --- LÓGICA DE AUTENTICACIÓN ---
 
-def create_access_token(data: dict):
+def create_access_token(data: dict, expires_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES):
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -422,6 +422,45 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
     send_verification_email(payload.email, payload.first_name, verification_token, base_url)
 
     return new_user
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+@app.post(f"{API_PREFIX}/auth/forgot-password", tags=["auth"])
+def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    user = db.query(UserModel).filter(UserModel.email == payload.email).first()
+    if user:
+        token = create_access_token({"sub": user.email, "purpose": "reset"}, expires_minutes=60)
+        base_url = str(request.base_url).rstrip("/")
+        send_reset_email(user.email, user.first_name, token, base_url)
+    return {"message": "Si el email está registrado, recibirás un correo con instrucciones"}
+
+
+@app.post(f"{API_PREFIX}/auth/reset-password", tags=["auth"])
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        data = jwt.decode(payload.token, SECRET_KEY, algorithms=[ALGORITHM])
+        if data.get("purpose") != "reset":
+            raise HTTPException(status_code=400, detail="Token inválido")
+        email = data.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token expirado o inválido")
+
+    user = db.query(UserModel).filter(UserModel.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if not payload.new_password or len(payload.new_password) < 6:
+        raise HTTPException(status_code=422, detail="La contraseña debe tener al menos 6 caracteres")
+
+    user.hashed_password = pwd_context.hash(payload.new_password)
+    db.commit()
+    return {"message": "Contraseña actualizada correctamente"}
 
 
 @app.get(f"{API_PREFIX}/auth/verify", tags=["auth"])

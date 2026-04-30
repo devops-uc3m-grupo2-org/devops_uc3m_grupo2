@@ -73,6 +73,21 @@ def notify_alert(alert, matched_news: list) -> bool:
     return send_email(user.email, subject, body)
 
 
+def send_reset_email(to_email: str, first_name: str, token: str, base_url: str) -> bool:
+    subject = "NewsRadar: recuperación de contraseña (válido 1h)"
+    link = f"{base_url}/?reset_token={token}"
+    body = (
+        f"Hola {first_name},\n\n"
+        f"Has solicitado recuperar tu contraseña en NewsRadar.\n"
+        f"Haz click en el siguiente enlace para crear una nueva:\n\n"
+        f"{link}\n\n"
+        f"Este enlace caduca en 1 hora.\n"
+        f"Si no solicitaste esto, ignora este email.\n\n"
+        f"Saludos,\nNewsRadar"
+    )
+    return send_email(to_email, subject, body)
+
+
 def send_verification_email(to_email: str, first_name: str, token: str, base_url: str) -> bool:
     subject = "NewsRadar: verifica tu cuenta (válido 24h)"
     link = f"{base_url}/api/v1/auth/verify?token={token}"

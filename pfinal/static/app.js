@@ -220,6 +220,17 @@ const app = {
     },
 
     async init() {
+        // Detectar token de reset en la URL (?reset_token=...)
+        const params = new URLSearchParams(window.location.search);
+        const resetToken = params.get('reset_token');
+        if (resetToken) {
+            this._resetToken = resetToken;
+            history.replaceState(null, '', window.location.pathname);
+            this.hideNavbar();
+            this.showSection('reset-password');
+            return;
+        }
+
         // Aplicar idioma guardado al inicio
         this.setLanguage(this.currentLang);
 
@@ -607,6 +618,58 @@ const app = {
             this.renderNews(news);
         } catch (err) {
             console.error(err);
+        }
+    },
+
+    // --- RECUPERACIÓN DE CONTRASEÑA ---
+    async forgotPassword(event) {
+        event.preventDefault();
+        const email = document.getElementById('forgot-email').value.trim();
+        const msgDiv = document.getElementById('forgot-msg');
+        msgDiv.textContent = '';
+        try {
+            await fetch(`${API_URL}/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            msgDiv.style.color = 'green';
+            msgDiv.textContent = 'Si el email está registrado, recibirás un correo en breve.';
+            msgDiv.classList.add('show');
+            document.getElementById('forgot-email').value = '';
+        } catch (err) {
+            msgDiv.style.color = '';
+            msgDiv.textContent = err.message || 'Error al enviar el email';
+            msgDiv.classList.add('show');
+        }
+    },
+
+    async resetPassword(event) {
+        event.preventDefault();
+        const newPassword = document.getElementById('reset-password-input').value;
+        const msgDiv = document.getElementById('reset-msg');
+        msgDiv.textContent = '';
+        if (!this._resetToken) {
+            msgDiv.textContent = 'Token de recuperación no encontrado. Solicita un nuevo enlace.';
+            msgDiv.classList.add('show');
+            return;
+        }
+        try {
+            const resp = await fetch(`${API_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: this._resetToken, new_password: newPassword }),
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail || 'Error al restablecer la contraseña');
+            }
+            this._resetToken = null;
+            this.toast('Contraseña actualizada. Inicia sesión con tu nueva contraseña.', 'success');
+            this.showSection('login');
+        } catch (err) {
+            msgDiv.textContent = err.message;
+            msgDiv.classList.add('show');
         }
     },
 
