@@ -12,7 +12,7 @@ import sys
 import uuid
 import requests
 
-BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://localhost:8000"
+BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://192.168.1.172:8000"
 API = f"{BASE}/api/v1"
 
 # ── Colores ────────────────────────────────────────────────────────────────────
