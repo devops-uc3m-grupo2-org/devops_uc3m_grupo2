@@ -1,5 +1,8 @@
+import os
 import pytest
 from fastapi.testclient import TestClient
+
+os.environ.setdefault("SEND_EMAILS", "false")
 
 from app.main import app
 from app.core.database import Base, engine, get_db
