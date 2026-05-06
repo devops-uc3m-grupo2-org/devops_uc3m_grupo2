@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import pathlib
+import re
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
@@ -170,6 +171,16 @@ class AlertCategoryItem(BaseModel):
     label: str
 
 
+_CRON_FIELD_RE = re.compile(r'^[\*0-9,\-/]+$')
+
+
+def _validate_cron_expression(value: str) -> str:
+    parts = value.split()
+    if len(parts) != 5 or not all(_CRON_FIELD_RE.match(p) for p in parts):
+        raise ValueError("cron_expression inválida: debe tener 5 campos separados por espacio")
+    return value
+
+
 class AlertBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     descriptors: List[str] = Field(default_factory=list)
@@ -178,6 +189,11 @@ class AlertBase(BaseModel):
     information_sources_ids: List[str] = Field(default_factory=list)
     cron_expression: str = Field(..., min_length=1, max_length=120)
     is_active: Optional[bool] = True
+
+    @field_validator("cron_expression")
+    @classmethod
+    def validate_cron(cls, v: str) -> str:
+        return _validate_cron_expression(v)
 
     class Config:
         use_enum_values = True
@@ -190,6 +206,13 @@ class AlertUpdate(BaseModel):
     information_sources_ids: List[str] = Field(default_factory=list)
     cron_expression: Optional[str] = Field(None, min_length=1, max_length=120)
     is_active: Optional[bool] = None
+
+    @field_validator("cron_expression")
+    @classmethod
+    def validate_cron(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            return _validate_cron_expression(v)
+        return v
 
     class Config:
         use_enum_values = True
