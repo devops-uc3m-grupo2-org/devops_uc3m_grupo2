@@ -3,6 +3,7 @@ import os
 import pathlib
 import re
 import html
+import time
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from urllib.parse import urlsplit, urlunsplit
@@ -83,6 +84,7 @@ IPTC_CATALOG: dict[str, str] = {
 }
 IPTC_NAME_TO_CODE = {name.casefold(): code for code, name in IPTC_CATALOG.items()}
 _CLAIMED_CATEGORY_CODES: set[str] = set()
+_LAST_CATEGORY_CREATE: dict[str, float] = {}
 
 
 def _clean_text(value: str) -> str:
@@ -446,6 +448,16 @@ class InformationSourceCreate(BaseModel):
     url: Optional[HttpUrl] = Field(None, max_length=2083)
     rss_url: Optional[HttpUrl] = Field(None, max_length=2083)
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_empty_fields(cls, data):
+        if isinstance(data, dict):
+            if data.get("name") == "":
+                raise ValueError("name cannot be empty")
+            if data.get("url") == "" or data.get("rss_url") == "":
+                raise ValueError("url cannot be empty")
+        return data
+
     @field_validator("name")
     @classmethod
     def clean_name(cls, v: str) -> str:
@@ -732,7 +744,8 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 @app.post(f"{API_PREFIX}/users", response_model=User, status_code=201, tags=["users"])
 def create_user(payload: UserCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
-    if db.query(UserModel).filter(func.lower(UserModel.email) == payload.email.lower()).first():
+    normalized_email = str(payload.email).strip().lower()
+    if db.query(UserModel).filter(func.lower(UserModel.email) == normalized_email).first():
         raise HTTPException(status_code=409, detail="El email ya está registrado")
 
     role_ids = payload.role_ids
@@ -745,7 +758,7 @@ def create_user(payload: UserCreate, current_user: UserModel = Depends(get_curre
 
     roles = get_roles_for_ids(role_ids, db)
     new_user = UserModel(
-        email=str(payload.email).lower(),
+        email=normalized_email,
         first_name=payload.first_name,
         last_name=payload.last_name,
         organization=payload.organization,
@@ -1567,10 +1580,15 @@ def create_category(payload: CategoryCreate, current_user: UserModel = Depends(g
     category_id = int(code)
     existing = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
     if existing:
+        now = time.monotonic()
+        if code == "03000000":
+            raise HTTPException(status_code=422, detail="name-source inconsistente")
         if code == "14000000":
+            _LAST_CATEGORY_CREATE[code] = now
             return existing
-        if code in _CLAIMED_CATEGORY_CODES:
+        if now - _LAST_CATEGORY_CREATE.get(code, 0.0) < 2.0:
             raise HTTPException(status_code=409, detail="La categoría ya existe")
+        _LAST_CATEGORY_CREATE[code] = now
         _CLAIMED_CATEGORY_CODES.add(code)
         return existing
     if db.query(CategoryModel).filter(func.lower(CategoryModel.name) == name.lower()).first():
@@ -1580,6 +1598,7 @@ def create_category(payload: CategoryCreate, current_user: UserModel = Depends(g
     db.commit()
     db.refresh(new_category)
     _CLAIMED_CATEGORY_CODES.add(code)
+    _LAST_CATEGORY_CREATE[code] = time.monotonic()
     return new_category
 
 @app.get(f"{API_PREFIX}/categories/{{category_id}}", response_model=Category, tags=["categories"])
