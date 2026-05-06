@@ -278,7 +278,7 @@ class InformationSourceUpdate(BaseModel):
 
 class CategoryBase(BaseModel):
     name: IPTCCategoryEnum
-    source: str = "IPTC"
+    source: str = Field("IPTC", pattern=r"^IPTC$")
 
     class Config:
         use_enum_values = True
@@ -641,9 +641,19 @@ def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel 
     alert_count = db.query(AlertModel).filter(AlertModel.user_id == user_id).count()
     if alert_count >= 20:
         raise HTTPException(status_code=422, detail="Límite alcanzado: un usuario no puede tener más de 20 alertas")
+    descriptors = list(payload.descriptors)
+    if len(descriptors) < 3:
+        seen = set(descriptors)
+        for term in generate_synonyms(payload.name):
+            if term not in seen:
+                seen.add(term)
+                descriptors.append(term)
+            if len(descriptors) >= 3:
+                break
+    descriptors = descriptors[:10]
     new_alert = AlertModel(
         name=payload.name,
-        descriptors=payload.descriptors,
+        descriptors=descriptors,
         categories=[cat.model_dump() for cat in payload.categories],
         rss_channels_ids=payload.rss_channels_ids,
         information_sources_ids=payload.information_sources_ids,
