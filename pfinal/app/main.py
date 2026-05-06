@@ -14,7 +14,7 @@ from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from dotenv import load_dotenv # Nueva importación
 
 # --- CONFIGURACIÓN DE ENTORNO ---
@@ -153,6 +153,14 @@ class UserUpdate(BaseModel):
 
 class RoleCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def strip_and_validate_name(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("name cannot be empty or whitespace only")
+        return stripped
 
 class RoleUpdate(BaseModel):
     name: Optional[str] = None
