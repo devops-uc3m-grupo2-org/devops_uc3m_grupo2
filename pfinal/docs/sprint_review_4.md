@@ -1,27 +1,97 @@
-# Sprint 4 – IA Generativa (Sinónimos y Clasificación)
+# Sprint 4 – Endpoint de Sugerencias IA (Synonyms / Keywords)
 
-
-En este sprint buscamos utilizar la Inteligencia Artificial Generativa para encontrar sinónimos de la palabra clave que el usuario ha elegido. En este caso, utilizamos Gemini (modelos generativos de Google) para completar la tarea.
-
----
-
-## Objetivos de Sprint 4
-
-- Utilizar la Inteligencia Artifical para generar sinónimos de la palabra.
-
-- Exponer endpoints REST para:
-  - Crear Sinonimos
+En este apartado se implementa un endpoint basado en IA que permite generar **sugerencias de palabras clave y sinónimos** a partir de un término introducido por el usuario. 
 
 ---
 
-Se ha coniderado el enfoque de llamadas HTTP al endpoint adecuado de Gemini o al API de Google Cloud (según el plan y la cuenta), configurando `GEMINI_API_URL` y `GEMINI_API_KEY` o las credenciales necesarias.
+## Objetivo del Endpoint
 
-Sin embargo, ha dado problemas el uso de las credenciales, por este motivo también se ha considerado una opción utilizar la librería google.generativeai. 
+- Generar sinónimos o términos relacionados a partir de una keyword.
+- Mejorar la capacidad del sistema para detectar noticias relevantes.
+- Asistir al usuario en la creación de alertas más completas.
+- Proveer una capa básica de IA aplicada al filtrado de información.
 
-*función ia sigue en proceso de desarrollo*
+---
+
+## Endpoint
+
+### GET `/api/v1/suggestions`
+
+---
+
+## Autenticación
+
+Este endpoint requiere autenticación mediante JWT:
+
+- Debe presionarse el boton de autenticar con el token recibido después de autenticarse (parte superior derecha):
+
+```http
+Authorization: Bearer <token>
+```
+
+### Ejemplo de petición
+`GET /api/v1/suggestions?keyword=economía`
+
+### Lógica interna
+El endpoint utiliza la función:
+
+generate_synonyms(keyword)
+
+Recibe una palabra clave.
+Genera una lista de sinónimos o términos relacionados.
+Devuelve una estructura JSON con la keyword original y sus sugerencias.
+
+### Respuesta esperada
+Código: 200 OK
+{
+  "keyword": "economía",
+  "suggestions": [
+    "finanzas",
+    "mercado",
+    "comercio",
+    "economía global",
+    "macroeconomía"
+  ]
+}
+
+### Casos de prueba
+
+#### Caso 1: Keyword válida
+
+##### Input:
+
+economía
+
+##### Esperado:
+
+Lista de sinónimos no vacía
+Código 200
+
+#### Caso 2: Keyword desconocida
+
+##### Input:
+
+asdfghjkl
+
+##### Esperado:
+
+Lista vacía o sugerencias genéricas
+Código 200
+
+#### Caso 3: Sin autenticación
+
+##### Input: sin token
+
+##### Resultado esperado:
+
+{
+  "detail": "Not authenticated"
+}
+
+Código: 401 Unauthorized
 
 
-# Sprint X – Gestión de Roles (CRUD)
+# Sprint 4 – Gestión de Roles (CRUD)
 
 Pese a que originalmente estaba previsto para un sprint anterior, debido a problemas técnicos se ha agregado en este sprit la gestión de Roles. En este sprint se implementa la gestión completa de **roles de usuario** dentro de **NewsRadar**, permitiendo su creación, consulta, actualización y eliminación, asegurando además la integridad del sistema evitando eliminar roles asignados.
 
@@ -72,10 +142,10 @@ Este flujo describe paso a paso cómo probar manualmente los endpoints de **role
 
 Antes de probar cualquier endpoint, es necesario autenticarse.
 
-#### Endpoint:
+#### Endpoint
 `POST /api/v1/auth/login`
 
-#### Body:
+#### Body
 ```json
 {
   "email": "usuario@test.com",
@@ -83,7 +153,7 @@ Antes de probar cualquier endpoint, es necesario autenticarse.
 }
 ```
 
-#### Respuesta esperada:
+#### Respuesta esperada
 ```json
 {
   "access_token": "TOKEN_JWT"
@@ -94,12 +164,12 @@ Antes de probar cualquier endpoint, es necesario autenticarse.
 Copia el access_token. En Swagger: botón Authorize → pega el token.
 
 ### Listar Roles Iniciales
-#### Endpoint:
+#### Endpoint
 
 `GET /api/v1/roles`
 
 
-#### Objetivo:
+#### Objetivo
 
 Ver los roles existentes antes de realizar cambios.
 
@@ -111,11 +181,11 @@ Lista de roles (puede estar vacía o contener roles por defecto)
 
 ### Crear un Nuevo Rol
 
-#### Endpoint:
+#### Endpoint
 
 `POST /api/v1/roles`
 
-#### Headers:
+#### Headers
 Authorization: Bearer TOKEN_JWT
 ```json
 Body:
@@ -124,11 +194,11 @@ Body:
 }
 ```
 
-#### Objetivo:
+#### Objetivo
 
 Crear un nuevo rol en el sistema.
 
-#### Resultado esperado:
+#### Resultado esperado
 Código: 201 Created
 Devuelve el rol creado con su id
 
@@ -143,19 +213,19 @@ Guarda el id del rol (role_id) para los siguientes pasos.
 
 ### Obtener Rol por ID
 
-#### Endpoint:
+#### Endpoint
 
 `GET /api/v1/roles/{role_id}`
 
-#### Ejemplo:
+#### Ejemplo
 
 GET /api/v1/roles/3
 
-#### Objetivo:
+#### Objetivo
 
 Verificar que el rol fue creado correctamente.
 
-#### Resultado esperado:
+#### Resultado esperado
 Código: 200 OK
 Datos del rol
 
@@ -171,25 +241,25 @@ Body:
 }
 ```
 
-#### Objetivo:
+#### Objetivo
 
 Modificar el nombre del rol.
 
-#### Resultado esperado:
+#### Resultado esperado
 Código: 200 OK
 Rol actualizado
 
 
 ### Verificar Actualización
-#### Endpoint:
+#### Endpoint
 
 `GET /api/v1/roles/{role_id}`
 
-#### Objetivo:
+#### Objetivo
 
 Confirmar que los cambios se aplicaron correctamente.
 
-#### Resultado esperado:
+#### Resultado esperado
 El campo name debe ser "tester_updated"
 
 ### Intentar Obtener Rol Inexistente
@@ -199,7 +269,7 @@ El campo name debe ser "tester_updated"
 
 Verificar manejo de errores.
 
-#### Resultado esperado:
+#### Resultado esperado
 Código: 404 Not Found
 
 ### Eliminar Rol
@@ -207,38 +277,38 @@ Código: 404 Not Found
 
 `DELETE /api/v1/roles/{role_id}`
 
-#### Ejemplo:
+#### Ejemplo
 DELETE /api/v1/roles/3
 
-#### Headers:
+#### Headers
 Authorization: Bearer TOKEN_JWT
 Objetivo:
 
 Eliminar el rol creado.
 
-#### Resultado esperado:
+#### Resultado esperado
 Código: 204 No Content
 
 ### Verificar Eliminación
 #### Endpoint:
 `GET /api/v1/roles/3`
 
-#### Objetivo:
+#### Objetivo
 
 Confirmar que el rol fue eliminado.
 
-#### Resultado esperado:
+#### Resultado esperado
 Código: 404 Not Found
 
 ### Caso Especial: Rol Asignado
 #### Endpoint:
 `DELETE /api/v1/roles/1`
 
-#### Objetivo:
+#### Objetivo
 
 Intentar eliminar un rol que está asignado a usuarios.
 
-#### Resultado esperado:
+#### Resultado esperado
 Código: 409 Conflict
 Mensaje de error:
 ```json
