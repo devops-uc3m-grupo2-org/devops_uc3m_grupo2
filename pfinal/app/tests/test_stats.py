@@ -57,7 +57,7 @@ def test_stats_reflect_new_source(client):
     client.post(
         "/api/v1/information-sources",
         headers=headers,
-        json={"name": "Stats Source", "rss_url": f"https://example.com/rss/{uuid.uuid4()}"},
+        json={"name": "Stats Source", "url": f"https://example.com/rss/{uuid.uuid4()}"},
     )
 
     after = {
