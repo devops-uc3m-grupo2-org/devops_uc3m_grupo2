@@ -603,7 +603,7 @@ def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel 
     new_alert = AlertModel(
         name=payload.name,
         descriptors=payload.descriptors,
-        categories=[cat.dict() for cat in payload.categories],
+        categories=[cat.model_dump() for cat in payload.categories],
         rss_channels_ids=payload.rss_channels_ids,
         information_sources_ids=payload.information_sources_ids,
         cron_expression=payload.cron_expression,
@@ -645,7 +645,7 @@ def update_user_alert(
     if "descriptors" in update_data:
         alert.descriptors = update_data["descriptors"]
     if "categories" in update_data:
-        alert.categories = [cat.dict() for cat in update_data["categories"]]
+        alert.categories = [cat.model_dump() for cat in update_data["categories"]]
     if "rss_channels_ids" in update_data:
         alert.rss_channels_ids = update_data["rss_channels_ids"]
     if "information_sources_ids" in update_data:
