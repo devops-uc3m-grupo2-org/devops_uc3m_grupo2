@@ -1,6 +1,6 @@
 fastapi>=0.115.0
 starlette>=0.40.0
-uvicorn==0.30.6
+uvicorn==0.46.0
 sqlalchemy==2.0.36
 alembic==1.18.4
 psycopg2-binary==2.9.10
