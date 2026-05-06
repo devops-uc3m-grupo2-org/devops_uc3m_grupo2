@@ -1,5 +1,26 @@
 from app.models.models import InformationSource, RSSChannel, Category, IPTCCategoryEnum
 
+IPTC_CATALOG = {
+    "01000000": "Artes, cultura, entretenimiento y medios",
+    "02000000": "Policía y justicia",
+    "03000000": "Catástrofes y accidentes",
+    "04000000": "Economía, negocios y finanzas",
+    "05000000": "Educación",
+    "06000000": "Medio ambiente",
+    "07000000": "Salud",
+    "08000000": "Interés humano, animales, insólito",
+    "09000000": "Mano de obra",
+    "10000000": "Estilo de vida y tiempo libre",
+    "11000000": "Política",
+    "12000000": "Religión y culto",
+    "13000000": "Ciencia y tecnología",
+    "14000000": "Sociedad",
+    "15000000": "Deporte",
+    "16000000": "Conflicto, guerra y paz",
+    "17000000": "Meteorología",
+}
+IPTC_NAME_TO_ID = {name.casefold(): int(code) for code, name in IPTC_CATALOG.items()}
+
 # 10 medios × 10 canales = 100 canales RSS cubriendo las 17 categorías IPTC
 SEED_SOURCES = [
     {
@@ -186,9 +207,6 @@ SEED_SOURCES = [
 
 
 def seed_rss_channels(db):
-    if db.query(RSSChannel).count() >= 100:
-        return
-
     for source_data in SEED_SOURCES:
         source = db.query(InformationSource).filter(
             InformationSource.rss_url == source_data["rss_url"]
@@ -205,15 +223,20 @@ def seed_rss_channels(db):
             db.refresh(source)
 
         for channel_url, category_name in source_data["channels"]:
-            if db.query(RSSChannel).filter(RSSChannel.url == channel_url).first():
-                continue
-
-            category = db.query(Category).filter(Category.name == category_name).first()
+            category_id = IPTC_NAME_TO_ID.get(category_name.casefold())
+            category = db.query(Category).filter(Category.id == category_id).first() if category_id else None
             if not category:
-                category = Category(name=category_name, source="IPTC")
+                category = Category(id=category_id, name=category_name, source="IPTC")
                 db.add(category)
                 db.commit()
                 db.refresh(category)
+
+            channel = db.query(RSSChannel).filter(RSSChannel.url == channel_url).first()
+            if channel:
+                if channel.category_id != category.id:
+                    channel.category_id = category.id
+                    db.add(channel)
+                continue
 
             db.add(RSSChannel(
                 url=channel_url,

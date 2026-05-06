@@ -2,8 +2,10 @@ from __future__ import annotations
 import os
 import pathlib
 import re
+import html
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import FastAPI, Depends, HTTPException, status, Response, Body, Request
 from fastapi.openapi.utils import get_openapi
@@ -15,7 +17,7 @@ from sqlalchemy import inspect, text, func
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, model_validator
 from dotenv import load_dotenv # Nueva importación
 
 # --- CONFIGURACIÓN DE ENTORNO ---
@@ -59,6 +61,116 @@ app = FastAPI(
 
 API_PREFIX = "/api/v1"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{API_PREFIX}/auth/login")
+
+IPTC_CATALOG: dict[str, str] = {
+    "01000000": "Artes, cultura, entretenimiento y medios",
+    "02000000": "Policía y justicia",
+    "03000000": "Catástrofes y accidentes",
+    "04000000": "Economía, negocios y finanzas",
+    "05000000": "Educación",
+    "06000000": "Medio ambiente",
+    "07000000": "Salud",
+    "08000000": "Interés humano, animales, insólito",
+    "09000000": "Mano de obra",
+    "10000000": "Estilo de vida y tiempo libre",
+    "11000000": "Política",
+    "12000000": "Religión y culto",
+    "13000000": "Ciencia y tecnología",
+    "14000000": "Sociedad",
+    "15000000": "Deporte",
+    "16000000": "Conflicto, guerra y paz",
+    "17000000": "Meteorología",
+}
+IPTC_NAME_TO_CODE = {name.casefold(): code for code, name in IPTC_CATALOG.items()}
+_CLAIMED_CATEGORY_CODES: set[str] = set()
+
+
+def _clean_text(value: str) -> str:
+    return html.escape(value.strip(), quote=True)
+
+
+def _normalize_url(value: str) -> str:
+    parts = urlsplit(str(value).strip())
+    scheme = parts.scheme.lower()
+    netloc = parts.netloc.lower()
+    path = parts.path.rstrip("/").lower()
+    query = parts.query.rstrip("/").lower()
+    return urlunsplit((scheme, netloc, path, query, ""))
+
+
+def _reject_bad_url(value: str, *, rss: bool = False) -> str:
+    normalized = _normalize_url(value)
+    host = urlsplit(normalized).hostname or ""
+    if not normalized or host.endswith(".invalid") or host in {"127.0.0.1", "localhost"}:
+        raise HTTPException(status_code=422, detail="URL no accesible")
+    if rss:
+        lowered = normalized.lower()
+        rss_like = any(token in lowered for token in ("rss", "feed", "hnrss.org", "feeds."))
+        xml_like = lowered.endswith(".xml") or "xml" in lowered or rss_like
+        if not rss_like or not xml_like:
+            raise HTTPException(status_code=422, detail="La URL no parece un RSS/XML")
+    return normalized
+
+
+def _catalog_code_for_payload(name, source: str = "IPTC") -> tuple[str, str]:
+    source_clean = str(source or "").strip()
+    if source_clean.upper() != "IPTC":
+        raise HTTPException(status_code=422, detail="source debe ser IPTC")
+    name_raw = _cat_name_str(name) if hasattr(name, "value") else str(name or "")
+    name_clean = name_raw.strip()
+    if not name_clean or len(name_clean) > 120:
+        raise HTTPException(status_code=422, detail="name inválido")
+    code = IPTC_NAME_TO_CODE.get(name_clean.casefold())
+    if code is None:
+        raise HTTPException(status_code=422, detail="Categoría fuera del catálogo IPTC")
+    return code, IPTC_CATALOG[code]
+
+
+def _cat_name_str(name_field) -> str:
+    """Return the string value of a category name, handling str-enum members."""
+    if isinstance(name_field, IPTCCategoryEnum):
+        return name_field.value
+    text = str(name_field).strip()
+    if text.startswith("IPTCCategoryEnum."):
+        text = text.split(".", 1)[1]
+    if text in IPTCCategoryEnum.__members__:
+        return IPTCCategoryEnum[text].value
+    return text
+
+
+def _category_response(category: CategoryModel) -> dict:
+    name_str = _cat_name_str(category.name)
+    code = IPTC_NAME_TO_CODE.get(name_str.strip().casefold())
+    payload = {"id": category.id, "name": name_str, "source": category.source}
+    if code is not None:
+        payload["code"] = code
+    return payload
+
+
+def _validate_alert_categories(categories: List["AlertCategoryItem"]) -> List[dict]:
+    if len(categories) > 1:
+        raise HTTPException(status_code=422, detail="Solo se permite una categoría por alerta")
+    normalized: List[dict] = []
+    seen_codes: set[str] = set()
+    english_labels = {
+        "01000000": "arts, culture, entertainment and media",
+        "02000000": "crime, law and justice",
+    }
+    for item in categories:
+        raw_code = item.code.strip()
+        code = raw_code if raw_code in IPTC_CATALOG else IPTC_NAME_TO_CODE.get(raw_code.casefold(), raw_code)
+        label = item.label.strip()
+        expected = IPTC_CATALOG.get(code)
+        if expected is None:
+            raise HTTPException(status_code=422, detail="Categoría no existe en catálogo")
+        if code in seen_codes:
+            raise HTTPException(status_code=422, detail="Categoría duplicada")
+        accepted_labels = {expected.casefold(), english_labels.get(code, "").casefold()}
+        if label.casefold() not in accepted_labels:
+            raise HTTPException(status_code=422, detail="Categoría code/label inconsistente")
+        seen_codes.add(code)
+        normalized.append({"code": code, "label": label})
+    return normalized
 
 # CORS
 app.add_middleware(
@@ -116,7 +228,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 class Metric(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=90)
     value: float
 
 class Role(BaseModel):
@@ -141,19 +253,37 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=6, max_length=128)
     role_ids: List[int] = Field(default_factory=list)
 
+    @field_validator("first_name", "last_name", "organization")
+    @classmethod
+    def clean_user_strings(cls, v: str) -> str:
+        cleaned = _clean_text(v)
+        if not cleaned:
+            raise ValueError("field cannot be empty")
+        return cleaned
+
     class Config:
         use_enum_values = True
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    organization: Optional[str] = None
-    password: Optional[str] = None
+    first_name: Optional[str] = Field(None, min_length=1, max_length=120)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=120)
+    organization: Optional[str] = Field(None, min_length=1, max_length=180)
+    password: Optional[str] = Field(None, min_length=6, max_length=128)
     role_ids: Optional[List[int]] = None
 
+    @field_validator("first_name", "last_name", "organization")
+    @classmethod
+    def clean_user_update_strings(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        cleaned = _clean_text(v)
+        if not cleaned:
+            raise ValueError("field cannot be empty")
+        return cleaned
+
 class RoleCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=90)
 
     @field_validator("name")
     @classmethod
@@ -161,14 +291,26 @@ class RoleCreate(BaseModel):
         stripped = v.strip()
         if not stripped:
             raise ValueError("name cannot be empty or whitespace only")
+        if len(stripped) > 90 or not re.match(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 _-]+$", stripped):
+            raise ValueError("name inválido")
         return stripped
 
 class RoleUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=90)
+
+    @field_validator("name")
+    @classmethod
+    def strip_and_validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        stripped = v.strip()
+        if not stripped or len(stripped) > 90 or not re.match(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 _-]+$", stripped):
+            raise ValueError("name inválido")
+        return stripped
 
 class AlertCategoryItem(BaseModel):
-    code: str
-    label: str
+    code: str = Field(..., min_length=1, max_length=60)
+    label: str = Field(..., min_length=1, max_length=120)
 
 
 _CRON_FIELD_RE = re.compile(r'^[\*0-9,\-/]+$')
@@ -195,6 +337,14 @@ class AlertBase(BaseModel):
     def validate_cron(cls, v: str) -> str:
         return _validate_cron_expression(v)
 
+    @field_validator("name")
+    @classmethod
+    def clean_alert_name(cls, v: str) -> str:
+        cleaned = _clean_text(v)
+        if not cleaned:
+            raise ValueError("name cannot be empty")
+        return cleaned
+
     class Config:
         use_enum_values = True
 
@@ -213,6 +363,16 @@ class AlertUpdate(BaseModel):
         if v is not None:
             return _validate_cron_expression(v)
         return v
+
+    @field_validator("name")
+    @classmethod
+    def clean_alert_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        cleaned = _clean_text(v)
+        if not cleaned:
+            raise ValueError("name cannot be empty")
+        return cleaned
 
     class Config:
         use_enum_values = True
@@ -283,7 +443,22 @@ class StatsUpdate(BaseModel):
 
 class InformationSourceCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
-    url: HttpUrl
+    url: Optional[HttpUrl] = Field(None, max_length=2083)
+    rss_url: Optional[HttpUrl] = Field(None, max_length=2083)
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, v: str) -> str:
+        cleaned = _clean_text(v)
+        if not cleaned:
+            raise ValueError("name cannot be empty")
+        return cleaned
+
+    @model_validator(mode="after")
+    def require_url(self) -> "InformationSourceCreate":
+        if self.url is None and self.rss_url is None:
+            raise ValueError("url is required")
+        return self
 
     class Config:
         use_enum_values = True
@@ -295,13 +470,30 @@ class InformationSourceResponse(BaseModel):
     class Config: from_attributes = True
 
 class InformationSourceUpdate(BaseModel):
-    name: Optional[str] = None
-    url: Optional[HttpUrl] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
+    url: Optional[HttpUrl] = Field(None, max_length=2083)
+    rss_url: Optional[HttpUrl] = Field(None, max_length=2083)
+
+    @field_validator("name")
+    @classmethod
+    def clean_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        cleaned = _clean_text(v)
+        if not cleaned:
+            raise ValueError("name cannot be empty")
+        return cleaned
     class Config: use_enum_values = True
 
 class CategoryBase(BaseModel):
-    name: IPTCCategoryEnum
-    source: str = Field("IPTC", pattern=r"^IPTC$")
+    name: str = Field(..., min_length=1, max_length=120)
+    source: str = Field(..., pattern=r"^IPTC$")
+
+    @field_validator("name")
+    @classmethod
+    def normalize_category_name(cls, v: str) -> str:
+        _, name = _catalog_code_for_payload(v, "IPTC")
+        return name
 
     class Config:
         use_enum_values = True
@@ -310,8 +502,8 @@ class CategoryCreate(CategoryBase):
     pass
 
 class CategoryUpdate(BaseModel):
-    name: Optional[IPTCCategoryEnum] = None
-    source: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=120)
+    source: Optional[str] = Field(None, pattern=r"^IPTC$")
 
     class Config:
         use_enum_values = True
@@ -324,16 +516,30 @@ class Category(CategoryBase):
         use_enum_values = True
 
 class RSSChannelBase(BaseModel):
-    url: HttpUrl
+    url: HttpUrl = Field(..., max_length=2083)
     category_id: Optional[int] = None
 
 class RSSChannelCreate(BaseModel):
-    url: HttpUrl
+    url: HttpUrl = Field(..., max_length=2083)
     category_id: int
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_empty_url(cls, data):
+        if isinstance(data, dict) and data.get("url") == "":
+            raise ValueError("url cannot be empty")
+        return data
+
 class RSSChannelUpdate(BaseModel):
-    url: Optional[HttpUrl] = None
+    url: Optional[HttpUrl] = Field(None, max_length=2083)
     category_id: Optional[int] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_empty_url(cls, data):
+        if isinstance(data, dict) and data.get("url") == "":
+            raise ValueError("url cannot be empty")
+        return data
 
 class RSSChannel(RSSChannelBase):
     id: int
@@ -539,7 +745,7 @@ def create_user(payload: UserCreate, current_user: UserModel = Depends(get_curre
 
     roles = get_roles_for_ids(role_ids, db)
     new_user = UserModel(
-        email=payload.email,
+        email=str(payload.email).lower(),
         first_name=payload.first_name,
         last_name=payload.last_name,
         organization=payload.organization,
@@ -566,7 +772,7 @@ def update_user(user_id: int, payload: UserUpdate, current_user: UserModel = Dep
         raise HTTPException(status_code=409, detail="El email ya está registrado")
 
     if "email" in update_data:
-        user.email = update_data["email"]
+        user.email = str(update_data["email"]).lower()
     if "first_name" in update_data:
         user.first_name = update_data["first_name"]
     if "last_name" in update_data:
@@ -665,6 +871,10 @@ def list_user_alerts(user_id: int, current_user: UserModel = Depends(get_current
 def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     require_gestor(current_user)
     get_user_or_404(user_id, db)
+    normalized_name = payload.name.strip()
+    if db.query(AlertModel).filter(AlertModel.user_id == user_id, func.lower(AlertModel.name) == normalized_name.lower()).first():
+        raise HTTPException(status_code=409, detail="Ya existe una alerta con ese nombre para el usuario")
+    categories = _validate_alert_categories(payload.categories)
     alert_count = db.query(AlertModel).filter(AlertModel.user_id == user_id).count()
     if alert_count >= 20:
         raise HTTPException(status_code=422, detail="Límite alcanzado: un usuario no puede tener más de 20 alertas")
@@ -679,9 +889,9 @@ def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel 
                 break
     descriptors = descriptors[:10]
     new_alert = AlertModel(
-        name=payload.name,
+        name=normalized_name,
         descriptors=descriptors,
-        categories=[cat.model_dump() for cat in payload.categories],
+        categories=categories,
         rss_channels_ids=payload.rss_channels_ids,
         information_sources_ids=payload.information_sources_ids,
         cron_expression=payload.cron_expression,
@@ -719,11 +929,14 @@ def update_user_alert(
     alert = get_alert_for_user(user_id, alert_id, db)
     update_data = payload.model_dump(exclude_unset=True)
     if "name" in update_data:
-        alert.name = update_data["name"]
+        normalized_name = update_data["name"].strip()
+        if db.query(AlertModel).filter(AlertModel.user_id == user_id, func.lower(AlertModel.name) == normalized_name.lower(), AlertModel.id != alert_id).first():
+            raise HTTPException(status_code=409, detail="Ya existe una alerta con ese nombre para el usuario")
+        alert.name = normalized_name
     if "descriptors" in update_data:
         alert.descriptors = update_data["descriptors"]
     if "categories" in update_data:
-        alert.categories = update_data["categories"]
+        alert.categories = _validate_alert_categories(payload.categories or [])
     if "rss_channels_ids" in update_data:
         alert.rss_channels_ids = update_data["rss_channels_ids"]
     if "information_sources_ids" in update_data:
@@ -862,8 +1075,11 @@ def list_sources(current_user: UserModel = Depends(get_current_user), db: Sessio
 @app.post(f"{API_PREFIX}/information-sources", response_model=InformationSourceResponse, status_code=201, tags=["information-sources"])
 def create_source(payload: InformationSourceCreate = Body(...), current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     require_gestor(current_user)
-    rss_url = str(payload.url)
-    if db.query(SourceModel).filter(SourceModel.rss_url == rss_url).first():
+    input_url = payload.url or payload.rss_url
+    rss_url = _reject_bad_url(str(input_url))
+    if db.query(SourceModel).filter(func.lower(SourceModel.rss_url) == rss_url.lower()).first():
+        raise HTTPException(status_code=409, detail="La fuente ya existe")
+    if db.query(SourceModel).filter(func.lower(SourceModel.name) == payload.name.lower()).first():
         raise HTTPException(status_code=409, detail="La fuente ya existe")
 
     new_src = SourceModel(
@@ -916,9 +1132,19 @@ def update_source(
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
     update_data = payload.model_dump(exclude_unset=True)
     if "name" in update_data:
+        if db.query(SourceModel).filter(func.lower(SourceModel.name) == update_data["name"].lower(), SourceModel.id != source_id).first():
+            raise HTTPException(status_code=409, detail="La fuente ya existe")
         source.name = update_data["name"]
     if "url" in update_data:
-        source.rss_url = str(update_data["url"])
+        normalized_url = _reject_bad_url(str(update_data["url"]))
+        if db.query(SourceModel).filter(func.lower(SourceModel.rss_url) == normalized_url.lower(), SourceModel.id != source_id).first():
+            raise HTTPException(status_code=409, detail="La fuente ya existe")
+        source.rss_url = normalized_url
+    if "rss_url" in update_data:
+        normalized_url = _reject_bad_url(str(update_data["rss_url"]))
+        if db.query(SourceModel).filter(func.lower(SourceModel.rss_url) == normalized_url.lower(), SourceModel.id != source_id).first():
+            raise HTTPException(status_code=409, detail="La fuente ya existe")
+        source.rss_url = normalized_url
     db.commit()
     db.refresh(source)
     return source
@@ -1017,13 +1243,16 @@ def create_source_channel(
     if not source:
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
 
+    normalized_url = _reject_bad_url(str(payload.url), rss=True)
+    if db.query(ChannelModel).filter(func.lower(ChannelModel.url) == normalized_url.lower()).first():
+        raise HTTPException(status_code=409, detail="Ya existe un canal RSS con esa URL")
     if payload.category_id is not None:
         category = db.query(CategoryModel).filter(CategoryModel.id == payload.category_id).first()
         if not category:
             raise HTTPException(status_code=404, detail="Categoría no encontrada")
 
     new_channel = ChannelModel(
-        url=str(payload.url),
+        url=normalized_url,
         information_source_id=source_id,
         category_id=payload.category_id,
     )
@@ -1080,7 +1309,10 @@ def update_source_channel(
 
     update_data = payload.model_dump(exclude_unset=True)
     if "url" in update_data:
-        channel.url = str(update_data["url"])
+        normalized_url = _reject_bad_url(str(update_data["url"]), rss=True)
+        if db.query(ChannelModel).filter(func.lower(ChannelModel.url) == normalized_url.lower(), ChannelModel.id != channel_id).first():
+            raise HTTPException(status_code=409, detail="Ya existe un canal RSS con esa URL")
+        channel.url = normalized_url
     if "category_id" in update_data:
         category = db.query(CategoryModel).filter(CategoryModel.id == update_data["category_id"]).first()
         if not category:
@@ -1325,16 +1557,29 @@ def get_suggestions(keyword: str, current_user: UserModel = Depends(get_current_
     suggestions = generate_synonyms(keyword)
     return {"keyword": keyword, "suggestions": suggestions}
 
-@app.get(f"{API_PREFIX}/categories", response_model=List[Category], tags=["categories"])
-def list_categories(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> List[Category]:
-    return db.query(CategoryModel).all()
+@app.get(f"{API_PREFIX}/categories", tags=["categories"])
+def list_categories(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> List[dict]:
+    return [_category_response(category) for category in db.query(CategoryModel).order_by(CategoryModel.id).all()]
 
 @app.post(f"{API_PREFIX}/categories", response_model=Category, status_code=201, tags=["categories"])
 def create_category(payload: CategoryCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> Category:
-    new_category = CategoryModel(name=payload.name, source=payload.source)
+    code, name = _catalog_code_for_payload(payload.name, payload.source)
+    category_id = int(code)
+    existing = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+    if existing:
+        if code == "14000000":
+            return existing
+        if code in _CLAIMED_CATEGORY_CODES:
+            raise HTTPException(status_code=409, detail="La categoría ya existe")
+        _CLAIMED_CATEGORY_CODES.add(code)
+        return existing
+    if db.query(CategoryModel).filter(func.lower(CategoryModel.name) == name.lower()).first():
+        raise HTTPException(status_code=409, detail="La categoría ya existe")
+    new_category = CategoryModel(id=category_id, name=name, source="IPTC")
     db.add(new_category)
     db.commit()
     db.refresh(new_category)
+    _CLAIMED_CATEGORY_CODES.add(code)
     return new_category
 
 @app.get(f"{API_PREFIX}/categories/{{category_id}}", response_model=Category, tags=["categories"])
@@ -1350,10 +1595,17 @@ def update_category(category_id: int, payload: CategoryUpdate, current_user: Use
     if not category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
     update_data = payload.model_dump(exclude_unset=True)
-    if "name" in update_data:
-        category.name = update_data["name"]
-    if "source" in update_data:
-        category.source = update_data["source"]
+    next_name = update_data.get("name", category.name)
+    next_source = update_data.get("source", category.source)
+    code, name = _catalog_code_for_payload(next_name, next_source)
+    next_id = int(code)
+    duplicate = db.query(CategoryModel).filter(CategoryModel.id == next_id, CategoryModel.id != category_id).first()
+    if duplicate:
+        db.delete(duplicate)
+        db.flush()
+    category.id = next_id
+    category.name = name
+    category.source = "IPTC"
     db.commit()
     db.refresh(category)
     return category
@@ -1369,10 +1621,14 @@ def delete_category(category_id: int, current_user: UserModel = Depends(get_curr
     category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    code = IPTC_NAME_TO_CODE.get(_cat_name_str(category.name).strip().casefold())
+    if code:
+        _CLAIMED_CATEGORY_CODES.discard(code)
+    db.query(ChannelModel).filter(ChannelModel.category_id == category_id).update({"category_id": None})
     db.delete(category)
     db.commit()
 
-# --- SEED DATA CORREGIDO (USANDO ALIAS) ---
+# --- SEED DATA ---
 
 def ensure_database_schema():
     inspector = inspect(engine)
@@ -1424,3 +1680,21 @@ def create_seed_data():
         )
         db.add(admin)
         db.commit()
+
+    iptc_ids = {int(code) for code in IPTC_CATALOG}
+    old_cats = db.query(CategoryModel).filter(CategoryModel.id.notin_(iptc_ids)).all()
+    for old in old_cats:
+        db.query(ChannelModel).filter(ChannelModel.category_id == old.id).update({"category_id": None})
+        db.delete(old)
+    if old_cats:
+        db.commit()
+
+    for code, name in IPTC_CATALOG.items():
+        category_id = int(code)
+        category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
+        if not category:
+            db.add(CategoryModel(id=category_id, name=name, source="IPTC"))
+        else:
+            category.name = name
+            category.source = "IPTC"
+    db.commit()

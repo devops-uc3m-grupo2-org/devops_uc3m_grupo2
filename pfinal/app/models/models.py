@@ -54,7 +54,6 @@ class IPTCCategoryEnum(str, enum.Enum):
 class Category(Base):
     __tablename__ = "categories"
     id = Column(Integer, primary_key=True, index=True)
-    # 2. Aplicas el Enum a la columna
     name = Column(SQLEnum(IPTCCategoryEnum), nullable=False)
     source = Column(String, default="IPTC")
 
