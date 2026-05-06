@@ -33,23 +33,23 @@ class User(Base):
 
 
 class IPTCCategoryEnum(str, enum.Enum):
-    ARTS_AND_ENTERTAINMENT = "Arte, cultura y espectáculos"
-    CRIME_LAW_AND_JUSTICE = "Crimen, derecho y justicia"
-    DISASTERS_AND_ACCIDENTS = "Desastres y accidentes"
+    ARTS_AND_ENTERTAINMENT = "Artes, cultura, entretenimiento y medios"
+    CRIME_LAW_AND_JUSTICE = "Policía y justicia"
+    DISASTERS_AND_ACCIDENTS = "Catástrofes y accidentes"
     ECONOMY_BUSINESS_AND_FINANCE = "Economía, negocios y finanzas"
     EDUCATION = "Educación"
     ENVIRONMENT = "Medio ambiente"
     HEALTH = "Salud"
-    HUMAN_INTEREST = "Interés humano"
-    LABOUR = "Trabajo"
+    HUMAN_INTEREST = "Interés humano, animales, insólito"
+    LABOUR = "Mano de obra"
     LIFESTYLE_AND_LEISURE = "Estilo de vida y tiempo libre"
     POLITICS = "Política"
-    RELIGION_AND_BELIEF = "Religión y creencias"
+    RELIGION_AND_BELIEF = "Religión y culto"
     SCIENCE_AND_TECHNOLOGY = "Ciencia y tecnología"
     SOCIETY = "Sociedad"
     SPORT = "Deporte"
-    CONFLICTS_WAR_AND_PEACE = "Conflictos, guerra y paz"
-    WEATHER = "El tiempo"
+    CONFLICTS_WAR_AND_PEACE = "Conflicto, guerra y paz"
+    WEATHER = "Meteorología"
 
 class Category(Base):
     __tablename__ = "categories"
@@ -64,9 +64,12 @@ class InformationSource(Base):
     name = Column(String(120), nullable=False)
     medium = Column(String(120), nullable=True)
     rss_url = Column(String, nullable=False)
-    # Mantener compatibilidad con datos existentes en la DB
     iptc_category = Column(String(120), nullable=True)
     rss_channels = relationship("RSSChannel", back_populates="source", cascade="all, delete-orphan")
+
+    @property
+    def url(self):
+        return self.rss_url
 
 class RSSChannel(Base):
     __tablename__ = "rss_channels"

@@ -134,10 +134,10 @@ class User(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    first_name: str
-    last_name: str
-    organization: str
-    password: str
+    first_name: str = Field(..., min_length=1, max_length=120)
+    last_name: str = Field(..., min_length=1, max_length=120)
+    organization: str = Field(..., min_length=1, max_length=180)
+    password: str = Field(..., min_length=6, max_length=128)
     role_ids: List[int] = Field(default_factory=list)
 
     class Config:
@@ -152,7 +152,7 @@ class UserUpdate(BaseModel):
     role_ids: Optional[List[int]] = None
 
 class RoleCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
 
 class RoleUpdate(BaseModel):
     name: Optional[str] = None
@@ -251,10 +251,8 @@ class StatsUpdate(BaseModel):
     metrics: Optional[List[Metric]] = None
 
 class InformationSourceCreate(BaseModel):
-    name: str
-    medium: Optional[str] = None
-    rss_url: HttpUrl
-    iptc_category: Optional[IPTCCategoryEnum] = None
+    name: str = Field(..., min_length=1, max_length=120)
+    url: HttpUrl
 
     class Config:
         use_enum_values = True
@@ -262,16 +260,12 @@ class InformationSourceCreate(BaseModel):
 class InformationSourceResponse(BaseModel):
     id: int
     name: str
-    medium: Optional[str] = None
-    rss_url: str
-    iptc_category: Optional[str] = None
+    url: str
     class Config: from_attributes = True
 
 class InformationSourceUpdate(BaseModel):
     name: Optional[str] = None
-    medium: Optional[str] = None
-    rss_url: Optional[HttpUrl] = None
-    iptc_category: Optional[IPTCCategoryEnum] = None
+    url: Optional[HttpUrl] = None
     class Config: use_enum_values = True
 
 class CategoryBase(BaseModel):
@@ -343,7 +337,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 def require_gestor(current_user: UserModel) -> UserModel:
     role_names = {role.name for role in current_user.roles}
-    if "admin" not in role_names:
+    if "admin" not in role_names and "gestor" not in role_names:
         raise HTTPException(status_code=403, detail="Acceso denegado: se requiere rol gestor")
     return current_user
 
@@ -504,7 +498,15 @@ def create_user(payload: UserCreate, current_user: UserModel = Depends(get_curre
     if db.query(UserModel).filter(UserModel.email == payload.email).first():
         raise HTTPException(status_code=409, detail="El email ya está registrado")
 
-    roles = get_roles_for_ids(payload.role_ids, db)
+    role_ids = payload.role_ids
+    if len(role_ids) > 1:
+        raise HTTPException(status_code=422, detail="Solo se puede asignar un rol a un usuario")
+    if not role_ids:
+        gestor = db.query(RoleModel).filter(RoleModel.name == "gestor").first()
+        if gestor:
+            role_ids = [gestor.id]
+
+    roles = get_roles_for_ids(role_ids, db)
     new_user = UserModel(
         email=payload.email,
         first_name=payload.first_name,
@@ -570,9 +572,14 @@ def list_roles(current_user: UserModel = Depends(get_current_user), db: Session 
 
 @app.post(f"{API_PREFIX}/roles", response_model=Role, status_code=201, tags=["roles"])
 def create_role(payload: RoleCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    from sqlalchemy.exc import IntegrityError
     new_role = RoleModel(name=payload.name)
     db.add(new_role)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ya existe un rol con ese nombre")
     db.refresh(new_role)
     return new_role
 
@@ -584,11 +591,16 @@ def get_role(role_id: int, current_user: UserModel = Depends(get_current_user), 
 
 @app.put(f"{API_PREFIX}/roles/{{role_id}}", response_model=Role, tags=["roles"])
 def update_role(role_id: int, payload: RoleUpdate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    from sqlalchemy.exc import IntegrityError
     role = get_role_or_404(role_id, db)
     update_data = payload.model_dump(exclude_unset=True)
     if "name" in update_data:
         role.name = update_data["name"]
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ya existe un rol con ese nombre")
     db.refresh(role)
     return role
 
@@ -797,48 +809,31 @@ def delete_alert_notification(
 
 
 # Gestión de Fuentes (Endpoint requerido para la pestaña Fuentes)
-@app.get(f"{API_PREFIX}/information-sources", tags=["information-sources"])
+@app.get(f"{API_PREFIX}/information-sources", response_model=List[InformationSourceResponse], tags=["information-sources"])
 def list_sources(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     return db.query(SourceModel).all()
 
 
-@app.post(f"{API_PREFIX}/information-sources", status_code=201, tags=["information-sources"])
+@app.post(f"{API_PREFIX}/information-sources", response_model=InformationSourceResponse, status_code=201, tags=["information-sources"])
 def create_source(payload: InformationSourceCreate = Body(...), current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     require_gestor(current_user)
-    rss_url = str(payload.rss_url)
-    # Verificamos si ya existe por la URL RSS
+    rss_url = str(payload.url)
     if db.query(SourceModel).filter(SourceModel.rss_url == rss_url).first():
         raise HTTPException(status_code=409, detail="La fuente ya existe")
 
-    iptc_category = payload.iptc_category
-    if hasattr(iptc_category, 'value'):
-        iptc_category = iptc_category.value
-
     new_src = SourceModel(
         name=payload.name,
-        medium=payload.medium,
         rss_url=rss_url,
-        iptc_category=iptc_category
     )
     db.add(new_src)
     db.commit()
     db.refresh(new_src)
 
-    category_id = None
-    if payload.iptc_category:
-        category = db.query(CategoryModel).filter(CategoryModel.name == payload.iptc_category).first()
-        if not category:
-            category = CategoryModel(name=payload.iptc_category, source="IPTC")
-            db.add(category)
-            db.commit()
-            db.refresh(category)
-        category_id = category.id
-
     if not db.query(ChannelModel).filter(ChannelModel.url == rss_url).first():
         new_channel = ChannelModel(
             url=rss_url,
             information_source_id=new_src.id,
-            category_id=category_id,
+            category_id=None,
         )
         db.add(new_channel)
         db.commit()
@@ -877,13 +872,8 @@ def update_source(
     update_data = payload.model_dump(exclude_unset=True)
     if "name" in update_data:
         source.name = update_data["name"]
-    if "medium" in update_data:
-        source.medium = update_data["medium"]
-    if "rss_url" in update_data:
-        source.rss_url = str(update_data["rss_url"])
-    if "iptc_category" in update_data:
-        val = update_data["iptc_category"]
-        source.iptc_category = val.value if hasattr(val, "value") else val
+    if "url" in update_data:
+        source.rss_url = str(update_data["url"])
     db.commit()
     db.refresh(source)
     return source
@@ -1360,17 +1350,20 @@ def startup_event():
 
 def create_seed_data():
     db = next(get_db())
-    # Corregido: Usar RoleModel y UserModel en lugar de Role y User
     if db.query(RoleModel).count() == 0:
         admin_role = RoleModel(name="admin")
         user_role = RoleModel(name="user")
-        db.add_all([admin_role, user_role])
+        gestor_role = RoleModel(name="gestor")
+        db.add_all([admin_role, user_role, gestor_role])
         db.commit()
     else:
         admin_role = db.query(RoleModel).filter(RoleModel.name == "admin").first()
-        user_role = db.query(RoleModel).filter(RoleModel.name == "user").first()
+        if not db.query(RoleModel).filter(RoleModel.name == "gestor").first():
+            db.add(RoleModel(name="gestor"))
+            db.commit()
 
     if db.query(UserModel).count() == 0:
+        admin_role = db.query(RoleModel).filter(RoleModel.name == "admin").first()
         admin = UserModel(
             email="admin@newsradar.com",
             first_name="Admin",
