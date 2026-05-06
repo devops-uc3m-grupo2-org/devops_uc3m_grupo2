@@ -1,33 +1,292 @@
 # Documentación Tests Automáticos
 
-## Formato de los ficheros de los tests
-Importante, todos los ficheros de los tests deben seguir este formato `*_test.py` o `test_*.py` para que sea identificado por pytest y se ejecuten con el Continuous Integration (CI).
+---
 
-En una primera instancia, y se puede observar en versión anterior en Github, se utilizó para los tests **SQLite**, al permitir un debugging más sencillo y ejecucción de forma local. Para ejecutar los tests tienes que cambiar en .env a "DATABASE_URL=sqlite:///./newsradar.db" y ejecutar en la terminal "python -m pytest pfinal/app/tests"
+#  Formato de los ficheros de tests
 
-## Ubicación de los tests
-Todos los tests se encuentran divididos en ficheros en `app/tests`.
+Todos los ficheros de tests deben seguir el formato:
 
-## Fichero de configuración de los tests "/Conftest"
-Este archivo define fixtures de pytest que preparan el entorno de pruebas con FastAPI. Su objetivo es facilitar tests reproducibles, aislados y consistentes. Es importante comentar que las fixtures se crean cuando un test los necesita (incluido si es un parámetro) y se destruyen al terminar su proceso interno.
+```
+test_*.py
+```
+o
+```
+*_test.py
+```
 
-### Funciones principales
-Se explicará el funcionamiento general, la explicación detallada de qué hace cada parte de la función, se puede ver a través de los comentarios de la misma.
+Esto permite que sean detectados automáticamente por **pytest** y ejecutados dentro del **CI (Continuous Integration)**.
 
-### def setup_database / @pytest.fixture(scope="session", autouse=True)
-Prepara la base de datos antes de ejecutar cualquier test y la limpia al final. Con los parámetros plantemoas que se ejecuta una sola vez en los tests, y que lo hace automáticamente (sin tener que llamarla).
+✔ Esto garantiza:
+- Ejecución automática de nuevos tests
+- Sin configuración adicional
+- Integración directa con CI/CD
 
-### def session()
-Proporciona una sesión de base de datos aislada para tests que interactúan directamente con **PostgreSQL**. Cada test recibe una sesión de base de datos independiente. Es importante resaltar que hace rollback al final, para asegurarse que cada test este aislado.
+---
 
-### def client()
-Proporciona un cliente HTTP para probar la API como si fuera un usuario externo. Se encarga también de cambiar las dependencias para que los tests utilicen una base de datos local en vez a la real (que no se guarden las alertas y soruces que creemos). Permite testear los endpoints sin tocar la base de datos de producción.
+# Entorno de ejecución de tests
 
-### def create_news()
-Este es un helper para crear una noticia al instante. En el proyecto las noticias se crean con el fetcher, pero los tests no pueden depender de datos externos (¿hay noticias nuevas?¿En tal caso, alguna coincide con la alerta?). Por este motivo se creó esta función que permite simular una noticia en la base de datos, y en los test utilizamos esta noticia para probar endpoints como el MatchAlert.
+El proyecto utiliza principalmente **PostgreSQL en Docker** para ejecutar los tests, replicando el entorno real de producción.
 
-### def create_user()
-Este es un helper que permite crear un usuario, para que funciones como el MatchAlert encuentre un user_id real y no de error. Algunas tablas tienen como foreign key otras tablas, si no encuentrar la foreign key puede lanzar un error, así que "creamos una entrada" en esta tabla desde antes.
+Anteriormente se usaba:
+- SQLite en memoria
+- o archivo local (`sqlite:///./newsradar.db`)
+
+Pero se migró a PostgreSQL para asegurar coherencia con producción.
+
+---
+
+##  Ejecutar tests localmente
+
+### Configurar base de datos
+
+En `.env` o configuración de pytest:
+
+```env id="test_env"
+DATABASE_URL=postgresql://postgres:postgres123@db:5432/newsradar
+```
+
+---
+
+### Ejecutar tests
+
+```bash id="test_run1"
+python -m pytest app/tests
+```
+
+o directamente:
+
+```bash id="test_run2"
+pytest
+```
+
+---
+
+# Ubicación de los tests
+
+Todos los tests están organizados en:
+
+```
+app/tests/
+```
+
+---
+
+## Estructura por dominio
+
+- auth  
+- users  
+- roles  
+- alerts  
+- notifications  
+- news  
+- categories  
+- stats  
+- ai (suggestions)  
+- integration (monitoring pipeline)  
+- unit tests (lógica interna)  
+
+---
+
+# Fichero de configuración: `conftest.py`
+
+Este archivo define las **fixtures de pytest** que preparan el entorno de tests con FastAPI.
+
+# Arquitectura del sistema de testing
+
+El sistema de tests se basa en **3 capas principales** que garantizan consistencia, aislamiento y reproducibilidad en todo el backend de **NewsRadar**.
+
+---
+
+# 1. Base de datos de test (PostgreSQL)
+
+La base de datos de tests se gestiona automáticamente.
+
+### Ciclo de vida
+
+- Se crea automáticamente con `setup_database`
+- Se destruye al finalizar el test suite
+- Se ejecuta una migración inicial (`create_all`)
+
+---
+
+### Seed inicial
+
+Durante la inicialización se insertan datos base:
+
+- roles:
+  - `admin`
+  - `user`
+- usuario admin del sistema
+
+---
+
+### Objetivo
+
+Garantizar un estado inicial **siempre consistente y reproducible**.
+
+---
+
+# 🔁 Aislamiento por transacciones
+
+Cada test se ejecuta dentro de una transacción aislada.
+
+---
+
+### Funcionamiento
+
+- Se usa una conexión real a PostgreSQL
+- Cada test abre una transacción
+- Al finalizar el test → se ejecuta `rollback`
+
+---
+
+### Resultado
+
+✔ No hay datos residuales  
+✔ No hay contaminación entre tests  
+✔ Cada test es independiente  
+
+---
+
+# 3. Cliente FastAPI con override de dependencias
+
+El fixture `client()` es el núcleo de los tests de API.
+
+---
+
+### Funcionalidad
+
+El cliente:
+
+- Sobrescribe `get_db`
+- Usa la sesión de test
+- Reemplaza dependencias reales por mocks controlados
+
+---
+
+### Objetivo
+
+Permitir ejecutar requests HTTP reales como si fuera un usuario externo.
+
+---
+
+### Beneficio clave
+
+Permite testear:
+
+- autenticación
+- permisos
+- roles
+- endpoints reales
+
+---
+
+# Fixtures principales
+
+---
+
+##  setup_database (scope=session)
+
+Se ejecuta una sola vez al inicio del test suite.
+
+---
+
+### Responsabilidades
+
+- Eliminar tablas anteriores
+- Crear esquema de base de datos
+- Insertar datos base:
+  - roles
+  - usuario admin
+
+---
+
+### Objetivo
+
+Asegurar un entorno inicial limpio y consistente.
+
+---
+
+## session()
+
+Proporciona una sesión de base de datos aislada.
+
+---
+
+### Características
+
+- Conexión manual a PostgreSQL
+- Cada test tiene su propia transacción
+- Se aplica rollback al finalizar
+- Evita contaminación entre tests
+
+---
+
+## client()
+
+Proporciona un cliente HTTP de FastAPI.
+
+---
+
+### Permite:
+
+- Testear endpoints reales
+- Simular requests autenticados
+- Usar dependencias overrideadas
+
+---
+
+ Es la base de todos los tests de API.
+
+---
+
+## create_news()
+
+Helper para crear noticias en base de datos.
+
+---
+
+### Motivo
+
+Las noticias reales dependen de scrapers externos, por lo que:
+
+- no son deterministas
+- no son fiables en tests
+
+---
+
+### Uso en tests
+
+Permite validar:
+
+- alert matching
+- estadísticas
+- pipelines de procesamiento
+
+---
+
+## create_user()
+
+Helper para crear usuarios rápidamente.
+
+---
+
+### Motivo
+
+Muchos endpoints dependen de `user_id`, por lo que:
+
+- se evita el flujo completo de registro
+- se garantizan relaciones válidas
+
+---
+
+### Uso en tests
+
+- tests de integración
+- tests de permisos
+- tests de alertas y notificaciones
+
+---
 
 ## Tests
 
@@ -53,18 +312,145 @@ Este es un helper que permite crear un usuario, para que funciones como el Match
 |  test_fetch_source_debug(client) |Crea un source y verifica si hace un <br>fetch correctamente|
 
 ### test_news.py
-|               Test            |           Descripción                     |      
-| ------------------------------| ----------------------------------------- |
-|  test_list_news(client)      | Verifica si crea lista con las alertas| 
+
+| Test | Descripción |
+|------|------------|
+| test_list_news(client) | Verifica que el endpoint devuelve una lista de noticias correctamente |
+| test_fetch_news_requires_auth(client) | Comprueba que el endpoint de fetch de noticias requiere autenticación (401 si no hay token) |
+| test_fetch_news_authenticated(client) | Verifica que un usuario autenticado puede ejecutar el fetch de noticias y que la respuesta contiene el número de items (`new_items`) |
+
 
 ### test_alerts.py
-| Test                          | Descripción                               |
-| ------------------------------| ----------------------------------------- |
-| test_create_alert(client) | Verifica que se puede crear una alerta correctamente con keyword, categoría IPTC y sinónimos, y que los datos se guardan bien |
-| test_create_and_list_alerts(client) | Crea una alerta y comprueba que aparece en el listado de alertas |
-| test_update_alert(client) | Verifica que se puede actualizar parcialmente una alerta existente (ej: nombre o estado) |
-| test_update_alert_persists(client) | Comprueba que los cambios en una alerta se mantienen al consultar el listado posteriormente |
-| test_create_and_delete_alert(client) | Crea una alerta, la elimina y verifica que ya no aparece en el listado |
-| test_delete_alert_not_found(client) | Verifica que eliminar una alerta inexistente devuelve un error 404 |
-| test_run_matching_creates_relations(client, create_news) | Inserta datos de prueba (news + alert), ejecuta el matching y comprueba que se crean relaciones entre alertas y noticias |
-| test_alert_match_not_found(client) | Verifica que consultar el matching de una alerta<br> inexistente devuelve un error 404 |
+| Test | Descripción |
+|------|------------|
+| test_alert_crud_for_user(client) | Test completo CRUD de alertas: crea, lista, obtiene detalle, actualiza y elimina una alerta de usuario |
+| test_notification_crud_for_alert(client) | Test CRUD completo de notificaciones asociadas a una alerta (crear, listar, obtener, actualizar y eliminar) |
+
+
+## test_auth_extended.py 
+
+| Test | Descripción |
+|------|------------|
+| test_verify_invalid_token(client) | Verifica que un token inválido en verify devuelve error 400 |
+| test_verify_wrong_purpose(client) | Comprueba que un token con propósito incorrecto falla en verify |
+| test_forgot_password_unknown_email(client) | Verifica que forgot-password con email inexistente responde correctamente (sin exponer información sensible) |
+| test_forgot_password_known_email(client) | Verifica que forgot-password funciona con email válido |
+| test_reset_password_invalid_token(client) | Comprueba que reset-password falla con token inválido |
+| test_reset_password_short_password(client) | Verifica validación de contraseña demasiado corta en reset-password |
+| test_register_duplicate_email(client) | Comprueba que no se permite registrar usuarios con email duplicado (409 Conflict) |
+
+
+## test_IA.py ¡
+
+| Test | Descripción |
+|------|------------|
+| test_suggestions_known_keyword(client) | Verifica que para una keyword conocida se generan sugerencias relevantes |
+| test_suggestions_unknown_keyword(client) | Comprueba que el sistema genera sugerencias incluso para keywords desconocidas |
+| test_suggestions_requires_auth(client) | Verifica que el endpoint requiere autenticación (401 sin token) |
+
+
+## test_roles_extended.py
+
+| Test | Descripción |
+|------|------------|
+| test_list_roles_requires_auth(client) | Verifica que el listado de roles requiere autenticación |
+| test_list_roles(client) | Comprueba que se pueden listar roles existentes (admin/user seed incluidos) |
+| test_create_role(client) | Verifica creación de un rol nuevo correctamente |
+| test_get_role_by_id(client) | Comprueba obtención de un rol por ID |
+| test_get_role_not_found(client) | Verifica error 404 al consultar un rol inexistente |
+| test_update_role(client) | Verifica actualización de nombre de rol |
+| test_update_role_not_found(client) | Verifica error 404 al actualizar un rol inexistente |
+| test_delete_role_unassigned(client) | Comprueba eliminación de un rol no asignado a usuarios |
+| test_delete_role_not_found(client) | Verifica error 404 al eliminar un rol inexistente |
+| test_delete_assigned_role_returns_409(client) | Verifica que no se puede eliminar un rol asignado a usuarios (409 Conflict) |
+
+## test_stats.py (Dashboard básico)
+
+| Test | Descripción |
+|------|------------|
+| test_stats_returns_metrics(client) | Verifica que el endpoint `/stats` devuelve métricas del dashboard (news, sources, alerts) |
+| test_stats_requires_auth(client) | Comprueba que el endpoint de estadísticas requiere autenticación (401 sin token) |
+| test_stats_reflect_new_source(client) | Verifica que al crear una nueva fuente, la métrica `total_sources` se incrementa correctamente |
+
+
+## test_stats_extended.py (Análisis por categoría)
+
+| Test | Descripción |
+|------|------------|
+| test_stats_by_category_requires_auth(client) | Verifica que el endpoint de estadísticas por categoría requiere autenticación |
+| test_stats_by_category_empty(client) | Comprueba que el endpoint responde correctamente cuando no hay datos (lista vacía o sin categorías) |
+| test_wordcloud_requires_auth(client) | Verifica que el endpoint de wordcloud requiere autenticación |
+| test_wordcloud_empty_no_alerts(client) | Comprueba que el wordcloud devuelve `{}` cuando no existen alertas |
+| test_stats_by_category_with_alert(client) | Verifica que al crear una alerta, el endpoint de stats por categoría devuelve estructura válida con conteos |
+| test_alert_limit_enforced(client) | Comprueba que existe un límite de creación de alertas por usuario (máximo 20) |
+| test_alerts_check_endpoint(client) | Verifica que el endpoint `/alerts/check` responde correctamente |
+
+## test_categories.py
+
+| Test | Descripción |
+|------|------------|
+| test_list_categories_requires_auth(client) | Verifica que el endpoint de listado de categorías requiere autenticación (401 si no hay token) |
+| test_create_category(client) | Comprueba que se puede crear una categoría correctamente con nombre y fuente (IPTC) |
+| test_list_categories(client) | Verifica que las categorías creadas aparecen correctamente en el listado |
+| test_get_category_by_id(client) | Comprueba que se puede obtener una categoría por su ID |
+| test_get_category_not_found(client) | Verifica que consultar una categoría inexistente devuelve 404 |
+| test_update_category(client) | Comprueba que se puede actualizar el nombre de una categoría correctamente |
+| test_update_category_not_found(client) | Verifica error 404 al intentar actualizar una categoría inexistente |
+| test_delete_category(client) | Verifica que se puede eliminar una categoría y que deja de existir |
+| test_delete_category_not_found(client) | Comprueba que eliminar una categoría inexistente devuelve 404 |
+
+### test_users_extended.py
+| Test | Descripción |
+|------|------------|
+| test_get_user_by_id(client) | Verifica que se puede obtener un usuario por ID |
+| test_get_user_not_found(client) | Comprueba que obtener un usuario inexistente devuelve 404 |
+| test_update_user(client) | Verifica que se puede actualizar un usuario correctamente |
+| test_update_user_duplicate_email(client) | Comprueba que no se puede actualizar un usuario con email duplicado (409) |
+| test_create_user_direct_endpoint(client) | Verifica creación de usuario vía endpoint directo |
+| test_create_user_duplicate_email(client) | Comprueba que no se pueden crear usuarios con email duplicado |
+| test_delete_user(client) | Verifica que se puede eliminar un usuario correctamente |
+| test_list_notifications(client) | Verifica que se pueden listar notificaciones de una alerta |
+| test_create_notification(client) | Comprueba que se puede crear una notificación correctamente |
+| test_get_notification_by_id(client) | Verifica que se puede obtener una notificación por ID |
+| test_get_notification_not_found(client) | Comprueba que una notificación inexistente devuelve 404 |
+| test_update_notification(client) | Verifica que se puede actualizar una notificación |
+| test_delete_notification(client) | Comprueba que se puede eliminar una notificación correctamente |
+
+
+---
+
+## test_monitoring.py (lógica + pipeline de alertas)
+
+### Tests unitarios de matching (alertLogic)
+
+| Test | Descripción |
+|------|------------|
+| test_match_alert_descriptor_in_title() | Verifica que el sistema detecta un descriptor de alerta dentro del título de la noticia |
+| test_match_alert_descriptor_in_summary() | Verifica que el sistema detecta un descriptor dentro del resumen de la noticia |
+| test_match_alert_no_match() | Comprueba que no hay match cuando la noticia no contiene los descriptores |
+| test_match_alert_case_insensitive() | Verifica que el matching no es sensible a mayúsculas/minúsculas |
+| test_match_alert_empty_descriptors() | Comprueba que una alerta sin descriptores no genera matches |
+
+---
+
+### Test de integración (pipeline completo alert → news → AlertNews)
+
+| Test | Descripción |
+|------|------------|
+| test_monitoring_pipeline(client, session) | Test de integración completo que verifica el flujo: registro de usuario → creación de alerta → inserción de news → ejecución del scheduler (`process_alerts_for_items`) → creación de relación AlertNews → validación de endpoints de notificaciones |
+
+#### Flujo validado en este test:
+
+1. Registro y autenticación de usuario
+2. Creación de alerta con descriptor
+3. Inserción manual en base de datos de:
+   - InformationSource
+   - Category
+   - RSSChannel
+   - NewsItem
+4. Ejecución del motor de matching del scheduler
+5. Verificación de relación `AlertNews`
+6. Validación de endpoints de notificaciones
+7. Creación de notificación simulada
+
+---
