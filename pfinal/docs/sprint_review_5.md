@@ -160,9 +160,7 @@ Devuelve todas las notificaciones asociadas a una alerta específica de un usuar
 ## Obtener notificación específica
 
 ### Endpoint:
-```
-GET /api/v1/users/{user_id}/alerts/{alert_id}/notifications/{notification_id}
-```
+`GET /api/v1/users/{user_id}/alerts/{alert_id}/notifications/{notification_id}`
 
 ### Descripción:
 Devuelve una notificación concreta dentro de una alerta, para esto necesitas el id de la notificación, alerta y usuario.
@@ -195,9 +193,7 @@ Devuelve una notificación concreta dentro de una alerta, para esto necesitas el
 ## Actualizar notificación
 
 ### Endpoint:
-```
-PUT /api/v1/users/{user_id}/alerts/{alert_id}/notifications/{notification_id}
-```
+`PUT /api/v1/users/{user_id}/alerts/{alert_id}/notifications/{notification_id}`
 
 ### Descripción:
 Permite modificar los campos de una notificación existente.
@@ -244,9 +240,7 @@ Permite modificar los campos de una notificación existente.
 ## Eliminar notificación
 
 ### Endpoint:
-```
-DELETE /api/v1/users/{user_id}/alerts/{alert_id}/notifications/{notification_id}
-```
+`DELETE /api/v1/users/{user_id}/alerts/{alert_id}/notifications/{notification_id}`
 
 ### Descripción:
 Elimina una notificación específica de una alerta.
@@ -540,13 +534,13 @@ Código: **403 Forbidden**
 
 ---
 
-## 📌 Eliminar canal RSS
+## Eliminar canal RSS
 
 ### Endpoint:
 `DELETE /api/v1/information-sources/{source_id}/rss-channels/{channel_id}`
 
 
-### 🎯 Objetivo:
+### Objetivo:
 Eliminar un canal RSS asociado a una fuente.
 
 ---

@@ -161,7 +161,7 @@ Antes de probar cualquier endpoint, es necesario autenticarse.
 ```
 
 
-Copia el access_token. En Swagger: botón Authorize → pega el token.
+Copia el access_token, y en el botón "Authorize" (arriba a la derecha), pega el token.
 
 ### Listar Roles Iniciales
 #### Endpoint
