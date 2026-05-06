@@ -1258,9 +1258,8 @@ def update_stats(stats_id: int, payload: StatsUpdate, current_user: UserModel = 
     stats = db.query(StatsModel).filter(StatsModel.id == stats_id).first()
     if not stats:
         raise HTTPException(status_code=404, detail="Stats no encontrados")
-    update_data = payload.model_dump(exclude_unset=True)
-    if "metrics" in update_data and update_data["metrics"] is not None:
-        stats.metrics = [m.model_dump() for m in update_data["metrics"]]
+    if payload.metrics is not None:
+        stats.metrics = [m.model_dump() for m in payload.metrics]
     db.commit()
     db.refresh(stats)
     return stats
