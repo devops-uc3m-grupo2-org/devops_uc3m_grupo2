@@ -2,6 +2,8 @@
 
 Este sprint introduce el módulo de **analítica y métricas** en **NewsRadar**. Su objetivo es proporcionar información agregada sobre noticias, alertas y categorías, además de generar visualizaciones tipo **wordcloud** basadas en el contenido de las noticias relacionadas con las alertas del usuario.
 
+El sistema matching fue verficado previamente en el sprint 3.
+
 ---
 
 # Objetivos del Sprint
@@ -243,3 +245,238 @@ Para validar correctamente el sprint:
 - Si no hay alertas → respuestas vacías o cero  
 - Las noticias se filtran por `AlertNews`  
 - El análisis de texto depende del contenido real de noticias  
+
+
+# Sprint 6 – Gestión de Categorías (CRUD)
+
+Este módulo del backend de **NewsRadar** implementa la gestión completa de **categorías temáticas**, utilizadas para clasificar fuentes RSS, noticias y estadísticas del sistema.
+
+Las categorías siguen un modelo simple pero central en el sistema de agregación de noticias.
+
+Este funcionamiento debió haber sido implementado antes, pero por problemas técnicos se realiza la revisión en este sprint.
+
+---
+
+# Objetivos
+
+- Listar todas las categorías del sistema.
+- Crear nuevas categorías.
+- Consultar una categoría por ID.
+- Actualizar categorías existentes.
+- Eliminar categorías.
+- Validar existencia antes de operar.
+
+---
+
+# Endpoints disponibles
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/v1/categories` | Listar todas las categorías |
+| POST | `/api/v1/categories` | Crear nueva categoría |
+| GET | `/api/v1/categories/{id}` | Obtener categoría por ID |
+| PUT | `/api/v1/categories/{id}` | Actualizar categoría |
+| DELETE | `/api/v1/categories/{id}` | Eliminar categoría |
+
+---
+
+# Flujo de pruebas
+
+---
+
+##  Listar categorías
+
+### Endpoint:
+`GET /api/v1/categories`
+
+---
+
+### Objetivo:
+Obtener todas las categorías registradas en el sistema.
+
+---
+
+### Caso de éxito
+
+**Respuesta esperada (200 OK):**
+```json id="cat1_ok"
+[
+  {
+    "name": "Política",
+    "source": "IPTC",
+    "id": 1
+  },
+  {
+    "name": "Economía, negocios y finanzas",
+    "source": "IPTC",
+    "id": 2
+  },
+  {
+    "name": "Ciencia y tecnología",
+    "source": "IPTC",
+    "id": 3
+  },
+  {
+    "name": "Arte, cultura y espectáculos",
+    "source": "IPTC",
+    "id": 4
+  },
+  ...
+]
+```
+
+---
+
+##  Crear categoría
+
+### Endpoint:
+`POST /api/v1/categories`
+
+---
+
+### Objetivo
+Crear una nueva categoría en el sistema.
+
+---
+
+### Request Body
+
+```json id="cat2_body"
+{
+  "name": "Deporte",
+  "source": "IPTC_prueba"
+}
+```
+
+---
+
+### Caso de éxito
+
+```json
+{
+  "name": "Deporte",
+  "source": "IPTC_prueba",
+  "id": 18
+}
+```
+
+Código: **201 Created**
+
+---
+
+###  Notas
+
+- `source` identifica el origen de clasificación (ej: IPTC)
+- No se valida duplicación en este endpoint
+- La validación de tipos se asegura que el nombre debe pertenecer a una de las categorías principales de clasificación IPTC. Si no lo es, se recibirá el "Error 422: Unporcessable Entity".
+
+---
+
+## Obtener categoría por ID
+
+### Endpoint:
+`GET /api/v1/categories/{category_id}`
+
+---
+
+Debes poner el id de la categoría, puedes poner el id generado por la creación anterior.
+
+###  Caso de éxito
+
+```json
+{
+  "name": "Deporte",
+  "source": "IPTC_prueba",
+  "id": 18
+}
+```
+
+---
+
+### Caso de error
+
+```json
+{
+  "detail": "Categoría no encontrada"
+}
+```
+
+Código: **404**
+
+---
+
+## Actualizar categoría
+
+### Endpoint:
+`PUT /api/v1/categories/{category_id}`
+
+---
+
+### Objetivo:
+Modificar nombre o fuente de una categoría existente.
+
+---
+### Request:
+
+Se debe incluir el id de la categoría a modificar, puede ser el de la recientemente creada.
+```json
+{
+  "name": "Deporte",
+  "source": "IPTC_prueba_mod"
+}
+```
+
+---
+
+### Caso de éxito
+{
+  "name": "Deporte",
+  "source": "IPTC_prueba_mod",
+  "id": 18
+}
+---
+
+### Caso de error
+
+```json id="cat4_err"
+{
+  "detail": "Categoría no encontrada"
+}
+```
+
+Código: **404**
+
+---
+
+## Eliminar categoría
+
+### Endpoint:
+`DELETE /api/v1/categories/{category_id}`
+
+Se debe incluir el id de la categoría a modificar, puede ser el de la recientemente creada.
+
+---
+
+### Caso de éxito
+
+ access-control-allow-credentials: true 
+ access-control-allow-origin: * 
+ date: Wed,06 May 2026 13:05:33 GMT 
+ server: uvicorn 
+
+- Código: **204 No Content**
+- Sin body
+
+---
+
+### Caso de error
+
+```json id="cat5_err"
+{
+  "detail": "Categoría no encontrada"
+}
+```
+
+Código: **404**
+
+Verificar si fue borrado con el endpoint de "list categories".
