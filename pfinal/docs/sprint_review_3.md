@@ -92,10 +92,10 @@ Asimismo tenemos una función start_scheduler que inicia este proceso y con ayud
 
 | Método | Ruta                              | Descripción                      |
 | ------ | --------------------------------- | -------------------------------- |
-| GET    | /api/v1/alerts                    |        Listar alertas            |
-| POST   | /api/v1/alerts                    |        Crear alerta              |
-| PUT    | /api/v1/alerts/{alert_id}         |        Actualizar alerta         |
-| DELETE | /api/v1/alerts/{alert_id}         |        Borrar Alerta             |
+| GET    | GET /api/v1/users/{user_id}/alerts                   |        Listar alertas            |
+| POST   | POST /api/v1/users/{user_id}/alerts                    |        Crear alerta              |
+| PUT    | PUT /api/v1/users/{user_id}/alerts/{alert_id}         |        Actualizar alerta         |
+| DELETE | DELETE /api/v1/users/{user_id}/alerts/{alert_id}         |        Borrar Alerta             |
 | POST   | /api/v1/run-matching              | Prueba el almacenamiento de todas las noticias por alerta  |
 | GET    | /api/v1/matchAlert/{alert_id}     | Permite ver las noticias guardada en una alerta específica |
 | POST   | /api/v1/run-scheduler             | Identifica si el scheduler lanza algún error |
@@ -104,51 +104,57 @@ Asimismo tenemos una función start_scheduler que inicia este proceso y con ayud
 ### Flujo de Prueba
 
 ### Crear Alertas
-Endpoint: `POST /api/v1/alerts`
+Endpoint: `POST /api/v1/users/{user_id}/alerts`
+
+Debe haber sido previamente creado un usuario de forma correcta, si incluye el id de este como header.
 
 **Ejemplo de body:**
 ```json
 {
-  "name": "Artes",
-  "keyword": "Monet",
-  "iptc_category": "Artes",
-  "user_id" : "Admin123" 
+  "name": "Guerra Alerta",
+  "descriptors": ["guerra", "conflicto"],
+  "categories": [
+    {
+      "code": "POL",
+      "label": "Política"
+    }
+  ],
+  "rss_channels_ids": [],
+  "information_sources_ids": [],
+  "cron_expression": "*/5 * * * *",
+  "is_active": true
 }
 ```
 
 **Respuesta esperada:**
 ```json
 {
-  "id": 1,
-  "name": "Artes",
-  "keyword": "Monet",
-  "synonyms": []
+  "id": 0,
+  "name": "string",
+  "descriptors": [
+    "string"
+  ],
+  "categories": [
+    {
+      "code": "string",
+      "label": "string"
+    }
+  ],
+  "rss_channels_ids": [
+    "string"
+  ],
+  "information_sources_ids": [
+    "string"
+  ],
+  "cron_expression": "string",
+  "user_id": 0,
+  "is_active": true
 }
 ```
-Se puede probar con diferentes valores.
 
-**Ejemplo de body:**
-```json
-{
-  "name": "Guerra Alerta",
-  "keyword": "guerra",
-  "iptc_category": "Politica",
-  "user_id" : "Admin123" 
-}
-```
-
-**Respuesta esperada:**
-```json
-{
-  "id": 2,
-  "name": "Guerra Alerta",
-  "keyword": "guerra",
-  "synonyms": []
-}
-```
 
 ### Mostrar Alertas
-Endpoint: `GET /api/v1/alerts`
+Endpoint: `GET /api/v1/users/{user_id}/alerts/{alert_id}`
 
 Se espera que se muestren todas las alertas que has creado, en este caso:
 
@@ -157,24 +163,27 @@ Se espera que se muestren todas las alertas que has creado, en este caso:
 [
   {
     "id": 1,
-    "name": "Artes",
-    "keyword": "Monet",
-    "synonyms": [],
-    "iptc_category": "Artes",
-    "is_active": true
-  },
-  {
-    "id": 2,
     "name": "Guerra Alerta",
-    "keyword": "guerra",
-    "synonyms": [],
-    "iptc_category": "Politica",
+    "descriptors": [
+      "guerra",
+      "conflicto"
+    ],
+    "categories": [
+      {
+        "code": "POL",
+        "label": "Política"
+      }
+    ],
+    "rss_channels_ids": [],
+    "information_sources_ids": [],
+    "cron_expression": "*/5 * * * *",
+    "user_id": 2,
     "is_active": true
   }
 ]
 ```
 ### Actualizar Alerta
-Endpoint: `PUT /api/v1/alerts/{alert_id}`
+Endpoint: `PUT /api/v1/users/{user_id}/alerts/{alert_id}`
 
 Para este endpoint debes insertar el id de una alerta y el valor que esperas modificar.
 
@@ -183,31 +192,49 @@ Para este endpoint debes insertar el id de una alerta y el valor que esperas mod
 **Ejemplo de body:**
 ```json
 {
-  "keyword": "arma",
+  "descriptors": ["guerra", "armamento"],
+  "is_active": true
 }
 ```
 
 **Respuesta esperada:**
 ```json
 {
-  "Alert 1": "updated"
+  "id": 1,
+  "name": "Guerra Alerta",
+  "descriptors": [
+    "guerra",
+    "armamento"
+  ],
+  "categories": [
+    {
+      "code": "POL",
+      "label": "Política"
+    }
+  ],
+  "rss_channels_ids": [],
+  "information_sources_ids": [],
+  "cron_expression": "*/5 * * * *",
+  "user_id": 2,
+  "is_active": true
 }
 ```
 
 Para comprobar que la actualización se realizó correctamente, basta con volver a ejecutar el endpoint de "List Alerts" y verificar que el cambio se realizó.
 
 ### Borrar Alerta
-Endpoint: `Delete /api/v1/alerts/{alert_id}`
+Endpoint: `DELETE /api/v1/users/{user_id}/alerts/{alert_id}`
 
-Para este endpoint debes insertar el id de una alerta que deseas eliminar.
+Para este endpoint debes insertar el id del usuario y el id de una alerta que deseas eliminar.
 
 ```alert_id : 1```
 
 **Respuesta esperada:**
-```json
-{
-  "Alert 1": "deleted"
-}
+```http
+ access-control-allow-credentials: true 
+ access-control-allow-origin: * 
+ date: Wed,06 May 2026 11:51:26 GMT 
+ server: uvicorn
 ```
 
 En este caso, puedes comprobar si se ha borrado correctamente con List Alerts.
