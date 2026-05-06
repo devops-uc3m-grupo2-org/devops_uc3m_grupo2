@@ -35,7 +35,7 @@
 | 31 | Documentación Markdown | `README.md`, `docs/` | README principal + docs/ |
 | 32 | ADRs en /docs/adr | `docs/adr/` | 13 ADRs documentados |
 | 33 | Diagrama arquitectura | `docs/` | `DiagramaRelacionEntidad.drawio.png` |
-| 34 | Pruebas automatizadas | `app/tests/` | 26 tests en 8 archivos |
+| 34 | Pruebas automatizadas | `app/tests/` | 72 tests en 12 archivos |
 | 35 | GitHub Actions pipeline | `.github/workflows/tests.yml` | FastAPI CI + CI |
 | 36 | Informe cobertura de código | `.github/workflows/tests.yml` | `--cov-report=xml`, artifact `coverage-report` |
 | 37 | Despliegue en máquina limpia | `docker-compose.yml` | `docker compose up --build` |

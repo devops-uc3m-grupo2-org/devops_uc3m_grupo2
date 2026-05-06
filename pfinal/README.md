@@ -49,18 +49,23 @@ docker compose up --build
 docker compose run --rm app python -m pytest app/tests/ -v
 ```
 
-Suite actual: **26 tests** repartidos en 8 archivos:
+Suite actual: **72 tests** repartidos en 12 archivos:
 
-| Archivo              | Qué cubre                                               |
-| -------------------- | ------------------------------------------------------- |
-| `test_health.py`     | Health check                                            |
-| `test_login.py`      | Registro, login, credenciales incorrectas               |
-| `test_sources.py`    | CRUD fuentes, fetch con debug, duplicados               |
-| `test_alerts.py`     | CRUD alertas y notificaciones con JWT                   |
-| `test_news.py`       | Listado de noticias, fetch autenticado                  |
-| `test_ai.py`         | Endpoint `/suggestions`, keyword conocido y desconocido |
-| `test_stats.py`      | Métricas reales, auth requerida, contador se actualiza  |
-| `test_monitoring.py` | Matching alertas-noticias, pipeline completo Sprint 5   |
+| Archivo                   | Qué cubre                                               |
+| ------------------------- | ------------------------------------------------------- |
+| `test_health.py`          | Health check                                            |
+| `test_login.py`           | Registro, login, credenciales incorrectas               |
+| `test_auth_extended.py`   | Verificación de cuenta, forgot/reset password, duplicados |
+| `test_sources.py`         | CRUD fuentes, fetch con debug, duplicados               |
+| `test_alerts.py`          | CRUD alertas y notificaciones con JWT                   |
+| `test_news.py`            | Listado de noticias, fetch autenticado                  |
+| `test_ai.py`              | Endpoint `/suggestions`, keyword conocido y desconocido |
+| `test_stats.py`           | Métricas reales, auth requerida, contador se actualiza  |
+| `test_stats_extended.py`  | Wordcloud, stats por categoría, límite 20 alertas       |
+| `test_categories.py`      | CRUD completo categorías IPTC + 404s                    |
+| `test_roles_extended.py`  | CRUD completo roles + 409 al borrar rol asignado        |
+| `test_users_extended.py`  | CRUD usuarios y CRUD completo de notificaciones         |
+| `test_monitoring.py`      | Matching alertas-noticias, pipeline completo Sprint 5   |
 
 ## Endpoints principales
 

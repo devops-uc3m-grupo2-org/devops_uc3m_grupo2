@@ -40,7 +40,7 @@ graph TB
     end
 
     subgraph CI["CI/CD — GitHub Actions"]
-        Pipeline["FastAPI CI\npytest 26 tests\ncoverage XML\nartifact upload"]
+        Pipeline["FastAPI CI\npytest 72 tests\ncoverage XML\nartifact upload"]
     end
 
     Browser -->|HTTP/REST| Auth

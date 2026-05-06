@@ -70,7 +70,7 @@ Documento que recoge los prompts utilizados durante el desarrollo del proyecto N
 **Prompt**:
 > "Genera tests con pytest y FastAPI TestClient para: CRUD de alertas con JWT, pipeline completo de matching alertas-noticias, CRUD de fuentes RSS, estadísticas, y sugerencias IA. Usa una base de datos PostgreSQL de test con transacciones que se revierten entre tests."
 
-**Uso**: Generación de los 8 archivos de test en `app/tests/`.
+**Uso**: Generación de los 12 archivos de test en `app/tests/`.
 
 ---
 
