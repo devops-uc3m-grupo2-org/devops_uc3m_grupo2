@@ -71,9 +71,9 @@ Todos los endpoints están documentados vía **OpenAPI** en **Swagger** (`/docs`
 | POST   | /api/v1/auth/login                | Login (JWT)                      |
 | GET    | /api/v1/health                    | Health check                     |
 | GET    | /api/v1/users                     | Listado de usuarios              |
-| POST   | /api/v1/sources                   | Crear una fuente RSS             |
-| GET    | /api/v1/sources                   | Listar fuentes registradas       |
-| POST   | /api/v1/sources/{source_id}/fetch | Ingerir noticias desde la fuente |
+| POST   | /api/v1/information-sources                   | Crear una fuente RSS             |
+| GET    | /api/v1/information-sources                   | Listar fuentes registradas       |
+| POST   | /api/v1/information-sources/{source_id}/fetch | Ingerir noticias desde la fuente |
 | GET    | /api/v1/news                      | Listar noticias almacenadas      |
 | GET    | /_routes                          | Endpoint de debug (rutas)        |
 
