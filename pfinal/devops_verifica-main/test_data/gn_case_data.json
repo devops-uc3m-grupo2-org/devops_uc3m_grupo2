@@ -1,0 +1,331 @@
+{
+  "defaults": {
+    "seed_login": {
+      "email": "admin@newsradar.com",
+      "password": "admin123"
+    },
+    "create_alert_payload": {
+      "name": "Notification Parent Alert",
+      "cron_expression": "0 9 * * 1-5"
+    },
+    "create_notification_payload": {
+      "timestamp": "2026-01-10T10:15:30Z",
+      "metrics": [
+        {
+          "name": "score",
+          "value": 12.5
+        }
+      ]
+    },
+    "strings": {
+      "invalid_timestamp": "not-iso-date",
+      "future_timestamp": "2099-12-31T23:59:59Z",
+      "old_timestamp": "1990-01-01T00:00:00Z",
+      "unicode_metric_name": "temperatura nino",
+      "spaced_metric_name": "  score metric  ",
+      "metric_name_upper": "SCORE",
+      "metric_name_lower": "score"
+    }
+  },
+  "cases": {
+    "GN-001": {
+      "overrides": {
+        "timestamp": "2026-01-10T10:15:30Z",
+        "metrics": [
+          {
+            "name": "score",
+            "value": 12.5
+          },
+          {
+            "name": "mentions",
+            "value": 3
+          }
+        ]
+      }
+    },
+    "GN-002": {
+      "remove_fields": [
+        "timestamp"
+      ]
+    },
+    "GN-003": {
+      "overrides": {
+        "timestamp": ""
+      }
+    },
+    "GN-004": {
+      "overrides": {
+        "timestamp": "not-iso-date"
+      }
+    },
+    "GN-005": {
+      "overrides": {
+        "timestamp": "2026-04-20T08:00:00Z"
+      }
+    },
+    "GN-006": {
+      "overrides": {
+        "timestamp": "2099-12-31T23:59:59Z"
+      }
+    },
+    "GN-007": {
+      "overrides": {
+        "timestamp": "1990-01-01T00:00:00Z"
+      }
+    },
+    "GN-008": {
+      "remove_fields": [
+        "metrics"
+      ]
+    },
+    "GN-009": {
+      "overrides": {
+        "metrics": []
+      }
+    },
+    "GN-010": {
+      "overrides": {
+        "metrics": {}
+      }
+    },
+    "GN-011": {
+      "overrides": {
+        "metrics": [
+          {
+            "value": 1.1
+          }
+        ]
+      }
+    },
+    "GN-012": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score"
+          }
+        ]
+      }
+    },
+    "GN-013": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "GN-014": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "GN-015": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": "not-a-number"
+          }
+        ]
+      }
+    },
+    "GN-016": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": null
+          }
+        ]
+      }
+    },
+    "GN-017": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": -1.5
+          }
+        ]
+      }
+    },
+    "GN-018": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": 1.234
+          }
+        ]
+      }
+    },
+    "GN-019": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": 1
+          },
+          {
+            "name": "mentions",
+            "value": 2
+          },
+          {
+            "name": "reach",
+            "value": 3
+          }
+        ]
+      }
+    },
+    "GN-020": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": 1
+          },
+          {
+            "name": "score",
+            "value": 2
+          }
+        ]
+      }
+    },
+    "GN-021": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "  score metric  ",
+            "value": 3
+          }
+        ]
+      }
+    },
+    "GN-022": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "temperatura nino",
+            "value": 4
+          }
+        ]
+      }
+    },
+    "GN-023": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": 1,
+            "extra": "nope"
+          }
+        ]
+      }
+    },
+    "GN-024": {
+      "overrides": {
+        "timestamp": "2026-03-01T00:00:00Z"
+      }
+    },
+    "GN-025": {
+      "overrides": {
+        "timestamp": "2026-03-01T00:00:00Z"
+      }
+    },
+    "GN-026": {
+      "overrides": {
+        "timestamp": "2026-03-01T00:00:00Z"
+      }
+    },
+    "GN-027": {
+      "overrides": {
+        "timestamp": "2026-03-01T00:00:00Z",
+        "metrics": [
+          {
+            "name": "score",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "GN-033": {
+      "timestamps": [
+        "2026-01-01T00:00:00Z",
+        "2026-01-02T00:00:00Z",
+        "2026-01-03T00:00:00Z"
+      ]
+    },
+    "GN-034": {
+      "overrides": {
+        "timestamp": "2026-04-01T10:00:00Z",
+        "metrics": [
+          {
+            "name": "score",
+            "value": 10
+          }
+        ]
+      }
+    },
+    "GN-035": {
+      "first": {
+        "metrics": [
+          {
+            "name": "  SCORE  ",
+            "value": 1
+          }
+        ]
+      },
+      "second": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": 2
+          }
+        ]
+      }
+    },
+    "GN-036": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "temperatura nino",
+            "value": 10
+          }
+        ]
+      }
+    },
+    "GN-038": {
+      "overrides": {
+        "timestamp": "2026-01-10T12:15:30+02:00"
+      }
+    },
+    "GN-039": {
+      "overrides": {
+        "metrics": [
+          {}
+        ]
+      }
+    },
+    "GN-040": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": 1
+          },
+          {
+            "name": "",
+            "value": "bad"
+          }
+        ]
+      }
+    }
+  }
+}

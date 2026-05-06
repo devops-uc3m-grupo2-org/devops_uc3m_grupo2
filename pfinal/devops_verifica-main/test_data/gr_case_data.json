@@ -1,0 +1,40 @@
+{
+  "defaults": {
+    "seed_login": {
+      "email": "admin@newsradar.com",
+      "password": "admin123"
+    },
+    "create_user_payload": {
+      "first_name": "Role",
+      "last_name": "Tester",
+      "organization": "QA",
+      "password": "Valid123",
+      "role_ids": []
+    },
+    "ids": {
+      "nonexistent": 99999999
+    },
+    "strings": {
+      "utf8_role_name_primary": "Rol Ánalisis-Ñ",
+      "utf8_role_name_secondary": "Rol Gestión Ñ",
+      "invalid_role_name": "role\nname",
+      "whitespace_role_name": "   ",
+      "name_empty": "",
+      "name_too_long": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+    }
+  },
+  "cases": {
+    "GR-023": {
+      "invalid_role_ids": [99999999]
+    },
+    "GR-024": {
+      "invalid_role_ids": [99999999]
+    },
+    "GR-028": {
+      "invalid_role_id": 99999999
+    },
+    "GR-029": {
+      "invalid_role_ids": [99999999]
+    }
+  }
+}

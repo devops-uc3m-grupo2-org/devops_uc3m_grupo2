@@ -1,0 +1,23 @@
+{
+  "defaults": {
+    "seed_login": {
+      "email": "admin@newsradar.com",
+      "password": "admin123"
+    },
+    "create_source_payload": {
+      "name_prefix": "Fuente",
+      "url_base": "https://example.com/feed"
+    },
+    "ids": {
+      "nonexistent": 99999999
+    },
+    "strings": {
+      "invalid_url": "not-a-uri",
+      "url_too_long_prefix": "https://example.com/",
+      "url_unreachable": "http://127.0.0.1:1/unreachable",
+      "url_invalid_domain": "https://domain-inexistente.invalid/rss",
+      "url_down": "http://127.0.0.1:1/down",
+      "utf8_name": "Fuente Información Ñ"
+    }
+  }
+}
