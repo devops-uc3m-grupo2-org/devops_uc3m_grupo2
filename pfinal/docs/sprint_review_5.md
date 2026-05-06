@@ -271,3 +271,320 @@ Elimina una notificación específica de una alerta.
 
 Verificar si fue borrado correctamente con List Notifications
 ---
+
+
+# Sprint 5 – RSS Channels (CRUD dentro de Information Sources)
+
+Este módulo del backend de **NewsRadar** implementa la gestión de **canales RSS** asociados a una fuente de información. Permite consultar, actualizar y eliminar canales dentro de una fuente concreta, manteniendo la integridad de la relación entre fuentes y canales.
+
+---
+
+# Objetivos
+
+- Obtener un canal RSS asociado a una fuente de información.
+- Actualizar la configuración de un canal RSS.
+- Eliminar un canal RSS de una fuente.
+- Validar existencia de fuente y canal antes de operar.
+- Restringir modificaciones y eliminaciones a usuarios con permisos de gestor.
+
+---
+
+# Endpoints disponibles
+
+| Método | Ruta |
+|--------|------|
+| GET | `/api/v1/information-sources/{source_id}/rss-channels` |
+| GET | `/api/v1/information-sources/{source_id}/rss-channels/{channel_id}` |
+| PUT | `/api/v1/information-sources/{source_id}/rss-channels/{channel_id}` |
+| DELETE | `/api/v1/information-sources/{source_id}/rss-channels/{channel_id}` |
+
+---
+
+## Obtener Lista de RSS
+
+### Endpoint:
+`GET /api/v1/information-sources/{source_id}/rss-channels/{channel_id}` 
+
+Debes introducir el id de un canal RSS
+
+### Objetivo:
+Validar que se puede recuperar los canales RSS de una fuente.
+
+
+### Caso de éxito
+
+**Respuesta esperada (200 OK):**
+```json 
+[
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+    "category_id": 1,
+    "id": 1,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada",
+    "category_id": 2,
+    "id": 2,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/ciencia/portada",
+    "category_id": 3,
+    "id": 3,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/cultura/portada",
+    "category_id": 4,
+    "id": 4,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/deportes/portada",
+    "category_id": 5,
+    "id": 5,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/sociedad/portada",
+    "category_id": 6,
+    "id": 6,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/salud/portada",
+    "category_id": 7,
+    "id": 7,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/clima-y-medio-ambiente/portada",
+    "category_id": 8,
+    "id": 8,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/internacional/portada",
+    "category_id": 9,
+    "id": 9,
+    "information_source_id": 1
+  },
+  {
+    "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/educacion/portada",
+    "category_id": 10,
+    "id": 10,
+    "information_source_id": 1
+  }
+]
+```
+
+##  Crear canal Fuente
+
+### Endpoint:
+`POST /api/v1/information-sources/{source_id}/rss-channels`
+
+
+### Objetivo:
+Crear una fuente de RSS
+
+---
+
+### Requisitos:
+- Usuario con rol **gestor** (asumimos que ya autenticado de prueba de notificaciones)
+- Source ID de una fuente de la base de datos previamente creada.
+
+---
+
+### Body de ejemplo:
+```json id="rss2_body"
+{
+  "url": "https://updated-source.com/rss",
+  "category_id": 2
+}
+```
+
+---
+
+### Caso de éxito
+
+**Respuesta esperada (200 OK):**
+```json
+{
+  "url": "https://updated-source.com/rss",
+  "category_id": 2,
+  "id": 101,
+  "information_source_id": 1
+}
+```
+
+## Obtener canal RSS
+
+### Endpoint:
+
+`GET /api/v1/information-sources/{source_id}/rss-channels/{channel_id}`
+
+Debes introducir el id de un canal RSS
+
+### Objetivo:
+Validar que se puede recuperar un canal RSS existente asociado a una fuente, puedes utilizar el canal previamente creado (verifica su id con el endpoint de "List")
+
+
+### Caso de éxito
+
+**Respuesta esperada (200 OK):**
+```json
+{
+  "url": "https://updated-source.com/rss",
+  "category_id": 2,
+  "id": 101,
+  "information_source_id": 1
+}
+```
+
+---
+
+### Casos de error
+
+#### Fuente no existe
+```json
+{
+  "detail": "Fuente de información no encontrada"
+}
+```
+Código: 404
+
+---
+
+#### Canal no existe para la fuente
+```json
+{
+  "detail": "Canal RSS no encontrado para la fuente"
+}
+```
+Código: 404
+
+---
+
+## Actualizar canal RSS
+
+### Endpoint:
+
+`PUT /api/v1/information-sources/{source_id}/rss-channels/{channel_id}`
+
+---
+
+### Objetivo:
+Modificar la URL o categoría de un canal RSS.
+
+---
+
+### Body de ejemplo:
+```json
+{
+  "url": "https://updated2-source.com/rss",
+  "category_id": 2
+}
+```
+
+---
+
+### Caso de éxito
+
+**Respuesta esperada (200 OK):**
+```json
+{
+  "url": "https://updated2-source.com/rss",
+  "category_id": 2,
+  "id": 101,
+  "information_source_id": 1
+}
+```
+
+---
+
+### Casos de error
+
+#### Fuente no encontrada
+```json
+{
+  "detail": "Fuente de información no encontrada"
+}
+```
+Código: 404
+
+---
+
+#### Canal no encontrado
+```json id="rss2_err2"
+{
+  "detail": "Canal RSS no encontrado para la fuente"
+}
+```
+Código: 404
+
+---
+
+#### Categoría no válida
+```json id="rss2_err3"
+{
+  "detail": "Categoría no encontrada"
+}
+```
+Código: 404
+
+---
+
+#### Sin permisos
+Código: **403 Forbidden**
+
+---
+
+## 📌 Eliminar canal RSS
+
+### Endpoint:
+`DELETE /api/v1/information-sources/{source_id}/rss-channels/{channel_id}`
+
+
+### 🎯 Objetivo:
+Eliminar un canal RSS asociado a una fuente.
+
+---
+
+### Caso de éxito
+
+**Respuesta esperada:**
+- Código: **204 No Content**
+ access-control-allow-credentials: true 
+ access-control-allow-origin: * 
+ date: Wed,06 May 2026 12:21:21 GMT 
+ server: uvicorn 
+
+Verifica con el endpoint de List RSS si aparece aún.
+
+---
+
+### Casos de error
+
+#### Fuente no encontrada
+```json
+{
+  "detail": "Fuente de información no encontrada"
+}
+```
+Código: 404
+
+---
+
+#### Canal no encontrado
+```json
+{
+  "detail": "Canal RSS no encontrado para la fuente"
+}
+```
+Código: 404
+
+---
+
+#### Sin permisos
+Código: **403 Forbidden**
