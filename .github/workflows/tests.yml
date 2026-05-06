@@ -29,7 +29,7 @@ jobs:
     steps:
       #Descarga el repositorio para poder usarlo
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       #Configura Python
       - name: Set up Python
       #Utiliza pip para acelerar ejecucción
