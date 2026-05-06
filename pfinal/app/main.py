@@ -11,7 +11,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, text, func
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -526,7 +526,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 @app.post(f"{API_PREFIX}/users", response_model=User, status_code=201, tags=["users"])
 def create_user(payload: UserCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
-    if db.query(UserModel).filter(UserModel.email == payload.email).first():
+    if db.query(UserModel).filter(func.lower(UserModel.email) == payload.email.lower()).first():
         raise HTTPException(status_code=409, detail="El email ya está registrado")
 
     role_ids = payload.role_ids
@@ -562,7 +562,7 @@ def update_user(user_id: int, payload: UserUpdate, current_user: UserModel = Dep
     user = get_user_or_404(user_id, db)
     update_data = payload.model_dump(exclude_unset=True)
 
-    if "email" in update_data and db.query(UserModel).filter(UserModel.email == update_data["email"], UserModel.id != user_id).first():
+    if "email" in update_data and db.query(UserModel).filter(func.lower(UserModel.email) == update_data["email"].lower(), UserModel.id != user_id).first():
         raise HTTPException(status_code=409, detail="El email ya está registrado")
 
     if "email" in update_data:
@@ -604,6 +604,8 @@ def list_roles(current_user: UserModel = Depends(get_current_user), db: Session 
 @app.post(f"{API_PREFIX}/roles", response_model=Role, status_code=201, tags=["roles"])
 def create_role(payload: RoleCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     from sqlalchemy.exc import IntegrityError
+    if db.query(RoleModel).filter(func.lower(RoleModel.name) == payload.name.lower()).first():
+        raise HTTPException(status_code=409, detail="Ya existe un rol con ese nombre")
     new_role = RoleModel(name=payload.name)
     db.add(new_role)
     try:
@@ -626,6 +628,8 @@ def update_role(role_id: int, payload: RoleUpdate, current_user: UserModel = Dep
     role = get_role_or_404(role_id, db)
     update_data = payload.model_dump(exclude_unset=True)
     if "name" in update_data:
+        if db.query(RoleModel).filter(func.lower(RoleModel.name) == update_data["name"].lower(), RoleModel.id != role_id).first():
+            raise HTTPException(status_code=409, detail="Ya existe un rol con ese nombre")
         role.name = update_data["name"]
     try:
         db.commit()
