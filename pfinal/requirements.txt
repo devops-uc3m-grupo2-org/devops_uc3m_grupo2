@@ -2,7 +2,7 @@ fastapi>=0.115.0
 starlette>=0.40.0
 uvicorn==0.30.6
 sqlalchemy==2.0.36
-alembic==1.13.3
+alembic==1.18.4
 psycopg2-binary==2.9.10
 python-jose[cryptography]==3.4.0
 passlib[bcrypt]==1.7.4
