@@ -126,7 +126,7 @@ Garantizar un estado inicial **siempre consistente y reproducible**.
 
 ---
 
-# 🔁 Aislamiento por transacciones
+# Aislamiento por transacciones
 
 Cada test se ejecuta dentro de una transacción aislada.
 
