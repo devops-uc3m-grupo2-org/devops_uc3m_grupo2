@@ -61,6 +61,18 @@ jobs:
       - name: Bandit security scan
         run: bandit -r pfinal/app -ll -q || true
 
+      # Complejidad de código — Radon
+      - name: Radon complexity
+        run: |
+          pip install radon -q
+          radon cc pfinal/app -a || true
+
+      # Auditoría de dependencias — pip-audit
+      - name: pip-audit dependency audit
+        run: |
+          pip install pip-audit -q
+          pip-audit -r pfinal/requirements.txt || true
+
       # Calidad de código JavaScript — ESLint
       - name: Set up Node.js
         uses: actions/setup-node@v4
