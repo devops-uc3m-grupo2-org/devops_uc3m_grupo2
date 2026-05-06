@@ -15,7 +15,7 @@ def _auth_context(client):
             "organization": "QA",
         },
     )
-    assert r.status_code == 200
+    assert r.status_code == 201
 
     login = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     assert login.status_code == 200

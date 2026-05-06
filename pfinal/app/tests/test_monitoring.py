@@ -84,7 +84,7 @@ def test_monitoring_pipeline(client, session):
             "role_ids": [1],
         },
     )
-    assert reg.status_code == 200
+    assert reg.status_code == 201
     user_id = reg.json()["id"]
 
     login = client.post("/api/v1/auth/login", json={"email": email, "password": password})

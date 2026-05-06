@@ -16,7 +16,7 @@ def _auth_context(client):
             "role_ids": [1],
         },
     )
-    assert register_response.status_code == 200
+    assert register_response.status_code == 201
 
     login_response = client.post(
         "/api/v1/auth/login",

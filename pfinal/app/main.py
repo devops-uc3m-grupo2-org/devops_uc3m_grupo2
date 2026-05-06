@@ -244,6 +244,12 @@ class Stats(BaseModel):
     metrics: List[Metric] = Field(default_factory=list)
     class Config: from_attributes = True
 
+class StatsCreate(BaseModel):
+    metrics: List[Metric] = Field(default_factory=list)
+
+class StatsUpdate(BaseModel):
+    metrics: Optional[List[Metric]] = None
+
 class InformationSourceCreate(BaseModel):
     name: str
     medium: Optional[str] = None
@@ -252,6 +258,21 @@ class InformationSourceCreate(BaseModel):
 
     class Config:
         use_enum_values = True
+
+class InformationSourceResponse(BaseModel):
+    id: int
+    name: str
+    medium: Optional[str] = None
+    rss_url: str
+    iptc_category: Optional[str] = None
+    class Config: from_attributes = True
+
+class InformationSourceUpdate(BaseModel):
+    name: Optional[str] = None
+    medium: Optional[str] = None
+    rss_url: Optional[HttpUrl] = None
+    iptc_category: Optional[IPTCCategoryEnum] = None
+    class Config: use_enum_values = True
 
 class CategoryBase(BaseModel):
     name: IPTCCategoryEnum
@@ -399,7 +420,7 @@ def health():
 def list_users(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     return db.query(UserModel).all()
 
-@app.post(f"{API_PREFIX}/auth/register", response_model=User, status_code=200, tags=["auth"])
+@app.post(f"{API_PREFIX}/auth/register", response_model=User, status_code=201, tags=["auth"])
 def register(payload: UserCreate, request: Request, db: Session = Depends(get_db)):
     if db.query(UserModel).filter(UserModel.email == payload.email).first():
         raise HTTPException(status_code=409, detail="El email ya está registrado")
@@ -826,6 +847,64 @@ def create_source(payload: InformationSourceCreate = Body(...), current_user: Us
     return new_src
 
 
+@app.get(
+    f"{API_PREFIX}/information-sources/{{source_id}}",
+    response_model=InformationSourceResponse,
+    tags=["information-sources"],
+)
+def get_source(source_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+    return source
+
+
+@app.put(
+    f"{API_PREFIX}/information-sources/{{source_id}}",
+    response_model=InformationSourceResponse,
+    tags=["information-sources"],
+)
+def update_source(
+    source_id: int,
+    payload: InformationSourceUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_gestor(current_user)
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+    update_data = payload.model_dump(exclude_unset=True)
+    if "name" in update_data:
+        source.name = update_data["name"]
+    if "medium" in update_data:
+        source.medium = update_data["medium"]
+    if "rss_url" in update_data:
+        source.rss_url = str(update_data["rss_url"])
+    if "iptc_category" in update_data:
+        val = update_data["iptc_category"]
+        source.iptc_category = val.value if hasattr(val, "value") else val
+    db.commit()
+    db.refresh(source)
+    return source
+
+
+@app.delete(
+    f"{API_PREFIX}/information-sources/{{source_id}}",
+    status_code=204,
+    response_model=None,
+    response_class=Response,
+    tags=["information-sources"],
+)
+def delete_source(source_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    require_gestor(current_user)
+    source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+    db.delete(source)
+    db.commit()
+
+
 @app.post(f"{API_PREFIX}/news/fetch", tags=["news"])
 def fetch_news(current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     channels = db.query(ChannelModel).all()
@@ -1155,6 +1234,51 @@ def get_wordcloud(current_user: UserModel = Depends(get_current_user), db: Sessi
         cat: [{"word": w, "count": c} for w, c in counter.most_common(40)]
         for cat, counter in category_words.items()
     }
+
+
+@app.post(f"{API_PREFIX}/stats", response_model=Stats, status_code=201, tags=["stats"])
+def create_stats(payload: StatsCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    new_stats = StatsModel(metrics=[m.model_dump() for m in payload.metrics])
+    db.add(new_stats)
+    db.commit()
+    db.refresh(new_stats)
+    return new_stats
+
+
+@app.get(f"{API_PREFIX}/stats/{{stats_id}}", response_model=Stats, tags=["stats"])
+def get_stats_by_id(stats_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    stats = db.query(StatsModel).filter(StatsModel.id == stats_id).first()
+    if not stats:
+        raise HTTPException(status_code=404, detail="Stats no encontrados")
+    return stats
+
+
+@app.put(f"{API_PREFIX}/stats/{{stats_id}}", response_model=Stats, tags=["stats"])
+def update_stats(stats_id: int, payload: StatsUpdate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
+    stats = db.query(StatsModel).filter(StatsModel.id == stats_id).first()
+    if not stats:
+        raise HTTPException(status_code=404, detail="Stats no encontrados")
+    update_data = payload.model_dump(exclude_unset=True)
+    if "metrics" in update_data and update_data["metrics"] is not None:
+        stats.metrics = [m.model_dump() for m in update_data["metrics"]]
+    db.commit()
+    db.refresh(stats)
+    return stats
+
+
+@app.delete(
+    f"{API_PREFIX}/stats/{{stats_id}}",
+    status_code=204,
+    response_model=None,
+    response_class=Response,
+    tags=["stats"],
+)
+def delete_stats(stats_id: int, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+    stats = db.query(StatsModel).filter(StatsModel.id == stats_id).first()
+    if not stats:
+        raise HTTPException(status_code=404, detail="Stats no encontrados")
+    db.delete(stats)
+    db.commit()
 
 
 @app.get(f"{API_PREFIX}/suggestions", tags=["AI"])

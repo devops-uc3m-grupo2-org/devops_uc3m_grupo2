@@ -62,7 +62,7 @@ check("POST /auth/register",
           "email": email, "password": password,
           "first_name": "Smoke", "last_name": "Test",
           "organization": "UC3M", "role_ids": [1],
-      }), 200)
+      }), 201)
 
 r_login = requests.post(f"{API}/auth/login", json={"email": email, "password": password})
 check("POST /auth/login", r_login, 200)
@@ -160,6 +160,15 @@ check("POST /information-sources (duplicado → 409)",
       requests.post(f"{API}/information-sources", headers=h(token),
                     json={"name": "Smoke Source 2", "rss_url": rss_url}), 409)
 
+if src_id:
+    check("GET  /information-sources/{id}",
+          requests.get(f"{API}/information-sources/{src_id}", headers=h(token)), 200)
+    check("GET  /information-sources/99999 (404)",
+          requests.get(f"{API}/information-sources/99999", headers=h(token)), 404)
+    check("PUT  /information-sources/{id}",
+          requests.put(f"{API}/information-sources/{src_id}", headers=h(token),
+                       json={"name": "Smoke Source Updated"}), 200)
+
 check("POST /information-sources/{id}/fetch (debug)",
       requests.post(f"{API}/information-sources/{src_id}/fetch?debug=true", headers=h(token)), 200)
 
@@ -240,6 +249,22 @@ if r_stats.status_code == 200:
 check("GET  /stats/by-category", requests.get(f"{API}/stats/by-category", headers=h(token)), 200)
 check("GET  /stats/wordcloud", requests.get(f"{API}/stats/wordcloud", headers=h(token)), 200)
 
+r_stats_new = requests.post(f"{API}/stats", headers=h(token),
+                             json={"metrics": [{"name": "smoke_metric", "value": 42.0}]})
+check("POST /stats", r_stats_new, 201)
+stats_id = r_stats_new.json().get("id")
+
+if stats_id:
+    check("GET  /stats/{id}",
+          requests.get(f"{API}/stats/{stats_id}", headers=h(token)), 200)
+    check("GET  /stats/99999 (404)",
+          requests.get(f"{API}/stats/99999", headers=h(token)), 404)
+    check("PUT  /stats/{id}",
+          requests.put(f"{API}/stats/{stats_id}", headers=h(token),
+                       json={"metrics": [{"name": "updated_metric", "value": 99.0}]}), 200)
+    check("DELETE /stats/{id}",
+          requests.delete(f"{API}/stats/{stats_id}", headers=h(token)), 204)
+
 # ── 10. IA ─────────────────────────────────────────────────────────────────────
 print(f"\n{BOLD}[ IA / Sugerencias ]{RESET}")
 check("GET  /suggestions?keyword=economía",
@@ -251,6 +276,9 @@ check("GET  /suggestions?keyword=desconocida",
 print(f"\n{BOLD}[ Limpieza ]{RESET}")
 check("DELETE /users/{id}/alerts/{aid}",
       requests.delete(f"{API}/users/{my_id}/alerts/{alert_id}", headers=h(token)), 204)
+if src_id:
+    check("DELETE /information-sources/{id}",
+          requests.delete(f"{API}/information-sources/{src_id}", headers=h(token)), 204)
 
 # ── Resumen ────────────────────────────────────────────────────────────────────
 total = len(passed) + len(failed)

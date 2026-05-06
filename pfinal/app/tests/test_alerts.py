@@ -18,7 +18,7 @@ def _auth_context(client):
             "role_ids": [1],
         },
     )
-    assert register_response.status_code == 200
+    assert register_response.status_code == 201
 
     user_id = register_response.json()["id"]
 
