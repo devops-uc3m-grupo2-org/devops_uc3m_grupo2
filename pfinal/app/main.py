@@ -116,7 +116,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 class Metric(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     value: float
 
 class Role(BaseModel):
@@ -719,7 +719,7 @@ def update_user_alert(
     if "descriptors" in update_data:
         alert.descriptors = update_data["descriptors"]
     if "categories" in update_data:
-        alert.categories = [cat.model_dump() for cat in update_data["categories"]]
+        alert.categories = update_data["categories"]
     if "rss_channels_ids" in update_data:
         alert.rss_channels_ids = update_data["rss_channels_ids"]
     if "information_sources_ids" in update_data:
@@ -1024,7 +1024,12 @@ def create_source_channel(
         category_id=payload.category_id,
     )
     db.add(new_channel)
-    db.commit()
+    from sqlalchemy.exc import IntegrityError
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Ya existe un canal RSS con esa URL")
     db.refresh(new_channel)
     return new_channel
 
