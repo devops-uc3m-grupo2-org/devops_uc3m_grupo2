@@ -169,7 +169,7 @@ LR_USER_POOL_SIZE=10 \
 ./devops_verifica/.venv/bin/locust -f load_test.py --host http://localhost:8000 --users 100 --spawn-rate 100 --headless --run-time 2m
 ```
 
-### Escenario de carga 
+### Escenario de carga
 
 Este modo de carga trata de que todos los usuarios virtuales compitan sobre un único email, lo que incrementa la probabilidad de detectar problemas de concurrencia.
 

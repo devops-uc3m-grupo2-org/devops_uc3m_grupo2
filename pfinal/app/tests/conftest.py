@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("SEND_EMAILS", "false")
 
-from app.main import app
+from app.main import app, _CLAIMED_CATEGORY_CODES, _LAST_CATEGORY_CREATE
 from app.core.database import Base, engine, get_db
 
 
@@ -57,6 +57,15 @@ def session():
     # Cierra Conexión
     db.close()
         
+@pytest.fixture(autouse=True)
+def reset_category_state():
+    _CLAIMED_CATEGORY_CODES.clear()
+    _LAST_CATEGORY_CREATE.clear()
+    yield
+    _CLAIMED_CATEGORY_CODES.clear()
+    _LAST_CATEGORY_CREATE.clear()
+
+
 @pytest.fixture
 def client(session):
     def override_get_db():
