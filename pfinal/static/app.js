@@ -346,7 +346,7 @@ const app = {
         if (sectionId === 'dashboard') this.loadDashboardData();
         if (sectionId === 'sources') this.loadSources();
         if (sectionId === 'alerts') this.loadAlerts();
-        if (sectionId === 'news') this.refreshNews();
+        if (sectionId === 'news') this.loadNews();
         if (sectionId === 'wordcloud') this.loadWordCloud();
     },
 
@@ -628,23 +628,25 @@ const app = {
         document.getElementById('alert-cron').value = '';
     },
 
-    async refreshNews() {
+    async loadNews() {
         try {
             const news = await this.fetchAPI('/news/latest');
             this.renderNews(news);
         } catch (err) {
             console.error(err);
         }
+    },
+
+    async refreshNews() {
         try {
             const result = await this.fetchAPI('/news/fetch', 'POST');
             const template = this.t('news.synced');
             const syncedMsg = template ? template.replace('{count}', result.new_items) : `${result.new_items} noticias nuevas sincronizadas`;
             this.toast(syncedMsg, 'success');
-            const news = await this.fetchAPI('/news/latest');
-            this.renderNews(news);
         } catch (err) {
             console.error(err);
         }
+        await this.loadNews();
     },
 
     // --- RECUPERACIÓN DE CONTRASEÑA ---
