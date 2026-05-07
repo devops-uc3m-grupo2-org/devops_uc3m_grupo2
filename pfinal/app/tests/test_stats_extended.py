@@ -53,7 +53,7 @@ def test_stats_by_category_with_alert(client):
     r = client.post(f"/api/v1/users/{user_id}/alerts", headers=headers, json={
         "name": "test cat alert",
         "descriptors": ["python"],
-        "categories": [{"code": "01", "label": "Ciencia"}],
+        "categories": [{"code": "13000000", "label": "Ciencia y tecnología"}],
         "rss_channels_ids": [],
         "information_sources_ids": [],
         "cron_expression": "0 * * * *",
