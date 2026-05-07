@@ -1664,6 +1664,16 @@ def ensure_database_schema():
             with engine.connect() as conn:
                 conn.execute(text("ALTER TABLE alerts ADD COLUMN is_active BOOLEAN DEFAULT TRUE NOT NULL"))
 
+    if engine.dialect.name == "postgresql":
+        try:
+            with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as conn:
+                for member in IPTCCategoryEnum:
+                    conn.execute(text(
+                        "ALTER TYPE iptccategoryenum ADD VALUE IF NOT EXISTS :val"
+                    ), {"val": member.value})
+        except Exception:
+            pass
+
 @app.on_event("startup")
 def startup_event():
     Base.metadata.create_all(bind=engine)
