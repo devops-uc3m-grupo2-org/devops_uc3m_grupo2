@@ -103,7 +103,7 @@ def _normalize_url(value: str) -> str:
 def _reject_bad_url(value: str, *, rss: bool = False) -> str:
     normalized = _normalize_url(value)
     host = urlsplit(normalized).hostname or ""
-    if not normalized or host.endswith(".invalid") or host == "localhost":
+    if not normalized or host.endswith(".invalid") or host in {"127.0.0.1", "localhost"}:
         raise HTTPException(status_code=422, detail="URL no accesible")
     if rss:
         lowered = normalized.lower()
