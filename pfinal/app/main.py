@@ -1108,7 +1108,12 @@ def list_sources(current_user: UserModel = Depends(get_current_user), db: Sessio
 @app.post(f"{API_PREFIX}/information-sources", response_model=InformationSourceResponse, status_code=201, tags=["information-sources"])
 def create_source(payload: InformationSourceCreate = Body(...), current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)):
     require_gestor(current_user)
+    # extra runtime validation to guard against empty strings or missing urls
+    if not payload.name or not str(payload.name).strip():
+        raise HTTPException(status_code=400, detail="name vacio")
     input_url = payload.url or payload.rss_url
+    if input_url is None or str(input_url).strip() == "":
+        raise HTTPException(status_code=400, detail="url vacia")
     rss_url = _reject_bad_url(str(input_url))
     if db.query(SourceModel).filter(func.lower(SourceModel.rss_url) == rss_url.lower()).first():
         raise HTTPException(status_code=409, detail="La fuente ya existe")
@@ -1280,6 +1285,10 @@ def create_source_channel(
     source = db.query(SourceModel).filter(SourceModel.id == source_id).first()
     if not source:
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
+
+    # runtime validation: reject empty url strings
+    if not payload.url or str(payload.url).strip() == "":
+        raise HTTPException(status_code=400, detail="url vacia")
 
     normalized_url = _reject_bad_url(str(payload.url), rss=True)
     if db.query(ChannelModel).filter(func.lower(ChannelModel.url) == normalized_url.lower()).first():

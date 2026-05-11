@@ -19,8 +19,9 @@ jobs:
           pip install -r requirements.txt
           pip install pytest coverage pytest-cov
       - name: Run tests with coverage (enforce threshold)
+        working-directory: pfinal
         run: |
-          pytest -q --cov=app --cov-report=term --cov-report=xml:coverage.xml --cov-fail-under=80
+          pytest -q --cov=app --cov-config=pfinal/.coveragerc --cov-report=term --cov-report=xml:coverage.xml --cov-fail-under=80
       - name: Upload coverage
         run: |
           echo "Coverage result:"
