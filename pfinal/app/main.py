@@ -14,7 +14,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import inspect, text, func
+from sqlalchemy import inspect, text, func, cast, String
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -426,7 +426,7 @@ class NewsItemEnriched(BaseModel):
     channel_url: str
     source_name: str
     source_iptc_category: Optional[str] = None
-    category_id: int
+    category_id: Optional[int] = None
     category_name: Optional[str] = None
 
     class Config:
@@ -1591,7 +1591,7 @@ def create_category(payload: CategoryCreate, current_user: UserModel = Depends(g
         _LAST_CATEGORY_CREATE[code] = now
         _CLAIMED_CATEGORY_CODES.add(code)
         return existing
-    if db.query(CategoryModel).filter(func.lower(CategoryModel.name) == name.lower()).first():
+    if db.query(CategoryModel).filter(func.lower(cast(CategoryModel.name, String)) == name.lower()).first():
         raise HTTPException(status_code=409, detail="La categoría ya existe")
     new_category = CategoryModel(id=category_id, name=name, source="IPTC")
     db.add(new_category)
@@ -1620,6 +1620,8 @@ def update_category(category_id: int, payload: CategoryUpdate, current_user: Use
     next_id = int(code)
     duplicate = db.query(CategoryModel).filter(CategoryModel.id == next_id, CategoryModel.id != category_id).first()
     if duplicate:
+        # Reassign any RSS channels that reference the duplicate category to the target id
+        db.query(ChannelModel).filter(ChannelModel.category_id == duplicate.id).update({"category_id": next_id})
         db.delete(duplicate)
         db.flush()
     category.id = next_id
