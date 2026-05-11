@@ -1,7 +1,9 @@
-name: CI adjusted
+name: CI adjusted (non-blocking coverage)
 
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
@@ -21,7 +23,6 @@ jobs:
       - name: Run tests with coverage (enforce threshold)
         run: |
           pytest -q --cov=app --cov-report=term --cov-report=xml:coverage.xml --cov-fail-under=80
-      - name: Upload coverage
+      - name: Report coverage
         run: |
-          echo "Coverage result:"
-          coverage report -m
+          echo "Coverage report:" && coverage report -m
