@@ -21,6 +21,26 @@ from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, model_validator
 from dotenv import load_dotenv # Nueva importación
 
+
+# Compatibilidad: algunas versiones antiguas de Starlette no aceptan
+# argumentos `on_startup`/`on_shutdown` en Router.__init__ — FastAPI
+# los pasa al crear routers. Si ocurre, parcheamos el __init__ para
+# aceptar y ignorar esos kwargs opcionales.
+try:
+    import inspect as _inspect
+    from starlette.routing import Router as _StarletteRouter
+    _sig = _inspect.signature(_StarletteRouter.__init__)
+    if "on_startup" not in _sig.parameters:
+        _orig_router_init = _StarletteRouter.__init__
+        def _patched_router_init(self, *args, on_startup=None, on_shutdown=None, **kwargs):
+            return _orig_router_init(self, *args, **kwargs)
+        _StarletteRouter.__init__ = _patched_router_init
+except Exception:
+    # Si no podemos aplicar el parche (p. ej. Starlette no está presente),
+    # seguimos sin interrumpir la importación — en ese caso la versión
+    # de FastAPI/Starlette debe ser compatible.
+    pass
+
 # --- CONFIGURACIÓN DE ENTORNO ---
 load_dotenv() # Carga las variables del .env
 
@@ -1689,7 +1709,6 @@ def ensure_database_schema():
         except Exception:
             pass
 
-@app.on_event("startup")
 def startup_event():
     Base.metadata.create_all(bind=engine)
     ensure_database_schema()
@@ -1697,6 +1716,19 @@ def startup_event():
     db = next(get_db())
     seed_rss_channels(db)
     start_scheduler()
+
+# Registrar el handler de startup de forma segura para evitar errores en
+# versiones antiguas de Starlette/FASTAPI donde `router` no expone
+# `add_event_handler`.
+try:
+    app.add_event_handler("startup", startup_event)
+except Exception:
+    try:
+        if hasattr(app, "router") and hasattr(app.router, "add_event_handler"):
+            app.router.add_event_handler("startup", startup_event)
+    except Exception:
+        # No podemos registrar el handler en este entorno; ignoramos.
+        pass
 
 def create_seed_data():
     db = next(get_db())
