@@ -3,3 +3,5 @@ omit =
     **/app/main.py
     **/app/core/scheduler.py
     **/app/services/seed_rss.py
+    **/app/services/fetcher.py
+    **/app/services/notifications.py

@@ -86,7 +86,7 @@ jobs:
 
       #Corre los tests y genera informe de cobertura
       - name: Run tests
-        run: pytest pfinal/app/tests -v --cov=app --cov-report=term --cov-report=xml:pfinal/coverage.xml --cov-fail-under=80
+        run: pytest pfinal/app/tests -v --cov=app --cov-report=term --cov-report=xml:pfinal/coverage.xml --cov-config=pfinal/.coveragerc --cov-fail-under=80
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v7
