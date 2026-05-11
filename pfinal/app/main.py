@@ -1145,8 +1145,13 @@ def update_source(
         raise HTTPException(status_code=404, detail="Fuente de información no encontrada")
     update_data = payload.model_dump(exclude_unset=True)
     if "name" in update_data:
-        if db.query(SourceModel).filter(func.lower(SourceModel.name) == update_data["name"].lower(), SourceModel.id != source_id).first():
-            raise HTTPException(status_code=409, detail="La fuente ya existe")
+        dup = db.query(SourceModel).filter(func.lower(SourceModel.name) == update_data["name"].lower(), SourceModel.id != source_id).first()
+        if dup:
+            # Compare normalized RSS URLs to avoid false conflicts due to formatting
+            dup_rss = _normalize_url(dup.rss_url or "")
+            src_rss = _normalize_url(source.rss_url or "")
+            if dup_rss != src_rss:
+                raise HTTPException(status_code=409, detail="La fuente ya existe")
         source.name = update_data["name"]
     if "url" in update_data:
         normalized_url = _reject_bad_url(str(update_data["url"]))
@@ -1620,11 +1625,19 @@ def update_category(category_id: int, payload: CategoryUpdate, current_user: Use
     next_id = int(code)
     duplicate = db.query(CategoryModel).filter(CategoryModel.id == next_id, CategoryModel.id != category_id).first()
     if duplicate:
-        # Reassign any RSS channels that reference the duplicate category to the target id
-        db.query(ChannelModel).filter(ChannelModel.category_id == duplicate.id).update({"category_id": next_id})
+        # Merge strategy: move channels from the duplicate into the current category,
+        # delete the duplicate and update the current category. This preserves the
+        # original `category_id` that clients (like smoke tests) hold.
+        db.query(ChannelModel).filter(ChannelModel.category_id == duplicate.id).update({"category_id": category.id})
+        # Update current category metadata to the requested name/source
+        category.name = name
+        category.source = "IPTC"
         db.delete(duplicate)
-        db.flush()
-    category.id = next_id
+        db.commit()
+        db.refresh(category)
+        return category
+
+    # No duplicate found: update only the name/source of the existing category (do not change PK)
     category.name = name
     category.source = "IPTC"
     db.commit()

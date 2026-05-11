@@ -147,7 +147,8 @@ def main():
 
     if src_id:
         check("GET  /information-sources/{id}", requests.get(f"{API}/information-sources/{src_id}", headers=h(token)), 200)
-        check("PUT  /information-sources/{id}", requests.put(f"{API}/information-sources/{src_id}", headers=h(token), json={"name": "Smoke Source Updated"}), 200)
+        updated_name = f"Smoke Source Updated {uuid.uuid4().hex[:6]}"
+        check("PUT  /information-sources/{id}", requests.put(f"{API}/information-sources/{src_id}", headers=h(token), json={"name": updated_name}), 200)
         check("POST /information-sources/{id}/fetch (debug)", requests.post(f"{API}/information-sources/{src_id}/fetch?debug=true", headers=h(token)), 200)
         check("GET  /information-sources/{id}/rss-channels", requests.get(f"{API}/information-sources/{src_id}/rss-channels", headers=h(token)), 200)
 
