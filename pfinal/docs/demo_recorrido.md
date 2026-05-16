@@ -182,7 +182,7 @@ Respuesta esperada:
 Keywords verificadas en vivo: `economía`, `tecnología`, `política`, `salud`.
 Disponibles también: `deporte`, `cultura`, `medioambiente`, `educación`, `sociedad`, `ciencia`.
 
-**Qué decir:** *"El servicio de IA está desacoplado del proveedor: la función generate_synonyms tiene la misma firma que tendría con Gemini o GPT. Usamos un diccionario IPTC propio para que los tests pasen sin claves externas y sin dependencia de red en CI. Migrar a un LLM real es cambiar solo el cuerpo de esa función."*
+**Qué decir:** *"El servicio de IA usa Groq con Llama 3.3 70B en producción. El diseño está desacoplado del proveedor: la función generate_synonyms tiene la misma firma independientemente del backend. En CI no se configura GROQ_API_KEY, por lo que los tests usan el diccionario IPTC de fallback y pasan sin dependencia de red. Cambiar de proveedor es modificar solo el cuerpo de esa función."*
 
 ---
 

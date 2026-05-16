@@ -3,3 +3,6 @@ p4/venv/
 *.pyc
 .env
 pfinal/.claude/settings.local.json
+.coverage
+coverage.xml
+.pytest_cache/

@@ -256,62 +256,73 @@ Aceptado por: [tu nombre]
 
 <!-- Próximo paso: crear app/services/rss_ingestor.py y registrar scheduler en main.py -->
 
-# ADR 004: Elección de motor de IA generativa — Gemini
+# ADR 004: Elección de motor de IA generativa — Groq (Llama 3.3 70B)
 
 ## Estado
-**Aceptado**
+**Aceptado (revisado 2026-05-11)**
 
 ## Contexto
 
-El enunciado del proyecto exige "hacer un uso intensivo de tecnologías de IA generativa" (Anexo I). En Fase 1 se requiere que la API sea capaz de recomendar entre 3 y 10 términos relacionados/sinónimos para una alerta. APIs tipo thesaurus (p.ej. Datamuse) no encajan con la definición de "IA generativa" exigida por el profesorado.
+El enunciado del proyecto exige "hacer un uso intensivo de tecnologías de IA generativa" (Anexo I). En Fase 1 se requiere que la API sea capaz de recomendar entre 3 y 10 términos relacionados/sinónimos para una alerta.
 
-Requisitos clave:
+La decisión inicial era usar Gemini (Google). Durante la implementación se identificaron problemas prácticos:
 
-- Respuestas generativas controladas por prompt (no solo lookup/thesaurus)
-- Latencia/velocidad suficiente para el uso en endpoints sin bloquear la experiencia
-- Facilidad de integración mediante HTTP y control de prompt
-- Plan de contingencia si la API falla o alcanza límites
+1. **Quota 0 en free tier**: el proyecto académico de Google Cloud tiene `limit: 0` para todos los modelos de Gemini, lo que impide cualquier llamada desde el entorno universitario.
+2. **Restricciones regionales**: las cuentas de educación de la UC3M tienen limitaciones adicionales en Google AI Studio.
 
 ## Decisión
 
-Usar Gemini (modelos generativos de Google) como proveedor principal de IA generativa para la funcionalidad de sugerencias en Fase 1. La integración se hará mediante llamadas HTTP al endpoint adecuado de Gemini o al API de Google Cloud (según el plan y la cuenta), configurando `GEMINI_API_URL` y `GEMINI_API_KEY` o las credenciales necesarias.
+Usar **Groq** con el modelo `llama-3.3-70b-versatile` como proveedor de IA generativa, con fallback a un diccionario IPTC propio si la API no está disponible. La clave se configura mediante `GROQ_API_KEY` en `.env`.
 
 ## Justificación
 
-- Gemini es un LLM de propósito general con capacidades generativas que encajan con el requisito del proyecto.
-- Permite prompt engineering y obtener respuestas en texto o en formatos estructurados (JSON) según el prompt.
-- Amplio soporte, latencia competitiva y ecosistema de Google Cloud para escalado futuro.
-- Integración posible mediante llamadas HTTP directas o con SDKs oficiales (si se decide usar cliente).
+- **Free tier real**: Groq ofrece miles de tokens gratuitos al día sin restricciones académicas.
+- **Velocidad**: Groq es uno de los proveedores de inferencia más rápidos disponibles (tokens/s muy superiores a otros).
+- **Llama 3.3 70B**: modelo open source de Meta con excelente calidad para tareas en español.
+- **Fallback robusto**: si `GROQ_API_KEY` no está configurada o la API falla, el sistema usa el diccionario IPTC sin interrumpir el servicio.
+- **CI sin dependencias externas**: en CI no se configura `GROQ_API_KEY`, por lo que los tests usan el fallback del diccionario y pasan sin red ni secretos.
 
 ## Consecuencias
 
 - Positivas:
-  - Cumple explícitamente el requisito de IA generativa del proyecto.
-  - Calidad de las sugerencias superior a un thesaurus, mayor flexibilidad en prompt.
+  - Cumple el requisito de IA generativa con LLM real en producción.
+  - Sugerencias dinámicas y contextualmente relevantes para cualquier keyword.
+  - Sin coste en CI; sin riesgo de romper el pipeline por rate limits.
 
 - Negativas / Riesgos:
-  - Dependencia de un proveedor externo y gestión de claves/credenciales; requiere control de costes y límites.
-  - Puede requerir adaptación del prompt y post-procesado para garantizar salida JSON válida.
+  - Dependencia de Groq como proveedor externo en producción.
+  - La clave `GROQ_API_KEY` debe configurarse en `.env` para activar Groq; sin ella se usa el diccionario.
 
-## Implementación (resumen)
+## Implementación
 
-- Endpoint en `app/services/ia.py` que llama a `GEMINI_API_URL` con `GEMINI_API_KEY` o usa cliente oficial.
-- Prompt que solicita explícitamente JSON del tipo { "terms": ["t1","t2",...] } y lógica de fallback para parseo robusto.
-- Documentar variables de entorno en README y `.env.example` (p.ej. `GEMINI_API_URL`, `GEMINI_API_KEY`, o `GOOGLE_APPLICATION_CREDENTIALS` si se usa autenticación por archivo de credenciales).
+```python
+# app/services/ai.py
+def generate_synonyms(keyword: str) -> list[str]:
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key:
+        return _fallback_synonyms(keyword)  # diccionario IPTC
+    try:
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile", ...
+        )
+        ...
+    except Exception:
+        return _fallback_synonyms(keyword)
+```
 
 ## Alternativas consideradas
 
-- Datamuse / thesaurus — Rechazado (no IA generativa).
-- Groq, OpenAI, Anthropic — válidos; Gemini elegido por alineación con requisitos de calidad y ecosistema del equipo (puede reevaluarse según costes y disponibilidad).
-
-## Mitigaciones y fallback
-
-- Implementar caché de resultados y límites de tasa para evitar costes excesivos.
-- Proveer fallback a una solución de thesaurus simple si la API de Gemini falla o no responde en producción.
+- **Gemini / Google AI** — Descartado por quota 0 en el proyecto académico de la UC3M.
+- **OpenAI / Anthropic** — Requieren tarjeta de crédito para free tier.
+- **Datamuse (thesaurus)** — Rechazado porque no es IA generativa según el enunciado.
+- **Diccionario IPTC puro** — Usado como fallback; insuficiente como solución principal.
 
 ## Fecha
 
-2026-03-12 — propuesta por el equipo de desarrollo
+2026-03-12 — propuesta inicial (Gemini)
+2026-04-20 — revisada como diccionario IPTC propio
+2026-05-11 — implementada con Groq + fallback al diccionario
 
 # ADR 005: Elección de scheduler — APScheduler (Background)
 

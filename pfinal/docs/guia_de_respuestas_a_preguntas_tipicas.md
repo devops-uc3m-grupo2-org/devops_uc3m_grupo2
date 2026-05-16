@@ -19,7 +19,7 @@ ADR de referencia: **ADR 0009** (JWT), **ADR 0007** (roles).
 
 El endpoint `GET /api/v1/suggestions?keyword=economía` devuelve términos relacionados que el usuario puede añadir como descriptores a sus alertas.
 
-Implementamos el servicio en `app/services/ai.py` con una arquitectura **desacoplada del proveedor**: la función `generate_synonyms(keyword)` tiene exactamente la misma firma que tendría si llamase a Gemini o GPT, lo que permite migrar a un LLM real sin cambiar el endpoint ni los tests.
+Implementamos el servicio en `app/services/ai.py` con una arquitectura **desacoplada del proveedor**: la función `generate_synonyms(keyword)` llama a **Groq (Llama 3.3 70B)** en producción y cae a un diccionario IPTC de fallback si la API no está disponible. Cambiar de proveedor implica solo modificar el cuerpo de esa función sin tocar el endpoint ni los tests.
 
 Decidimos usar un **diccionario IPTC propio** en lugar de una API externa por tres razones (ADR 0004):
 1. Elimina la dependencia de red en CI — los tests son deterministas y pasan sin claves.
