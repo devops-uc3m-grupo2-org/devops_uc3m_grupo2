@@ -203,6 +203,37 @@ SEED_SOURCES = [
             ("https://www.eldiario.es/andalucia/rss/", "Interés humano, animales, insólito"),
         ],
     },
+    {
+        "name": "BBC Mundo",
+        "medium": "digital",
+        "rss_url": "https://feeds.bbci.co.uk/mundo/rss.xml",
+        "iptc_category": "Política",
+        "channels": [
+            ("https://feeds.bbci.co.uk/mundo/rss.xml", "Política"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/america_latina/rss.xml", "Política"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/internacional/rss.xml", "Conflicto, guerra y paz"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/economia/rss.xml", "Economía, negocios y finanzas"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/ciencia_tecnologia/rss.xml", "Ciencia y tecnología"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/salud/rss.xml", "Salud"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/cultura/rss.xml", "Artes, cultura, entretenimiento y medios"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/deportes/rss.xml", "Deporte"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/medio_ambiente/rss.xml", "Medio ambiente"),
+            ("https://feeds.bbci.co.uk/mundo/noticias/sociedad/rss.xml", "Sociedad"),
+        ],
+    },
+    {
+        "name": "El Español",
+        "medium": "digital",
+        "rss_url": "https://www.elespanol.com/rss/",
+        "iptc_category": "Política",
+        "channels": [
+            ("https://www.elespanol.com/rss/", "Política"),
+            ("https://www.elespanol.com/economia/rss/", "Economía, negocios y finanzas"),
+            ("https://www.elespanol.com/cultura/rss/", "Artes, cultura, entretenimiento y medios"),
+            ("https://www.elespanol.com/deportes/rss/", "Deporte"),
+            ("https://www.elespanol.com/ciencia/rss/", "Ciencia y tecnología"),
+        ],
+    },
 ]
 
 
