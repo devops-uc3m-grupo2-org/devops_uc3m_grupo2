@@ -20,4 +20,4 @@ COPY . .
 
 RUN find /app -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
