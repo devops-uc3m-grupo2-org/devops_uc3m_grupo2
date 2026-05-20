@@ -217,7 +217,15 @@ def main() -> int:
                 suite = smoke_suite
 
         if suite is not None:
-            return suite.run_case(case)
+            try:
+                return suite.run_case(case)
+            except Exception as e:
+                return TestOutcome(
+                    case_id=case.get("Caso de Prueba", ""),
+                    status="NOK",
+                    explanation=case.get("Comprobación", ""),
+                    detail=f"Excepción no controlada durante ejecución: {type(e).__name__}: {str(e)}",
+                )
 
         return TestOutcome(
             case_id=case.get("Caso de Prueba", ""),
@@ -235,12 +243,23 @@ def main() -> int:
 
     print(f"\n-- Fase SMOKE ({len(smoke_cases)} casos)")
     for case in smoke_cases:
-        outcome = execute_case(case)
-        outcomes.append(outcome)
-        print(
-            f"Caso {outcome.case_id}: {outcome.status} | "
-            f"Explicación: {outcome.explanation} | Detalle: {outcome.detail}"
-        )
+        try:
+            outcome = execute_case(case)
+            outcomes.append(outcome)
+            print(
+                f"Caso {outcome.case_id}: {outcome.status} | "
+                f"Explicación: {outcome.explanation} | Detalle: {outcome.detail}"
+            )
+        except Exception as e:
+            case_id = case.get("Caso de Prueba", "")
+            print(f"Caso {case_id}: ERROR | Excepción no controlada: {type(e).__name__}: {str(e)}")
+            outcome = TestOutcome(
+                case_id=case_id,
+                status="NOK",
+                explanation=case.get("Comprobación", ""),
+                detail=f"Excepción no controlada en execute_case: {type(e).__name__}: {str(e)}",
+            )
+            outcomes.append(outcome)
 
     smoke_nok = sum(
         1
@@ -260,12 +279,23 @@ def main() -> int:
         for scope, scope_cases in grouped.items():
             print(f"\n-- Ambito: {scope} ({len(scope_cases)} casos)")
             for case in scope_cases:
-                outcome = execute_case(case)
-                outcomes.append(outcome)
-                print(
-                    f"Caso {outcome.case_id}: {outcome.status} | "
-                    f"Explicación: {outcome.explanation} | Detalle: {outcome.detail}"
-                )
+                try:
+                    outcome = execute_case(case)
+                    outcomes.append(outcome)
+                    print(
+                        f"Caso {outcome.case_id}: {outcome.status} | "
+                        f"Explicación: {outcome.explanation} | Detalle: {outcome.detail}"
+                    )
+                except Exception as e:
+                    case_id = case.get("Caso de Prueba", "")
+                    print(f"Caso {case_id}: ERROR | Excepción no controlada: {type(e).__name__}: {str(e)}")
+                    outcome = TestOutcome(
+                        case_id=case_id,
+                        status="NOK",
+                        explanation=case.get("Comprobación", ""),
+                        detail=f"Excepción no controlada en execute_case: {type(e).__name__}: {str(e)}",
+                    )
+                    outcomes.append(outcome)
 
     write_results_csv(output_file, outcomes, cases)
 

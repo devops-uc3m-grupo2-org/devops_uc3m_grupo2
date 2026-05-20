@@ -442,8 +442,8 @@ class InformationSourceManagementScopeTests(BaseScopeTests):
         name_prefix = str(defaults.get("name_prefix", "Fuente"))
         url_base = str(defaults.get("url_base", "https://example.com/feed"))
         return {
-            "name": name or self._unique_name(name_prefix),
-            "url": url or self._unique_url(url_base),
+            "name": name if name is not None else self._unique_name(name_prefix),
+            "url": url if url is not None else self._unique_url(url_base),
         }
 
     @staticmethod

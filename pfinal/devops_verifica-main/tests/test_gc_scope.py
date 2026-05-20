@@ -44,7 +44,24 @@ class CategoryManagementScopeTests(BaseScopeTests):
     def run_case(self, case: Dict[str, str]) -> TestOutcome:
         self._cleanup_reset()
         try:
-            return self._run_case_impl(case)
+            case_id = str(case.get("Caso de Prueba", "")).strip().upper()
+            
+            # Ensure categories are empty before running tests (except GC-022 which handles its own setup)
+            if case_id != "GC-022":
+                empty_ok, empty_detail = self._ensure_categories_empty()
+                if not empty_ok:
+                    return self.nok(case, f"No se pudo vaciar categorías antes de {case_id}: {empty_detail}")
+            
+            result = self._run_case_impl(case)
+            
+            # Restore full catalog after test completes (except GC-022 which leaves it populated)
+            if case_id != "GC-022":
+                restore_ok, restore_detail = self._restore_full_catalog()
+                if not restore_ok:
+                    # Log restoration error but don't fail the test case result
+                    pass
+            
+            return result
         finally:
             self._cleanup_run()
 
@@ -647,6 +664,58 @@ class CategoryManagementScopeTests(BaseScopeTests):
             self._authorized_request("DELETE", f"/api/v1/categories/{category_id}", body=None)
         except Exception:
             return
+
+    def _restore_full_catalog(self) -> Tuple[bool, str]:
+        """Restore all categories from the closed CATALOG to the server.
+        
+        This is called after each test case completes to ensure the catalog
+        is fully populated for subsequent tests.
+        """
+        token, login_error = self._login_seed_user()
+        if login_error is not None:
+            return False, f"Error autenticando para restaurar catálogo: {login_error}"
+        
+        auth_headers = {"Authorization": f"Bearer {token}"}
+        
+        failures: List[str] = []
+        created = 0
+        
+        for index, (_, name) in enumerate(self.CATALOG):
+            payload = {"name": name, "source": "IPTC"}
+            status_code, response_body, request_error = self._request(
+                "POST", "/api/v1/categories", body=payload, extra_headers=auth_headers
+            )
+            
+            if request_error is not None:
+                # Category might already exist, which is fine
+                if "409" not in str(request_error) and "conflict" not in str(request_error).lower():
+                    failures.append(f"{name} -> error {request_error}")
+                continue
+            
+            if status_code == 201:
+                created += 1
+                continue
+            elif status_code == 409:
+                # Already exists, that's acceptable
+                continue
+            else:
+                failures.append(f"{name} -> status {status_code}")
+        
+        # Verify all catalog entries are present
+        verify_status, verify_body, verify_error = self._request(
+            "GET", "/api/v1/categories", body=None, extra_headers=auth_headers
+        )
+        if verify_error is not None:
+            return False, f"Error verificando catálogo restaurado: {verify_error}"
+        if verify_status != 200 or not isinstance(verify_body, list):
+            return False, f"GET /categories tras restauración devolvió {verify_status}, esperado 200"
+        
+        server_names = {str(item.get("name", "")).strip() for item in verify_body if isinstance(item, dict)}
+        missing = [name for _, name in self.CATALOG if name not in server_names]
+        if missing:
+            return False, f"Catálogo incompleto tras restauración. Faltan: {missing}"
+        
+        return True, f"Catálogo restaurado correctamente ({created} creadas, {len(self.CATALOG)} verificadas)"
 
     def _login_seed_user(self) -> Tuple[Optional[str], Optional[str]]:
         payload = {"email": self.seed_email, "password": self.seed_password}

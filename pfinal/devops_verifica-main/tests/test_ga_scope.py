@@ -1213,7 +1213,7 @@ class AlertManagementScopeTests(BaseScopeTests):
         categories: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
-            "name": name or self._unique_alert_name(),
+            "name": name if name is not None else self._unique_alert_name(),
             "cron_expression": cron_expression,
         }
         if descriptors is not None:

@@ -189,7 +189,7 @@ class SystemInitializationSmokeTests(BaseScopeTests):
             raw_code = str(item[0]).strip()
             raw_name = str(item[1]).strip().lower()
             if raw_code and raw_name:
-                expected_pairs.add((raw_code, raw_name))
+                expected_pairs.add((str(raw_code), str(raw_name)))
 
         if not expected_pairs:
             return self.nok(case, "Configuracion de categorias IPTC invalida: no se pudieron construir pares id+name")
@@ -212,7 +212,7 @@ class SystemInitializationSmokeTests(BaseScopeTests):
             if source_code is None:
                 continue
 
-            observed_pairs.add((source_code, name))
+            observed_pairs.add((str(source_code), str(name)))
 
         missing = sorted(expected_pairs - observed_pairs)
         if missing:
@@ -320,22 +320,15 @@ class SystemInitializationSmokeTests(BaseScopeTests):
 
     @staticmethod
     def _extract_iptc_code(category: Dict[str, Any]) -> Optional[str]:
-        candidates = [
-            category.get("source"),
-            category.get("code"),
-        ]
-
-        for value in candidates:
-            if not isinstance(value, str):
-                continue
-            raw = value.strip().lower()
-            if not raw:
-                continue
+        category_id = category.get("id")
+        if isinstance(category_id, int):
+            return str(category_id).zfill(8)
+        if isinstance(category_id, str):
+            raw = category_id.strip()
             if raw.startswith("medtop:"):
                 raw = raw.split(":", 1)[1]
-            if raw.isdigit() and len(raw) == 8:
-                return raw
-
+            if raw.isdigit():
+                return raw.zfill(8)
         return None
 
     def _login_seed_user(self) -> Tuple[Optional[str], Optional[str]]:

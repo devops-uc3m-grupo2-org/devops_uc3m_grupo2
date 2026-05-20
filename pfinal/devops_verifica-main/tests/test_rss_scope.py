@@ -710,7 +710,7 @@ class RSSChannelManagementScopeTests(BaseScopeTests):
 
     def _valid_payload(self, *, url: Optional[str] = None, category_id: int) -> Dict[str, Any]:
         return {
-            "url": url or self._unique_rss_url_variant(),
+            "url": url if url is not None else self._unique_rss_url_variant(),
             "category_id": category_id,
         }
 

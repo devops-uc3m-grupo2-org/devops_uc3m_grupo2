@@ -526,7 +526,7 @@ class RoleManagementScopeTests(BaseScopeTests):
     ) -> Dict[str, Any]:
         defaults = self._loader.get_default("create_user_payload", {})
         return {
-            "email": email or self._unique_email(),
+            "email": email if email is not None else self._unique_email(),
             "first_name": defaults.get("first_name", "Role"),
             "last_name": defaults.get("last_name", "Tester"),
             "organization": defaults.get("organization", "QA"),

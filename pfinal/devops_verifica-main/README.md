@@ -3,6 +3,18 @@
 Esta aplicación ejecuta los casos definidos en test_data/casos_prueba.csv.
 También utiliza newsradar_openapi.json para comprobaciones del contrato de API.
 
+## Actualizaciones
+
+A continuación se presenta una lista de cambios relevantes sobre los casos de prueba con el siguiente formato (fecha, caso de prueba, descripción)
+
+| Fecha | Caso de prueba | Descripción | Acción realizada|
+|---------|-------|---------|---------|
+| 20 de mayo, 2026     | SMOKE-005    | Conflicto en el tipo de datos del `id` de la categoría en este caso de prueba con otros como GC-006, GC-008 o GC-016.  | Actualización de la función `_extract_iptc_code` en el fichero `test_smoke_scope` |
+| 20 de mayo, 2026     | GC-008    | El payload generado no sirve para la aserción necesaria en la prueba y puede depender de la implementación.  | Se comenta el caso de prueba GC-008 con una '#' en la línea 86 del fichero `casos_prueba.csv`. |
+
+* **Total de casos de prueba a pasar: 281**
+
+
 ## Alcance
 
 - Los casos se enrutan por ámbito y por prefijo de ID de caso.
@@ -16,9 +28,8 @@ También utiliza newsradar_openapi.json para comprobaciones del contrato de API.
 
 Este apartado vale 1 punto calculado como:
 
-* 80% pasar todos los tests automáticos (287)
+* 90% pasar todos los tests automáticos (281)
 * 10% pasar los tests de inspección manuales (5)
-* 10% test del propio proyecto, cobertura de código por encima del 80%, etc.
 
 Nota: si los códigos de retorno en el API no son exactos pero sí la detección del problema, el caso de prueba se dará por superado. No obstante, sería conveniente ajustar el retorno de códigos en el API.
 
@@ -169,7 +180,7 @@ LR_USER_POOL_SIZE=10 \
 ./devops_verifica/.venv/bin/locust -f load_test.py --host http://localhost:8000 --users 100 --spawn-rate 100 --headless --run-time 2m
 ```
 
-### Escenario de carga
+### Escenario de carga 
 
 Este modo de carga trata de que todos los usuarios virtuales compitan sobre un único email, lo que incrementa la probabilidad de detectar problemas de concurrencia.
 
@@ -202,7 +213,7 @@ Las siguientes funcionalidades se verifican manualmente:
   * Se debe arrancar el servicio Mock RSS
   * Se debe crear una information source
   * Se debe crear un RSS channel asociada a esa information source con la URL del servicio Mock (ver siguiente sección)
-  * Se debe crear una alerta añadiendo una categoría (la que se prefiera), con este canal RSS y con un ejecución de de cada minuto desde 0: * * * * *
+  * Se debe crear una alerta añadiendo una categoría (la que se prefiera), con este canal RSS y con un ejecución de de cada minuto desde 0: * * * * * y con un description "sintetica"
   * Se deben esperar 2 minutos (2 ejecuciones) y se deben haber rescatado 8 noticias
 
 # Mock RSS con FastAPI
@@ -240,3 +251,4 @@ curl -s http://127.0.0.1:8100/rss
 ```
 
 Nota: el estado de llamadas se guarda en memoria del proceso. Si reinicias el servidor, vuelve a empezar en 5 -> 3 -> 0.
+

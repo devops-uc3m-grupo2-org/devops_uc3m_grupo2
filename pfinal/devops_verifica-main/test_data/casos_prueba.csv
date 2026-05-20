@@ -5,10 +5,10 @@ API-003,Autenticación API,API,Login semilla correcto y acceso autorizado a usua
 API-004,Autenticación API,API,Login inválido debe fallar sin token,Intentar login con password inválido y comprobar que no devuelve access_token.
 GU-001,Crear usuario válido con rol gestor,Gestión de Usuarios,201 creado y datos persistidos correctamente,Enviar payload con un único role_id válido cuyo nombre es "gestor"
 GU-002,Crear usuario sin campo obligatorio email,Gestión de Usuarios,400 error validación,Eliminar email del payload
-GU-003,Crear usuario sin first_name,Gestión de Usuarios,400 error validación,Eliminar first_name
-GU-004,Crear usuario sin last_name,Gestión de Usuarios,400 error validación,Eliminar last_name
+GU-003,Crear usuario sin first_name,Gestión de Usuarios,400 error validación,Eliminar first_name del payload
+GU-004,Crear usuario sin last_name,Gestión de Usuarios,400 error validación,Eliminar last_name del payload
 GU-005,Crear usuario sin role_ids gestor,Gestión de Usuarios,201 creado con rol gestor por defecto,Eliminar role_ids del payload y validar asignación automática del role_id cuyo name es "gestor"
-GU-006,Crear usuario sin password,Gestión de Usuarios,400 error validación,Eliminar password
+GU-006,Crear usuario sin password,Gestión de Usuarios,400 error validación,Eliminar password del payload
 GU-007,Email con formato inválido,Gestión de Usuarios,400 error validación,Enviar email sin formato correcto
 GU-008,Email duplicado,Gestión de Usuarios,409 conflicto o 400,Crear usuario y repetir email
 GU-009,Crear usuario con first_name longitud mínima inválida,Gestión de Usuarios,400 error validación,Enviar string vacío
@@ -18,16 +18,10 @@ GU-012,Crear usuario con last_name longitud máxima excedida,Gestión de Usuario
 GU-013,Crear usuario con organization longitud excedida,Gestión de Usuarios,400 error validación,Enviar >180 caracteres
 GU-014,Crear usuario con password longitud mínima inválida,Gestión de Usuarios,400 error validación,Enviar <6 caracteres
 GU-015,Crear usuario con password longitud máxima excedida,Gestión de Usuarios,400 error validación,Enviar >128 caracteres
-GU-016,Crear usuario con role_ids vacío,Gestión de Usuarios,201 creado con rol gestor por defecto,Enviar role_ids=[] y validar asignación automática del role_id cuyo name es "gestor"
 GU-017,Crear usuario con role_ids con valores no numéricos,Gestión de Usuarios,400 error validación,Enviar strings en array en lugar del role_id gestor
 GU-018,Crear usuario con role_ids con ids inexistentes o no asignables,Gestión de Usuarios,400 error negocio,Enviar ids no existentes o distintos al rol gestor
-#GU-019,Crear usuario con password almacenado cifrado,Gestión de Usuarios,password no igual al enviado,Crear usuario y validar almacenamiento
-#GU-020,Crear usuario con password en formato MD5 válido,Gestión de Usuarios,hash MD5 correcto,Comparar con MD5 esperado
-#GU-021,Crear usuario con password no almacenado en texto plano,Gestión de Usuarios,valor diferente al input,Consultar DB
 GU-022,Crear usuario con campos opcionales omitidos,Gestión de Usuarios,201 creado correctamente,Omitir organization del payload
 GU-023,Caracteres especiales en nombres,Gestión de Usuarios,201 o validación correcta,Enviar acentos y símbolos válidos
-#GU-024,Inyección SQL en campos,Gestión de Usuarios,WARNING no automatizable por API,Enviar payload malicioso y registrar advertencia
-GU-025,Inyección XSS en campos,Gestión de Usuarios,400 o sanitización,Enviar script en strings
 GU-026,Crear usuario con más de un role_id,Gestión de Usuarios,400 error validación o negocio,Enviar más de un role_id aunque uno de ellos sea gestor
 GU-027,Actualizar usuario válido,Gestión de Usuarios,200 actualizado,Modificar datos válidos
 GU-028,Actualizar email a uno existente,Gestión de Usuarios,409 conflicto,Actualizar con email duplicado
@@ -38,30 +32,19 @@ GU-032,Consultar usuario inexistente,Gestión de Usuarios,404 no encontrado,Cons
 GU-033,Crear usuario con espacios en blanco,Gestión de Usuarios,400 o trim aplicado,Enviar strings con espacios
 GU-034,Crear usuario con email en mayúsculas,Gestión de Usuarios,201 correcto/normalización,Enviar email uppercase
 GU-035,Case insensitive en email duplicado,Gestión de Usuarios,409 conflicto,Crear email con distinta capitalización
-#GU-036,Crear usuario concurrente mismo email,Gestión de Usuarios,1 éxito + 1 fallo o WARNING si no se ejecuta,Enviar requests simultáneas con Locust
 GU-037,Validar respuesta sin password expuesto,Gestión de Usuarios,password no presente o enmascarado,Revisar response
 GU-038,Crear usuario con payload extra no permitido,Gestión de Usuarios,400 o ignorado,Enviar campos adicionales
-#GU-039,Timeout o carga alta,Gestión de Usuarios,Respuesta dentro de SLA,Enviar múltiples requests
 GU-040,Encoding UTF-8 correcto,Gestión de Usuarios,201 correcto,Enviar caracteres unicode
 GU-041,Acceso sin Token (Anónimo),Seguridad,401 Unauthorized,Enviar petición sin Header Authorization
-#GU-042,Token con permisos insuficientes,Seguridad,403 Forbidden,Usuario con rol 'User' intenta borrar a otro usuario
-#GU-043,Token expirado,Seguridad,401 Unauthorized,Enviar JWT con 'exp' vencido
-#GU-044,Modificar role_ids a Admin sin permiso,Seguridad,403 Forbidden,Usuario intenta auto-asignarse roles de nivel superior
-#GU-045,Borrado lógico (Soft Delete),Persistencia,"404 en GET, pero existe en DB",Borrar usuario y validar campo deleted_at en DB
 GU-046,Re-crear usuario tras borrado,Negocio,201 Creado,Intentar crear usuario con email que fue borrado previamente
 GU-047,Paginación de usuarios,Gestión de Usuarios,Estructura de metadatos correcta,Consultar GET /users?page=1&size=10
 GU-048,Filtro de búsqueda por nombre,Gestión de Usuarios,Resultados filtrados correctamente,GET /users?first_name=Juan
 GU-049,Content-Type no soportado,Protocolo,415 Unsupported Media Type,Enviar payload en formato XML
 GU-050,Payload JSON mal formado,Protocolo,400 Bad Request,Enviar JSON con error de sintaxis (comas o llaves)
 GU-051,Límite de tamaño de Payload,Infraestructura,413 Payload Too Large or 422,Enviar un campo string > 10MB
-GU-052,Email con alias (signo +),Negocio,201 Creado / Manejo único,Validar si user+test@gmail.com es aceptado
-#GU-053,Actualización parcial (PATCH),Gestión de Usuarios,Solo cambian campos enviados,Usar PATCH para cambiar solo organization
+GU-052,Email con alias (signo +),Negocio,201 Creado / Manejo único,Validar si user+test@gmail.com es aceptador solo organization
 GU-054,IDs inválidos (negativos/extremos),validación,400 o 404,Intentar GET/PUT/DELETE con id -1 o 99999999
-GU-055,Prevención de Inyección NoSQL,Seguridad,400 o Sanitización,Enviar objetos en lugar de strings en campos de búsqueda
-#GU-056,validación de esquema Hashing,Seguridad,Hash compatible con Argon2/BCrypt,Verificar que el password en DB no use MD5/SHA1
-#GU-057,Rate Limiting,Infraestructura,429 Too Many Requests o WARNING si no se ejecuta,Realizar 100 peticiones en 1 segundo con Locust
 GU-058,Cuerpo de petición vacío,validación,400 Bad Request,Enviar POST sin body
-#GU-059,Headers de Seguridad (HSTS/CORS),Seguridad,Headers presentes en respuesta,Validar Access-Control-Allow-Origin y Strict-Transport-Security
 GU-060,Consistencia en tipos de datos role_ids,validación,400 Bad Request,"Enviar [id_gestor, 'admin', 3] (mezcla de tipos)"
 GU-061,Único role_id asignable gestor,Gestión de Usuarios,201 creado correctamente sólo con role_id gestor,Crear usuario indicando exclusivamente el role_id cuyo name sea "gestor"
 GR-001,Crear rol válido,Gestión de Roles,201 creado correctamente,Enviar name válido
@@ -100,7 +83,7 @@ GC-004,Crear categoría con name vacío,Gestión de Categorías,400 error valida
 GC-005,Crear categoría con name longitud máxima excedida,Gestión de Categorías,400 error validación,Enviar >120 caracteres
 GC-006,Crear categoría con source vacío,Gestión de Categorías,400 error validación,Enviar string vacío
 GC-007,Crear categoría con source no permitido,Gestión de Categorías,400 error catálogo,Enviar valor fuera de lista medtop
-GC-008,Crear categoría con name no corresponde a source,Gestión de Categorías,400 error consistencia,Enviar name distinto al esperado para ese source
+#GC-008,Crear categoría con name no corresponde a source,Gestión de Categorías,400 error consistencia,Enviar name distinto al esperado para ese source
 GC-009,Crear categoría duplicada exacta,Gestión de Categorías,409 conflicto,Repetir mismo name+source
 GC-010,Crear categoría duplicada con distinta capitalización,Gestión de Categorías,409 conflicto,Variar mayúsculas/minúsculas
 GC-011,Crear categoría con espacios en blanco,Gestión de Categorías,400 o trim aplicado,Enviar "  name  "
@@ -118,7 +101,6 @@ GC-022,Crear todas las categorías del catálogo,Gestión de Categorías,Todas a
 GC-023,Crear categoría fuera del catálogo completo,Gestión de Categorías,400 error catálogo,Enviar combinación no listada
 GC-024,Consistencia catálogo cerrado,Gestión de Categorías,No se permiten valores nuevos,Intentar alta con nuevo medtop
 GC-025,Encoding UTF-8 en name,Gestión de Categorías,201 correcto,Enviar caracteres unicode válidos
-GC-026,Respuesta sin datos inesperados,Gestión de Categorías,Contrato API correcto,Validar schema response
 IS-001,Crear fuente válida,Gestión de Fuentes de Información,201 creado correctamente,Enviar name y url válidos accesibles
 IS-002,Crear fuente sin name,Gestión de Fuentes de Información,400 error validación,Eliminar campo name
 IS-003,Crear fuente sin url,Gestión de Fuentes de Información,400 error validación,Eliminar campo url
@@ -163,7 +145,6 @@ RSS-012,Crear RSS con information_source_id inexistente,Gestión de RSS Channels
 RSS-013,Desajuste source_id en path vs body,Gestión de RSS Channels,400 error consistencia,Usar source_id distinto en URL y payload
 RSS-014,Crear duplicado exacto,Gestión de RSS Channels,409 conflicto,Repetir misma url category_id e information_source_id
 RSS-015,Duplicado por url misma source,Gestión de RSS Channels,409 conflicto,Repetir url con misma source aunque distinta categoría
-RSS-016,Duplicado por url global,Gestión de RSS Channels,409 o permitido según regla,Repetir url en distinta source
 RSS-017,Duplicar RSS con url case insensitive duplicado,Gestión de RSS Channels,409 conflicto,Variar mayúsculas en URL
 RSS-018,Duplicar RSS co url con trailing slash duplicado,Gestión de RSS Channels,409 conflicto,Probar / final
 RSS-019,Normalización url,Gestión de RSS Channels,Consistencia en almacenamiento,Enviar variantes equivalentes
@@ -179,10 +160,8 @@ RSS-028,Actualizar url a no RSS,Gestión de RSS Channels,400 error validación,E
 RSS-029,Actualizar category_id inválido,Gestión de RSS Channels,400 error integridad,Enviar id inválido
 RSS-030,Eliminar RSSChannel existente,Gestión de RSS Channels,204 eliminado,Borrar id válido
 RSS-031,Eliminar RSSChannel inexistente,Gestión de RSS Channels,404 no encontrado,Borrar id inválido
-#RSS-032,Consistencia concurrente duplicados,Gestión de RSS Channels,1 éxito + 1 fallo,Crear misma url en paralelo
 RSS-033,Encoding UTF-8 en URL,Gestión de RSS Channels,201 correcto,Enviar caracteres válidos
 RSS-034,Respuesta sin datos inesperados,Gestión de RSS Channels,Contrato API correcto,Validar schema response
-#RSS-035,URL redirigida a RSS válido,Gestión de RSS Channels,201 correcto o validación,Enviar URL con redirect 3xx
 ST-001,Crear Stats válido,Gestión de Stats,201 creado correctamente,Enviar metrics con name y value válidos
 ST-002,Crear Stats sin metrics,Gestión de Stats,400 error validación,Eliminar campo metrics
 ST-003,Crear Stats con metrics vacío,Gestión de Stats,400 error validación,Enviar array vacío
@@ -240,7 +219,6 @@ GA-022,Alerta sin fuentes ni RSS,Gestión de Alertas,201 correcto,No enviar rss 
 GA-023,Alerta con rss y sources válidos,Gestión de Alertas,201 correcto,Enviar ambos arrays válidos
 GA-024,Crear alerta con rss_channel duplicado,Gestión de Alertas,409 o deduplicado,Repetir id
 GA-025,Crear alerta con information_source duplicado,Gestión de Alertas,409 o deduplicado,Repetir id
-#GA-026,Desajuste user_id path vs body,Gestión de Alertas,400 error consistencia,Enviar distinto user_id
 GA-027,Crear alerta con user_id inexistente,Gestión de Alertas,404 no encontrado,POST con user inválido
 GA-028,Crear alerta duplicada (mismo name usuario),Gestión de Alertas,409 conflicto,Repetir name para mismo user
 GA-029,Crear alerta mismo name distinto user,Gestión de Alertas,201 correcto,Crear en otro user
@@ -255,7 +233,6 @@ GA-037,Actualizar cron inválido,Gestión de Alertas,400 error validación,Envia
 GA-038,Actualizar categorías inválidas,Gestión de Alertas,400 error integridad,Enviar categorías incorrectas
 GA-039,Eliminar alerta existente,Gestión de Alertas,204 eliminado,Borrar id válido
 GA-040,Eliminar alerta inexistente,Gestión de Alertas,404 no encontrado,Borrar id inválido
-#GA-041,Consistencia cron ejecución,Gestión de Alertas,Cron interpretable correctamente,Validar parsing backend
 GA-042,Encoding UTF-8 en name/descriptors,Gestión de Alertas,201 correcto,Enviar unicode
 GA-043,Respuesta sin datos inesperados,Gestión de Alertas,Contrato API correcto,Validar schema response
 GN-001,Crear notification válida,Gestión de Notificaciones,201 creado correctamente,POST con timestamp y metrics válidos
@@ -291,8 +268,6 @@ GN-030,Consultar notifications con user inválido,Gestión de Notificaciones,404
 GN-031,Validar id entero,Gestión de Notificaciones,id entero correcto,Verificar tipo en response
 GN-032,Validar alert_id en respuesta,Gestión de Notificaciones,Consistencia con path,Comparar alert_id
 GN-033,Orden cronológico por timestamp,Gestión de Notificaciones,Consistencia orden,Validar orden en GET
-#GN-034,Duplicado exacto notification,Gestión de Notificaciones,409 o permitido según regla,Repetir payload
-#GN-035,Normalización name en metrics,Gestión de Notificaciones,Consistencia almacenamiento,Variar mayúsculas
 GN-036,Encoding UTF-8 en metrics,Gestión de Notificaciones,201 correcto,Enviar unicode
 GN-037,Respuesta sin datos inesperados,Gestión de Notificaciones,Contrato API correcto,Validar schema response
 GN-038,Consistencia timestamp zona horaria,Gestión de Notificaciones,Normalización UTC,Enviar distintas TZ

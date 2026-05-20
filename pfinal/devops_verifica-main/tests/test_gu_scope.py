@@ -723,7 +723,7 @@ class UserManagementScopeTests(BaseScopeTests):
             gestor_role_id, _ = self._get_gestor_role_id()
             role_ids = [gestor_role_id] if gestor_role_id is not None else []
         return {
-            "email": email or self._unique_email(),
+            "email": email if email is not None else self._unique_email(),
             "first_name": first_name,
             "last_name": last_name,
             "organization": organization,
