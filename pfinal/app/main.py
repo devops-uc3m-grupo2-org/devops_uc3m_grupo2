@@ -3,7 +3,6 @@ import os
 import pathlib
 import re
 import html
-import time
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from urllib.parse import urlsplit, urlunsplit
@@ -103,8 +102,6 @@ IPTC_CATALOG: dict[str, str] = {
     "17000000": "Meteorología",
 }
 IPTC_NAME_TO_CODE = {name.casefold(): code for code, name in IPTC_CATALOG.items()}
-_CLAIMED_CATEGORY_CODES: set[str] = set()
-_LAST_CATEGORY_CREATE: dict[str, float] = {}
 
 
 def _clean_text(value: str) -> str:
@@ -1612,27 +1609,12 @@ def list_categories(current_user: UserModel = Depends(get_current_user), db: Ses
 def create_category(payload: CategoryCreate, current_user: UserModel = Depends(get_current_user), db: Session = Depends(get_db)) -> Category:
     code, name = _catalog_code_for_payload(payload.name, payload.source)
     category_id = int(code)
-    existing = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
-    if existing:
-        now = time.monotonic()
-        if code == "03000000":
-            raise HTTPException(status_code=422, detail="name-source inconsistente")
-        if code == "14000000":
-            _LAST_CATEGORY_CREATE[code] = now
-            return existing
-        if now - _LAST_CATEGORY_CREATE.get(code, 0.0) < 2.0:
-            raise HTTPException(status_code=409, detail="La categoría ya existe")
-        _LAST_CATEGORY_CREATE[code] = now
-        _CLAIMED_CATEGORY_CODES.add(code)
-        return existing
-    if db.query(CategoryModel).filter(func.lower(cast(CategoryModel.name, String)) == name.lower()).first():
+    if db.query(CategoryModel).filter(CategoryModel.id == category_id).first():
         raise HTTPException(status_code=409, detail="La categoría ya existe")
     new_category = CategoryModel(id=category_id, name=name, source="IPTC")
     db.add(new_category)
     db.commit()
     db.refresh(new_category)
-    _CLAIMED_CATEGORY_CODES.add(code)
-    _LAST_CATEGORY_CREATE[code] = time.monotonic()
     return new_category
 
 @app.get(f"{API_PREFIX}/categories/{{category_id}}", response_model=Category, tags=["categories"])
@@ -1684,9 +1666,6 @@ def delete_category(category_id: int, current_user: UserModel = Depends(get_curr
     category = db.query(CategoryModel).filter(CategoryModel.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
-    code = IPTC_NAME_TO_CODE.get(_cat_name_str(category.name).strip().casefold())
-    if code:
-        _CLAIMED_CATEGORY_CODES.discard(code)
     db.query(ChannelModel).filter(ChannelModel.category_id == category_id).update({"category_id": None})
     db.delete(category)
     db.commit()
