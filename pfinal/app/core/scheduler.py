@@ -33,6 +33,7 @@ def start_scheduler():
         trigger="cron",
         minute="*/5",
         max_instances=1,
+        misfire_grace_time=60,
     )
 
     scheduler.start()
