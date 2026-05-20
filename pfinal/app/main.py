@@ -908,6 +908,8 @@ def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel 
     alert_count = db.query(AlertModel).filter(AlertModel.user_id == user_id).count()
     if alert_count >= 20:
         raise HTTPException(status_code=422, detail="Límite alcanzado: un usuario no puede tener más de 20 alertas")
+    if len(payload.descriptors) != len(set(payload.descriptors)):
+        raise HTTPException(status_code=422, detail="Los descriptores no pueden contener duplicados")
     descriptors = list(payload.descriptors)
     if len(descriptors) < 3:
         seen = set(descriptors)
