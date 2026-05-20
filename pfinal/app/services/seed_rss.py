@@ -259,7 +259,7 @@ SEED_SOURCES = [
             ("https://www.lavanguardia.com/rss/politica.xml", "Política"),
             ("https://www.lavanguardia.com/rss/opinion.xml", "Política"),
             ("https://www.lavanguardia.com/rss/gente.xml", "Interés humano, animales, insólito"),
-            ("https://www.lavanguardia.com/rss/sucesos.xml", "Policía y justicia"),
+            ("https://www.lavanguardia.com/rss/sucesos.xml", "Catástrofes y accidentes"),
             ("https://www.lavanguardia.com/rss/participacion.xml", "Sociedad"),
             ("https://www.lavanguardia.com/rss/lacontra.xml", "Sociedad"),
             ("https://www.lavanguardia.com/rss/natural.xml", "Medio ambiente"),
