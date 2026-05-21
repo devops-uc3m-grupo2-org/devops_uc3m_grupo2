@@ -6,3 +6,6 @@ pfinal/.claude/settings.local.json
 .coverage
 coverage.xml
 .pytest_cache/
+
+*.db
+**/node_modules/
