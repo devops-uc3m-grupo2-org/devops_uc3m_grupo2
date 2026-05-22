@@ -1,15 +1,26 @@
 # Casos NOK del verificador — análisis y justificación
 
-## Estado final (2026-05-21)
+## Estado final (2026-05-22) — segunda pasada confirmada
 
-Los 3 NOK fueron corregidos. El verificador oficial (`id=5930080` del ultimo correo) pasa al **100 %**:
+Los 3 NOK fueron corregidos. El verificador oficial (`id=5930080` del ultimo correo) pasa al **100 %** de forma reproducible:
+
+| Ejecución | Fecha            | venv + pip | Tests | Total  | Resultado  |
+| --------- | ---------------- | ---------- | ----- | ------ | ---------- |
+| 1ª pasada | 2026-05-21 12:01 | 563 s      | 198 s | 761 s  | 281/281 OK |
+| 2ª pasada | 2026-05-22 13:07 | 844 s      | 186 s | 1030 s | 281/281 OK |
 
 ```
+── Tiempos ──────────────────────────────
+   Entorno virtual (venv + pip): 844s
+   Tests:                        186s
+   Total:                        1030s
+
 Total casos: 281
 OK:      281 (100.00%)
 WARNING:   0 (0.00%)
 NOK:       0 (0.00%)
 Resultado: OK
+CSV: resultado_pruebas_20260522_130706.csv
 ```
 
 **Corrección aplicada** en `pfinal/devops_verifica-main/tests/test_is_scope.py` y `test_rss_scope.py`:

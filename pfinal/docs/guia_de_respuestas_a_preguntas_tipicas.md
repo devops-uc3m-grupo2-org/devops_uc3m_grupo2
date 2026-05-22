@@ -34,9 +34,15 @@ Para una fase 2, basta con sustituir el cuerpo de `generate_synonyms` por la lla
 
 Dos capas de verificación:
 
-**1. Verificador del profesor — 281/281 OK (100 %)**
+**1. Verificador del profesor — 281/281 OK (100 %) — verificado 2 veces**
 
-El verificador oficial (`id=5930080`, versión del correo 3) pasa todos los casos:
+El verificador oficial (`id=5930080`, versión del correo 3) pasa todos los casos de forma reproducible:
+
+| Ejecución | Fecha | venv + pip | Tests | Total |
+|---|---|---|---|---|
+| 1ª pasada | 2026-05-21 12:01 | 563 s (9 min 23 s) | 198 s (3 min 18 s) | 761 s (12 min 41 s) |
+| 2ª pasada | 2026-05-22 13:07 | 844 s (14 min 4 s) | 186 s (3 min 6 s) | 1030 s (17 min 10 s) |
+
 ```
 Total casos: 281 | OK: 281 (100.00%) | WARNING: 0 | NOK: 0
 Resultado: OK
@@ -44,7 +50,7 @@ Resultado: OK
 Se ejecuta con entorno limpio:
 ```bash
 bash pfinal/start.sh             # reset BD + rebuild Docker
-bash pfinal/run_verifier.sh --all  # 281 tests (~3 min)
+bash pfinal/run_verifier.sh --all  # 281 tests (~17 min total)
 ```
 
 **2. Tests internos pytest — 26 tests, cobertura 96,48 %**
