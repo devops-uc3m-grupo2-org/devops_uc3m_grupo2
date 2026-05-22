@@ -9,3 +9,5 @@ coverage.xml
 
 *.db
 **/node_modules/
+
+pfinal/correos_profe/
