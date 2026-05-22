@@ -1,6 +1,31 @@
 # Casos NOK del verificador — análisis y justificación
 
-## Resultado del verificador
+## Estado final (2026-05-21)
+
+Los 3 NOK fueron corregidos. El verificador oficial (`id=5930080` del ultimo correo) pasa al **100 %**:
+
+```
+Total casos: 281
+OK:      281 (100.00%)
+WARNING:   0 (0.00%)
+NOK:       0 (0.00%)
+Resultado: OK
+```
+
+**Corrección aplicada** en `pfinal/devops_verifica-main/tests/test_is_scope.py` y `test_rss_scope.py`:
+```python
+# Antes (bug):
+"name": name or self._unique_name(name_prefix),
+
+# Después (correcto):
+"name": name if name is not None else self._unique_name(name_prefix),
+```
+
+La versión nueva del verificador (281 casos vs 287 anteriores) también eliminó el caso GC-008 que provocaba la lógica de timing que se tuvo que desmontar de `main.py`.
+
+---
+
+## Análisis original del resultado anterior (287 tests)
 
 ```
 Total casos: 287

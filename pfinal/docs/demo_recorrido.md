@@ -8,12 +8,14 @@ Para la defensa, sustituye esa IP por `localhost` si corres el proyecto en tu m�
 ## 0. Levantar el proyecto
 
 ```bash
-docker compose up --build
+bash pfinal/start.sh
 ```
 
-Espera hasta ver en los logs:
-```
-INFO:     Application startup complete.
+Esto hace `docker compose down -v` + rebuild + espera hasta que `/api/v1/health` responda (~2 min). Es el comando correcto para el examen — garantiza BD limpia.
+
+Alternativamente de forma manual:
+```bash
+docker compose up --build
 ```
 
 Comprueba que está vivo:
@@ -22,6 +24,8 @@ Comprueba que está vivo:
 curl http://localhost:8000/api/v1/health
 # → {"status":"ok","message":"NewsRadar listo con PostgreSQL + JWT"}
 ```
+
+> ⚠️ **Importante:** no usar `--reload` en el Dockerfile (ya eliminado). Con `--reload`, uvicorn reinicia el servidor cada vez que el scheduler escribe en `__pycache__` → conexiones cortadas. Sin él, el servidor es estable.
 
 ---
 
@@ -335,3 +339,51 @@ python3 docs/demo_recorrido.py
 | Estadísticas | GET | `/api/v1/stats` | JWT |
 
 Swagger interactivo: `http://localhost:8000/docs`
+
+---
+
+## 8. Demo M5 — Mock RSS (inspección manual del examen)
+
+El Mock RSS es un servidor Python del verificador que genera noticias sintéticas de forma controlada: 5 en el primer ciclo, 3 en el segundo, 0 en adelante. Permite demostrar el flujo completo sin depender de feeds reales.
+
+**Requisito previo:** arrancar el mock en una terminal aparte (desde `pfinal/devops_verifica-main/`):
+```bash
+python mock_rss_service.py --port 8100
+```
+
+**Ejecutar la demo automatizada:**
+```bash
+bash pfinal/demo_m5.sh
+```
+
+El script crea la fuente, el canal RSS apuntando a `host.docker.internal:8100`, la alerta con descriptor `sintetica` y espera hasta 15 min hasta acumular 8 notificaciones (5 ciclo 1 + 3 ciclo 2).
+
+**Resultado real obtenido (2026-05-21, 360s):**
+```
+✅ M5 PASADO — 8 notificaciones en 360 segundos
+  Canal id=202, 8 noticias en BD (Noticia sintetica 1–8)
+```
+
+> ⚠️ Reiniciar el mock (`Ctrl+C` + relanzar) antes de cada repetición para resetear el contador 5→3→0. También hacer `bash pfinal/start.sh` para limpiar la BD.
+
+---
+
+## Orden completo el día del examen (25/05/2026)
+
+```bash
+# Terminal 1
+bash pfinal/start.sh                    # reset BD + rebuild (~2 min)
+bash pfinal/run_verifier.sh --all       # 281 tests (~3 min)
+
+# Terminal 2 — inspección manual M1-M4
+bash pfinal/m1_email_notificacion.sh
+bash pfinal/m2_formato_asunto.sh
+bash pfinal/m3_registro_verificacion.sh
+bash pfinal/m4_expiracion_24h.sh
+
+# Terminal 3 — mock para M5
+cd pfinal/devops_verifica-main && python mock_rss_service.py --port 8100
+
+# Terminal 2 — M5
+bash pfinal/demo_m5.sh
+```
