@@ -1,7 +1,7 @@
 # ADR 003: Estrategia de ingestión de fuentes RSS y orquestación de monitorización continua
 
 ## Estado
-**Aceptado** (Pendiente de implementación)
+**Aceptado — Implementado y verificado (2026-05-21)**
 
 ## Contexto
 
@@ -61,7 +61,7 @@ Se necesita un mecanismo fiable para:
 - Monitorización real-time por alerta sin infraestructura extra.
 - Código limpio: un `RSSIngestorService` inyectado como dependencia.
 - Fácil seeding inicial de 100+ fuentes RSS (script de inicialización).
-- Integración directa con pgvector: al detectar match → embed + store + notificar.
+- Al detectar match → almacenar en `AlertNews` + generar `Notification` + enviar email via SMTP.
 - Dashboard de estadísticas (nº noticias, fuentes) se actualiza automáticamente.
 
 ### Negativas / Mitigadas
@@ -82,8 +82,26 @@ Se necesita un mecanismo fiable para:
 - feedparser documentation.
 - Ejemplo oficial del proyecto (newsradar_api.zip) – API REST ya usa FastAPI.
 
+## Estado de implementación (2026-05-22)
+
+- **200 canales RSS verificados** en `pfinal/app/services/seed_rss.py` — todas las 17 categorías IPTC cubiertas (SMOKE-003 ≥ 100 ✅, SMOKE-004 ✅).
+- Proceso de verificación: script `pfinal/check_rss_urls.sh` — resultado `OK: 200 / 200 — FAIL: 0 / 200`.
+- Fuentes incluidas: El País, El Mundo, ABC, La Vanguardia, Marca, Mundo Deportivo, Euronews España, Cinco Días, 20 Minutos, RTVE (eliminado, sustituido), y más de 20 medios.
+
+### Bug crítico corregido — `UniqueViolation` en el fetcher
+
+Al insertar noticias, un `IntegrityError` por URL duplicada dejaba la sesión SQLAlchemy en estado `PendingRollbackError` y el ciclo completo fallaba. Corregido con savepoints (`db.begin_nested()`) por cada item:
+
+```python
+try:
+    with db.begin_nested():
+        db.add(item)
+        db.flush()
+    created_items.append(item)
+except IntegrityError:
+    pass  # savepoint revertido; el resto del ciclo continúa
+```
+
 Fecha de decisión: 12 marzo 2026
 Propuesto por: Equipo NEWSRADAR
-Aceptado por: [tu nombre]
-
-<!-- Próximo paso: crear app/services/rss_ingestor.py y registrar scheduler en main.py -->
+Implementado: mayo 2026

@@ -1,25 +1,37 @@
 # ADR 011: Migrations — Alembic
 
 ## Estado
-**Aceptado**
+**Aceptado — Decisión revisada: se usa `create_all()` en lugar de Alembic (2026-05)**
 
 ## Contexto
 
-La evolución del esquema de BD requiere control de versiones y migraciones reproducibles.
+La evolución del esquema de BD requiere control de versiones y migraciones reproducibles en un entorno de CI/CD con contenedores Docker.
 
-## Decisión
+## Decisión final (implementación real)
 
-Usar Alembic para gestionar migraciones de SQLAlchemy. Mantener las migraciones en `alembic/versions` y ejecutar `alembic revision --autogenerate` al introducir cambios en los modelos.
+**No se usa Alembic.** El esquema se crea automáticamente en cada arranque con `Base.metadata.create_all(bind=engine)` dentro del evento `startup` de FastAPI.
 
-## Justificación
+```python
+# pfinal/app/main.py — al arrancar
+Base.metadata.create_all(bind=engine)
+seed_categories(db)
+seed_rss_channels(db)
+```
 
-- Alembic es la solución estándar junto a SQLAlchemy.
-- Permite mantener un historial de cambios y facilitar despliegues con migración automática en CI/CD.
+El comando de despliegue limpio es `bash pfinal/start.sh`, que hace `docker compose down -v` (borra el volumen) + rebuild. Esto garantiza un esquema siempre fresco y consistente con los modelos actuales.
+
+## Por qué se descartó Alembic
+
+- Con `docker compose down -v` + rebuild como estrategia de despliegue, no hay estado previo que migrar — el esquema se crea desde cero en cada arranque limpio.
+- Alembic aporta valor cuando hay datos en producción que no se pueden borrar. En el contexto del proyecto (examen, BD de prueba), el enfoque `create_all` es suficiente y más simple.
+- El enunciado no exige versionado de migraciones, solo un despliegue automatizado en entorno limpio — que `start.sh` cubre.
 
 ## Consecuencias
 
-- Incluir pasos en README para ejecutar `alembic upgrade head` como parte del despliegue.
+- El despliegue es siempre desde cero (`start.sh`): no hay migraciones incrementales.
+- Si en el futuro hubiera datos persistentes que preservar, se debería migrar a Alembic.
 
 ## Fecha
 
-2026-03-12
+2026-03-12 — propuesta inicial con Alembic
+2026-05 — decisión revisada: `create_all()` + `start.sh` como estrategia de despliegue

@@ -1,37 +1,32 @@
 # ADR 007: Permisos de gestores — enfoque inicial y migración a roles
 
 ## Estado
-**Aceptado (Fase 1)**
+**Aceptado — RBAC implementado (2026-05)**
 
 ## Contexto
 
-Al principio del desarrollo se necesita una forma simple de restringir quién puede crear/listar alertas (gestores). Para acelerar la entrega, se eligió un método rápido basado en la variable de entorno `MANAGERS` que contiene una lista de emails permitidos.
+Al principio del desarrollo se usó una variable de entorno `MANAGERS` con emails permitidos para control de acceso rápido. En Fase 2 se migró a un sistema de roles completo.
 
-## Decisión
+## Decisión final
 
-Fase 1: usar `MANAGERS` (emails) como control de acceso para los endpoints de gestión de alertas.
+RBAC basado en la tabla `roles` y relaciones many-to-many con `users`. Los endpoints comprueban el rol del usuario autenticado vía JWT + `Depends(get_current_user)`.
 
-Plan de migración: en Fase 2 migrar a un sistema basado en la tabla `roles` y relaciones many-to-many entre `users` y `roles`, con comprobaciones RBAC en los endpoints.
+## Roles implementados
 
-## Justificación
+| Rol | Puede gestionar alertas | Puede registrar usuarios | Verificado |
+|---|---|---|---|
+| `admin` | ✅ | ✅ | ✅ |
+| `gestor` | ✅ | — | ✅ |
+| `lector` | ❌ → HTTP 403 | — | ✅ |
 
-- Rápido de implementar y suficiente para la entrega del objetivo 1.
-- Evita añadir complejidad de migraciones y lógica RBAC inmediata.
+**Verificado el 2026-05-22** (inspección manual M del examen): un usuario con rol `lector` recibe `403 Forbidden` al intentar crear una alerta en `POST /api/v1/users/{id}/alerts`.
 
 ## Consecuencias
 
-- Positivas:
-  - Entrega rápida y control simple de acceso.
-
-- Negativas:
-  - No escalable ni auditable a largo plazo.
-  - Requiere migración y cambios en código/DB cuando se active RBAC.
-
-## Migración propuesta
-
-- Añadir tabla `roles` (ya existe en DB) y tabla intermedia `user_roles`.
-- Crear middleware/dependencies que verifiquen roles desde DB en lugar de `MANAGERS`.
+- Sistema de roles completamente funcional en BD y endpoints.
+- El seed inicial crea roles `admin`, `gestor` y `lector` y el usuario `admin@newsradar.com` con rol `admin`.
 
 ## Fecha
 
-2026-03-12
+2026-03-12 — propuesta inicial con MANAGERS
+2026-05 — RBAC completo implementado y verificado
