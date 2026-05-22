@@ -11,3 +11,6 @@ coverage.xml
 **/node_modules/
 
 pfinal/correos_profe/
+
+package.json
+package-lock.json
