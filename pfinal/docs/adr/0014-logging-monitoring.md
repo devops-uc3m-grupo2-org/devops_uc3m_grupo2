@@ -26,7 +26,17 @@ Estos prefijos son la base de la inspección manual M1/M2/M3 del examen — los 
 
 ## Cobertura de tests (CI)
 
-Cobertura: **96,48 %** (umbral: 80 %). Ficheros de infraestructura excluidos en `.coveragerc` (`main.py`, `scheduler.py`, `fetcher.py`, `notifications.py`, `seed_rss.py`).
+Umbral mínimo: **80 %** (`--cov-fail-under=80`). Ficheros de infraestructura excluidos en `.coveragerc` (`main.py`, `scheduler.py`, `fetcher.py`, `notifications.py`, `seed_rss.py`).
+
+Cobertura medida localmente sobre módulos de lógica (72 tests, mayo 2026):
+
+| Módulo | Cover |
+|---|---|
+| `models.py` | 100% |
+| `alertLogic.py` | 82% |
+| `database.py` | 71% |
+| `ai.py` | 62% |
+| **TOTAL** | **88%** |
 
 ## Consecuencias
 

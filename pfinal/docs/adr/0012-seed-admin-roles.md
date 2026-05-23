@@ -9,7 +9,7 @@ Para probar la aplicación y cumplir Fase 1 se necesita un usuario administrador
 
 ## Decisión
 
-Crear un seed inicial que inserte roles `admin` y `user` y un usuario `admin@newsradar.com` en el arranque (si no existen).
+Crear un seed inicial que inserte roles `admin`, `user` y `gestor`, y un usuario `admin@newsradar.com` con rol `admin`, en el arranque (si no existen).
 
 ## Justificación
 

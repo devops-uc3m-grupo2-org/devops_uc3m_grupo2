@@ -3,8 +3,7 @@
 En este directorio se documentan las decisiones arquitectónicas importantes de NEWSRADAR siguiendo el formato ADR.
 
 - [0001 - Elección del lenguaje de programación](0001-lenguaje-de-programacion.md)
- - [0002 - Almacenamiento y búsqueda semántica](0002-almacenamiento-de-informacion-y-busqueda-semantica.mdMarkdown)
- - [0002 - Almacenamiento vectorial](0002-almacenamiento-vectorial.md)
+ - [0002 - Almacenamiento vectorial (decisión final: PostgreSQL dual role)](0002-almacenamiento-vectorial.md)
  - [0003 - Estrategia de ingestion RSS y orquestación](0003-estrategia-de-ingestion-rss-y-orquestacion.md)
  - [0004 - Elección de motor de IA generativa — Groq](0004-eleccion-ia-generativa-groq.md)
  - [0005 - Elección de scheduler — APScheduler (Background)](0005-scheduler-apscheduler.md)

@@ -1,20 +1,22 @@
 # Proceso de creación de Integración Continua (CI) y Distribución Continua (CD)
 
 ## Integración Continua (CI)
+
 Este proyecto utiliza **GitHub Actions** para ejecutar un pipeline de integración continua (CI) que valida automáticamente el código en cada `push` y `pull_request`.
 
-Ubicado en fichero .github\workflows\tests.yml
+Ubicado en `.github/workflows/tests.yml`.
 
-Asimismo, es importante resaltar que los estos tests se ejecutan con una base de datos **PostgreSQL** como en el entorno de producción.
+Los tests se ejecutan con una base de datos **PostgreSQL real** dentro del runner de GitHub Actions, replicando el entorno de producción (no SQLite).
 
 ## Docker Compose
-En fichero docker-compose.yml
+
+En fichero `docker-compose.yml` — define los servicios `app` (FastAPI) y `db` (PostgreSQL 17).
 
 ---
 
 ## Trigger del workflow
 
-El pipeline se ejecuta en los siguientes eventos especificado con "On":
+El pipeline se ejecuta en los siguientes eventos (campo `on`):
 
 - `push`: cada vez que se sube código al repositorio
 - `pull_request`: cada vez que se abre o actualiza un PR
@@ -23,21 +25,76 @@ El pipeline se ejecuta en los siguientes eventos especificado con "On":
 
 ## Job principal: `test`
 
-El workflow contiene un único job llamado `test` que se ejecuta en un entorno. Más adelante se podría dividir en varios jobs, aunque este también permite debugging:
+Se ejecuta en `ubuntu-latest`. Contiene los siguientes pasos en orden:
 
-## Puntos importantes
-Aquí se describirán los puntos principales, para más detalles, se puede observar los comentarios del fichero yml.
+### 1. Checkout del repositorio
+Descarga el código del repo (`actions/checkout`).
 
-- Utiliza Ubuntu.
-- Se encarga de configurar python. 
-- Descarga todo las librerías de requirements.
-- Levanta una base de datos PostgreSQL real dentro del runner de GitHub Actions
-- Descarga herramienta para ver qué tanto del código cubren los tests
-- Ejecuta los tests, especificando el directorio de origen (para los imports).
+### 2. Configuración de Python
+Instala Python 3.12 con caché de pip para acelerar ejecuciones (`actions/setup-python`).
 
-## Cobertura actual
+### 3. Instalación de dependencias
+```bash
+pip install -r pfinal/requirements.txt
+pip install pytest pytest-cov flake8 bandit
+```
 
-Cobertura real: **96,48 %** (umbral mínimo: 80 %).
+### 4. Variables de entorno
+```bash
+DATABASE_URL=postgresql://test:test@localhost:5432/test_db
+PYTHONPATH=$PWD/pfinal
+SEND_EMAILS=false
+```
+
+### 5. Flake8 — calidad de código Python
+```bash
+flake8 pfinal/app --config pfinal/.flake8 || true
+```
+Usa `|| true` para que un warning no bloquee el pipeline.
+
+### 6. Bandit — análisis de seguridad Python
+```bash
+bandit -r pfinal/app -ll -q || true
+```
+Detecta vulnerabilidades comunes (inyección, secretos en código, etc.).
+
+### 7. Radon — complejidad ciclomática
+```bash
+radon cc pfinal/app -a || true
+```
+Mide la complejidad del código sin bloquear el pipeline.
+
+### 8. pip-audit — auditoría de dependencias
+```bash
+pip-audit -r pfinal/requirements.txt || true
+```
+Detecta dependencias con CVEs conocidos.
+
+### 9. ESLint — calidad de código JavaScript
+```bash
+eslint pfinal/static/app.js -c pfinal/static/.eslintrc.json || true
+```
+
+### 10. Ejecución de tests con cobertura
+```bash
+pytest pfinal/app/tests -v \
+  --cov=app \
+  --cov-report=term \
+  --cov-report=xml:pfinal/coverage.xml \
+  --cov-config=pfinal/.coveragerc \
+  --cov-fail-under=80
+```
+
+**72 tests pasan** con PostgreSQL real. El pipeline falla si la cobertura cae por debajo del 80%.
+
+### 11. Subida del informe de cobertura
+El fichero `pfinal/coverage.xml` se sube como artefacto descargable desde GitHub Actions (`actions/upload-artifact`).
+
+---
+
+## Cobertura
+
+El umbral mínimo es **80 %** (`--cov-fail-under=80`).
 
 Los ficheros de infraestructura sin lógica propia se excluyen del cómputo en `pfinal/.coveragerc`:
 ```ini
@@ -50,10 +107,22 @@ omit =
     **/app/services/notifications.py
 ```
 
-Sin estas exclusiones la cobertura caía al 77,6 % (por debajo del mínimo), ya que esos ficheros son difíciles de testear unitariamente al depender de Docker/red/SMTP.
+Estos ficheros se excluyen porque dependen de Docker/red/SMTP y son difíciles de testear unitariamente. Sin estas exclusiones la cobertura cae significativamente.
+
+La cobertura medida localmente sobre los módulos de lógica (sin excluir test files) es:
+
+| Módulo | Cover |
+|---|---|
+| `app/models/models.py` | 100% |
+| `app/core/database.py` | 71% |
+| `app/services/alertLogic.py` | 82% |
+| `app/services/ai.py` | 62% |
+| **TOTAL** | **88%** |
+
+---
 
 ## Correcciones aplicadas al pipeline
 
 - **Eliminación de variables inexistentes en conftest.py**: tras desmontar el hack de timing de GC-008 en `main.py`, el fichero `app/tests/conftest.py` importaba `_CLAIMED_CATEGORY_CODES` y `_LAST_CATEGORY_CREATE` que ya no existían → `ImportError` en CI. Corrección: se eliminó el fixture `reset_category_state` del conftest.
 
-- **Resultado actual**: el pipeline en GitHub Actions está en verde en `main`. Todos los commits pasan la batería de 26 tests pytest con PostgreSQL real.
+- **Resultado actual**: el pipeline en GitHub Actions está en verde en `main`. Todos los commits pasan la batería de **72 tests pytest** con PostgreSQL real.

@@ -13,18 +13,18 @@ RBAC basado en la tabla `roles` y relaciones many-to-many con `users`. Los endpo
 
 ## Roles implementados
 
-| Rol | Puede gestionar alertas | Puede registrar usuarios | Verificado |
-|---|---|---|---|
-| `admin` | ✅ | ✅ | ✅ |
-| `gestor` | ✅ | — | ✅ |
-| `lector` | ❌ → HTTP 403 | — | ✅ |
+| Rol | Puede gestionar alertas (require_gestor) | Verificado |
+|---|---|---|
+| `admin` | ✅ | ✅ |
+| `gestor` | ✅ | ✅ |
+| `user` | ❌ → HTTP 403 | ✅ |
 
-**Verificado el 2026-05-22** (inspección manual M del examen): un usuario con rol `lector` recibe `403 Forbidden` al intentar crear una alerta en `POST /api/v1/users/{id}/alerts`.
+**Verificado el 2026-05-22** (inspección manual M del examen): un usuario con rol `user` (sin `admin` ni `gestor`) recibe `403 Forbidden` al intentar acceder a endpoints protegidos por `require_gestor`.
 
 ## Consecuencias
 
 - Sistema de roles completamente funcional en BD y endpoints.
-- El seed inicial crea roles `admin`, `gestor` y `lector` y el usuario `admin@newsradar.com` con rol `admin`.
+- El seed inicial crea roles `admin`, `user` y `gestor` y el usuario `admin@newsradar.com` con rol `admin`.
 
 ## Fecha
 
