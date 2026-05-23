@@ -4,7 +4,8 @@
 # Uso:
 #   1. Arranca NewsRadar:          bash pfinal/start.sh
 #   2. Arranca el mock (otra terminal, dentro de devops_verifica-main/):
-#        python mock_rss_service.py --port 8100
+#        python mock_rss_service.py --port 8100 --host 0.0.0.0
+#        (--host 0.0.0.0 es obligatorio para que el contenedor Docker lo alcance)
 #   3. Ejecuta este script:        bash pfinal/demo_m5.sh
 #
 # Nota sobre el scheduler: el README pide cron "* * * * *" y esperar 2 min.

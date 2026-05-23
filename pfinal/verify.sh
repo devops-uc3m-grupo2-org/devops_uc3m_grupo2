@@ -12,9 +12,6 @@ if ! curl -sf "$SERVICE/api/v1/health" > /dev/null 2>&1; then
 fi
 echo "App OK"
 
-echo "=== Creando tests/__init__.py si no existe ==="
-touch "$VERIFIER_DIR/tests/__init__.py"
-
 echo "=== Ejecutando verificador (281 casos) ==="
 cd "$VERIFIER_DIR"
 PYTHONPATH="." python run_tests.py --service "$SERVICE" --all
