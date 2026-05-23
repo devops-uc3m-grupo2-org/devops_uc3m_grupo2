@@ -80,3 +80,18 @@ jobs:
         with:
           name: coverage-report
           path: pfinal/coverage.xml
+
+      - name: Generate technical documentation
+        working-directory: pfinal
+        run: |
+          pip install pdoc -q
+          pdoc app --output-dir docs-output || true
+
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: technical-docs
+          path: pfinal/docs-output/
+
+      - name: Build Docker image (package)
+        run: docker build -t newsradar:latest pfinal/
