@@ -1,4 +1,17 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:conda",
-    "python-envs.defaultPackageManager": "ms-python.python:conda"
+  "python-envs.defaultEnvManager": "ms-python.python:conda",
+  "python-envs.defaultPackageManager": "ms-python.python:conda",
+  "sqltools.connections": [
+    {
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5433,
+      "driver": "PostgreSQL",
+      "name": "NewsRadar5433",
+      "database": "newsradar",
+      "username": "postgres",
+      "password": "postgres123"
+    }
+  ]
 }
