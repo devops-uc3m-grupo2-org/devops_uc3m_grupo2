@@ -129,7 +129,7 @@ GitHub Actions en `.github/workflows/fastapi-ci.yml` ejecuta en cada push:
 
 ## Scripts de operación
 
-Ver [SCRIPTS.md](SCRIPTS.md) para la guía completa de todos los scripts `.sh` y el orden de ejecución en el examen.
+Ver [sh_scripts_newsradar.md](sh_scripts_newsradar.md) para la guía completa de todos los scripts `.sh` y el orden de ejecución en el examen.
 
 ## Configuración email (SMTP Gmail)
 
