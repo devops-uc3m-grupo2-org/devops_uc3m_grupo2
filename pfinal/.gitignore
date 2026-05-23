@@ -8,6 +8,7 @@ coverage.xml
 *.db
 .venv/
 venv/
+docs-output/
 
 ### Flask ###
 instance/*
