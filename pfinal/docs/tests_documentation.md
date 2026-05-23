@@ -37,26 +37,42 @@ Pero se migró a PostgreSQL para asegurar coherencia con producción.
 
 ##  Ejecutar tests localmente
 
-### Configurar base de datos
+> **Importante:** los tests deben ejecutarse **dentro del contenedor Docker** para que el hostname `db` resuelva correctamente. No ejecutar con pytest directo desde Windows/WSL.
 
-En `.env` o configuración de pytest:
+### Todos los tests de golpe
 
-```env id="test_env"
-DATABASE_URL=postgresql://postgres:postgres123@db:5432/newsradar
+```bash
+docker compose exec app python -m pytest app/tests -v
+```
+
+Resultado esperado: **72 tests passed** en ~72 segundos (72 tests en total).
+
+---
+
+### Un archivo concreto
+
+```bash
+docker compose exec app python -m pytest app/tests/test_health.py -v
+docker compose exec app python -m pytest app/tests/test_ai.py -v
+docker compose exec app python -m pytest app/tests/test_alerts.py -v
 ```
 
 ---
 
-### Ejecutar tests
+### Un test concreto por nombre
 
-```bash id="test_run1"
-python -m pytest app/tests
+```bash
+docker compose exec app python -m pytest app/tests/test_stats.py::test_stats_returns_metrics -v
 ```
 
-o directamente:
+---
 
-```bash id="test_run2"
-pytest
+### Configurar base de datos
+
+La `DATABASE_URL` está ya configurada en el contenedor:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres123@db:5432/newsradar
 ```
 
 ---
@@ -340,7 +356,7 @@ Muchos endpoints dependen de `user_id`, por lo que:
 | test_register_duplicate_email(client) | Comprueba que no se permite registrar usuarios con email duplicado (409 Conflict) |
 
 
-## test_IA.py ¡
+## test_ai.py
 
 | Test | Descripción |
 |------|------------|
