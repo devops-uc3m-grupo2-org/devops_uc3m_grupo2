@@ -24,10 +24,10 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: 3.12
           cache: 'pip'
@@ -61,7 +61,7 @@ jobs:
           pip-audit -r pfinal/requirements.txt || true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -76,7 +76,7 @@ jobs:
           pytest -q --cov=app --cov-config=.coveragerc --cov-report=term --cov-report=xml:coverage.xml --cov-fail-under=80
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: pfinal/coverage.xml
@@ -88,7 +88,7 @@ jobs:
           pdoc app --output-dir docs-output || true
 
       - name: Upload documentation artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: technical-docs
           path: pfinal/docs-output/
