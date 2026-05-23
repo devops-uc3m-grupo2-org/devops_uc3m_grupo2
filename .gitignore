@@ -15,3 +15,4 @@ pfinal/correos_profe/
 package.json
 package-lock.json
 pfinal/check_conexion.sh
+pfinal/.vscode/settings.json

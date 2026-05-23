@@ -489,7 +489,7 @@ Al finalizar el Sprint 6, NewsRadar incorpora el módulo completo de analítica 
 
 > **Correcciones respecto al documento original:**
 > - La nota "Tienes que tener rol de usuario, no gestor" es incorrecta: cualquier usuario autenticado (admin, gestor, user) puede acceder a los endpoints de stats.
-> - Las categorías IPTC (≥ 16) están **sembradas automáticamente** al inicializar la BD; no es necesario crearlas manualmente para que el sistema funcione.
+> - Las categorías IPTC están **sembradas automáticamente** al inicializar la BD (17 categorías); no es necesario crearlas manualmente para que el sistema funcione.
 > - El formato real de `GET /api/v1/stats` es el mostrado en el documento (lista con un objeto que contiene `"metrics": [...]`); sin cambios.
 
 ### De qué consta
@@ -500,7 +500,7 @@ Al finalizar el Sprint 6, NewsRadar incorpora el módulo completo de analítica 
 | **Stats por categoría** | `GET /api/v1/stats/by-category` — distribución de noticias y alertas por categoría |
 | **Wordcloud** | `GET /api/v1/stats/wordcloud` — top 40 palabras más frecuentes en títulos/resúmenes, agrupadas por categoría |
 | **Categorías — CRUD** | `GET`, `POST`, `PUT`, `DELETE /api/v1/categories` |
-| **Categorías semilla** | ≥ 16 categorías IPTC cargadas automáticamente al arrancar |
+| **Categorías semilla** | 17 categorías IPTC cargadas automáticamente al arrancar |
 
 ### Ejemplos
 
