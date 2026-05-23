@@ -27,7 +27,11 @@ def req(method, path, body=None, token=None, auth=True):
         res = urllib.request.urlopen(r)
         return res.status, json.loads(res.read())
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read())
+        body = e.read()
+        try:
+            return e.code, json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            return e.code, {"raw": body.decode(errors="replace")}
 
 
 def ok(label, code, expected=200):
@@ -43,8 +47,8 @@ print(ok("Health", code), "->", data)
 
 # 1. Login
 code, data = req("POST", "/api/v1/auth/login",
-                 {"email": "admin@newsradar.com", "password": "admin123"}, auth=False)
-assert code == 200, f"Login fallido: {data}"
+                {"email": "admin@newsradar.com", "password": "admin123"}, auth=False)
+assert code == 200, f"Login fallido (HTTP {code}): {data}"
 token = data["access_token"]
 print(ok("Login", code), "-> JWT recibido")
 
@@ -55,8 +59,8 @@ print(ok("Stats sin token (esperado 401)", code, expected=401))
 # 2. Crear fuente
 code, src = req("POST", "/api/v1/information-sources",
                 {"name": "El País",
-                 "rss_url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
-                 "medium": "digital"},
+                "rss_url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+                "medium": "digital"},
                 token)
 src_id = src.get("id")
 if code == 409:
@@ -70,15 +74,15 @@ print(ok("Listar fuentes", code), f"-> {len(sources)} fuentes")
 
 # 3. Crear alerta
 code, alert = req("POST", "/api/v1/users/1/alerts",
-                  {"name": "Alerta IA",
-                   "descriptors": ["tecnología", "IA", "startup"],
-                   "categories": [],
-                   "cron_expression": "*/5 * * * *",
-                   "is_active": True},
-                  token)
+                {"name": "Alerta IA",
+                "descriptors": ["tecnología", "IA", "startup"],
+                "categories": [],
+                "cron_expression": "*/5 * * * *",
+                "is_active": True},
+                token)
 alert_id = alert.get("id")
 print(ok("Crear alerta", code, expected=201),
-      f"-> id={alert_id}, descriptores={alert.get('descriptors')}")
+    f"-> id={alert_id}, descriptores={alert.get('descriptors')}")
 
 # 3b. Listar alertas
 code, alerts = req("GET", "/api/v1/users/1/alerts", token=token)
@@ -86,7 +90,7 @@ print(ok("Listar alertas", code), f"-> {len(alerts)} alertas")
 
 # 4. Sugerencias IA — keyword conocida
 code, ai = req("GET", "/api/v1/suggestions?" + urllib.parse.urlencode({"keyword": "economía"}),
-               token=token)
+            token=token)
 print(ok("IA sugerencias (economía)", code), f"-> {ai.get('suggestions')}")
 
 # 4b. Sugerencias IA — keyword desconocida (fallback)
@@ -116,6 +120,7 @@ print(ok("Stats después del fetch", code), f"-> {metrics_after}")
 
 delta = metrics_after["total_news"] - metrics_before["total_news"]
 print(f"\n{'='*50}")
-print(f"Noticias nuevas importadas: {delta}")
+print(f"Noticias que hicieron match con la alerta (delta): {delta}")
+print(f"  (total_news = noticias coincidentes con alertas del usuario, no total en BD)")
 print(f"Estado final: {metrics_after}")
 print("Demo completada sin errores.\n")

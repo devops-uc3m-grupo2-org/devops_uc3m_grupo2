@@ -160,31 +160,32 @@ curl -s --get http://localhost:8000/api/v1/suggestions \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Respuesta esperada:
+Respuesta real con GROQ_API_KEY activa (Llama 3.3 70B, verificado en demo):
 ```json
 {
   "keyword": "economía",
-  "suggestions": ["economía", "finanzas", "bolsa", "mercado", "negocios", "inversión"]
+  "suggestions": ["economía", "finanzas", "mercados", "comercio", "industria", "inversión", "crecimiento", "desarrollo", "negocio", "sector"]
 }
 ```
 
 ```bash
-# Keyword desconocida — devuelve fallback genérico
+# Keyword desconocida — Groq genera sugerencias aunque no estén en el diccionario
 curl -s --get http://localhost:8000/api/v1/suggestions \
   --data-urlencode "keyword=xyzfoo" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Respuesta esperada:
+Respuesta real con Groq activo:
 ```json
 {
   "keyword": "xyzfoo",
-  "suggestions": ["xyzfoo", "xyzfoo noticias", "xyzfoo actualidad"]
+  "suggestions": ["xyzfoo", "no hay información disponible", "término desconocido", "palabra no reconocida"]
 }
 ```
 
-Keywords verificadas en vivo: `economía`, `tecnología`, `política`, `salud`.
-Disponibles también: `deporte`, `cultura`, `medioambiente`, `educación`, `sociedad`, `ciencia`.
+> **Nota:** si `GROQ_API_KEY` no está en `.env`, cae al fallback Python — `xyzfoo` devolvería `["xyzfoo", "xyzfoo noticias", "xyzfoo actualidad"]`. En CI no se configura la clave, por lo que los tests usan ese fallback y pasan sin dependencia de red.
+
+Keywords verificadas en vivo con Groq: `economía`, `tecnología`, `política`, `salud`, `deporte`, `cultura`, `medioambiente`, `educación`, `sociedad`, `ciencia`.
 
 **Qué decir:** *"El servicio de IA usa Groq con Llama 3.3 70B en producción. El diseño está desacoplado del proveedor: la función generate_synonyms tiene la misma firma independientemente del backend. En CI no se configura GROQ_API_KEY, por lo que los tests usan el diccionario IPTC de fallback y pasan sin dependencia de red. Cambiar de proveedor es modificar solo el cuerpo de esa función."*
 
@@ -197,10 +198,12 @@ curl -s -X POST http://localhost:8000/api/v1/news/fetch \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Respuesta esperada:
+Respuesta (varía según cuántos canales haya y cuántas noticias sean nuevas):
 ```json
-{"new_items": 10}
+{"new_items": 1573}
 ```
+
+> **Nota:** el fetch itera todos los canales RSS en BD (200+ tras el seed) con límite de 10 noticias por canal. En una BD recién limpiada se importan ~1573 items (verificado en demo real).
 
 ### Ver noticias importadas (público, sin auth)
 
@@ -225,21 +228,23 @@ curl -s http://localhost:8000/api/v1/stats \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Respuesta esperada tras los pasos anteriores:
+Respuesta (los valores dependen del estado de la BD):
 ```json
 [
   {
     "id": 1,
     "metrics": [
-      {"name": "total_news",    "value": 10},
-      {"name": "total_sources", "value": 2},
+      {"name": "total_news",    "value": 33},
+      {"name": "total_sources", "value": 15},
       {"name": "total_alerts",  "value": 1}
     ]
   }
 ]
 ```
 
-**Qué decir:** *"Los contadores salen directamente de PostgreSQL en cada petición, no de una caché estática. Si creamos otra fuente o alerta ahora, el número sube."*
+> **Nota:**  incluye las 15 fuentes precargadas por el seed en startup + las que crees en la demo.  es el número de noticias que han hecho **match con las alertas del usuario** (via AlertNews), no el total en BD.
+
+**Qué decir:** *"Los contadores salen directamente de PostgreSQL en cada petición, no de una caché estática. total_news muestra las noticias que han coincidido con mis alertas, no el total importado. Si creamos otra alerta o fuente ahora, el número sube."*
 
 ---
 
@@ -373,7 +378,7 @@ El script crea la fuente, el canal RSS apuntando a `host.docker.internal:8100`, 
 ```bash
 # Terminal 1
 bash pfinal/start.sh                    # reset BD + rebuild (~2 min)
-bash pfinal/run_verifier.sh --all       # 281 tests (~3 min)
+bash pfinal/run_verifier.sh --all       # 281 tests (~17 min total: venv + tests)
 
 # Terminal 2 — inspección manual M1-M4
 bash pfinal/m1_email_notificacion.sh
