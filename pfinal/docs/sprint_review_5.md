@@ -582,3 +582,64 @@ Código: 404
 
 #### Sin permisos
 Código: **403 Forbidden**
+
+---
+
+## Resumen — Estado al cierre de Sprint 5 (revisado mayo 2026)
+
+Al finalizar el Sprint 5, NewsRadar incorpora el CRUD de notificaciones por alerta y la gestión de canales RSS dentro de cada fuente de información.
+
+> **Correcciones respecto al documento original:**
+> - El campo `information_sources_ids` en el body de alertas no existe en el estado final; el campo correcto es `rss_channels_ids`.
+> - Las notificaciones se crean **automáticamente** por el scheduler al detectar coincidencias; el `POST` manual existe para pruebas pero no es el flujo habitual.
+> - El rol requerido para PUT/DELETE en canales RSS es **gestor** (no admin); admin también puede operar.
+> - La respuesta de `POST /rss-channels` devuelve `201 Created` (no `200 OK` como indica el documento).
+
+### De qué consta
+
+| Área | Detalle |
+|------|---------|
+| **Notificaciones — listar** | `GET /api/v1/users/{user_id}/alerts/{alert_id}/notifications` — devuelve buzón de la alerta |
+| **Notificaciones — detalle** | `GET .../notifications/{notification_id}` |
+| **Notificaciones — crear** | `POST .../notifications` — creación manual o automática por scheduler |
+| **Notificaciones — actualizar** | `PUT .../notifications/{notification_id}` |
+| **Notificaciones — eliminar** | `DELETE .../notifications/{notification_id}` → 204 |
+| **Canales RSS — listar** | `GET /api/v1/information-sources/{source_id}/rss-channels` |
+| **Canales RSS — detalle** | `GET .../rss-channels/{channel_id}` |
+| **Canales RSS — crear** | `POST .../rss-channels` — requiere rol gestor |
+| **Canales RSS — actualizar** | `PUT .../rss-channels/{channel_id}` — requiere rol gestor |
+| **Canales RSS — eliminar** | `DELETE .../rss-channels/{channel_id}` — requiere rol gestor → 204 |
+
+### Ejemplos
+
+**Listar notificaciones de una alerta**
+```bash
+curl http://localhost:8000/api/v1/users/1/alerts/1/notifications \
+  -H "Authorization: Bearer <JWT>"
+# [ { "id": 1, "timestamp": "...", "alert_id": 1, "metrics": [...] } ]
+```
+
+**Listar canales RSS de una fuente**
+```bash
+curl http://localhost:8000/api/v1/information-sources/1/rss-channels \
+  -H "Authorization: Bearer <JWT>"
+# [ { "id": 1, "url": "https://...", "category_id": 1, "information_source_id": 1 }, ... ]
+```
+
+**Crear canal RSS (requiere gestor)**
+```json
+// POST /api/v1/information-sources/1/rss-channels
+// Authorization: Bearer <JWT de gestor>
+// Request
+{ "url": "https://example.com/rss", "category_id": 2 }
+
+// Response 201
+{ "id": 101, "url": "https://example.com/rss", "category_id": 2, "information_source_id": 1 }
+```
+
+**Eliminar canal RSS**
+```bash
+curl -X DELETE http://localhost:8000/api/v1/information-sources/1/rss-channels/101 \
+  -H "Authorization: Bearer <JWT de gestor>"
+# 204 No Content
+```

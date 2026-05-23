@@ -68,7 +68,7 @@ Archivo: `app/services/alertLogic.py`
 
 Archivo: `app/core/scheduler.py`
 
-En este archivo definimos el scheduler que se encargará de cada 5 minutos revisar realizar las tareas. Este inlcuye realizar un fetch para nueva noticias, identificar si las noticias corresponden a una alerta, almacenarlas en tal caso, y llamar a la función que realizará las notificaciones. Estas tareas se incluyeron en este archivo ya que se deben realizar periódicamente sin falta. 
+En este archivo definimos el scheduler que se encargará de cada 5 minutos revisar realizar las tareas. Este inlcuye realizar un fetch para nueva noticias, identificar si las noticias corresponden a una alerta, almacenarlas en tal caso, y llamar a la función que realizará las notificaciones. Estas tareas se incluyeron en este archivo ya que se deben realizar periódicamente sin falta.
 
 ### Función Principal
 
@@ -90,15 +90,15 @@ Asimismo tenemos una función start_scheduler que inicia este proceso y con ayud
 
 ### Endpoints disponibles (Sprint 3)
 
-| Método | Ruta                              | Descripción                      |
-| ------ | --------------------------------- | -------------------------------- |
-| GET    | GET /api/v1/users/{user_id}/alerts                   |        Listar alertas            |
-| POST   | POST /api/v1/users/{user_id}/alerts                    |        Crear alerta              |
-| PUT    | PUT /api/v1/users/{user_id}/alerts/{alert_id}         |        Actualizar alerta         |
-| DELETE | DELETE /api/v1/users/{user_id}/alerts/{alert_id}         |        Borrar Alerta             |
-| POST   | /api/v1/run-matching              | Prueba el almacenamiento de todas las noticias por alerta  |
-| GET    | /api/v1/matchAlert/{alert_id}     | Permite ver las noticias guardada en una alerta específica |
-| POST   | /api/v1/run-scheduler             | Identifica si el scheduler lanza algún error |
+| Método | Ruta                                             | Descripción                                                |
+| ------ | ------------------------------------------------ | ---------------------------------------------------------- |
+| GET    | GET /api/v1/users/{user_id}/alerts               | Listar alertas                                             |
+| POST   | POST /api/v1/users/{user_id}/alerts              | Crear alerta                                               |
+| PUT    | PUT /api/v1/users/{user_id}/alerts/{alert_id}    | Actualizar alerta                                          |
+| DELETE | DELETE /api/v1/users/{user_id}/alerts/{alert_id} | Borrar Alerta                                              |
+| POST   | /api/v1/run-matching                             | Prueba el almacenamiento de todas las noticias por alerta  |
+| GET    | /api/v1/matchAlert/{alert_id}                    | Permite ver las noticias guardada en una alerta específica |
+| POST   | /api/v1/run-scheduler                            | Identifica si el scheduler lanza algún error               |
 
 
 ### Flujo de Prueba
@@ -231,9 +231,9 @@ Para este endpoint debes insertar el id del usuario y el id de una alerta que de
 
 **Respuesta esperada:**
 ```http
- access-control-allow-credentials: true 
- access-control-allow-origin: * 
- date: Wed,06 May 2026 11:51:26 GMT 
+ access-control-allow-credentials: true
+ access-control-allow-origin: *
+ date: Wed,06 May 2026 11:51:26 GMT
  server: uvicorn
 ```
 
@@ -260,7 +260,7 @@ Para verificar si el matchAlert está funcionando correctamente utilizamos este 
 
 ```alert_id : 2```
 
-Se espera que devuelva los IDs de las noticas que contienen la palabra, esto es verificable utilizando el endpoint: 
+Se espera que devuelva los IDs de las noticas que contienen la palabra, esto es verificable utilizando el endpoint:
 `GET /api/v1/news`
 y verificando que los IDs recibidos corresponden a noticias que contienen la palabra "guerra".
 
@@ -309,7 +309,7 @@ Posteriormente creamos una alert, con una keyword relacionada con el RSS (por ej
   "name": "AM",
   "keyword": "madrid",
   "iptc_category": "Deportes",
-  "user_id" : "Admin123" 
+  "user_id" : "Admin123"
 }
 ```
 Debemos observar cuál es su "id" para verificar el correcto funcionamiento más adelante (por ejemplo, id=1).
@@ -353,3 +353,115 @@ app-1      | [FETCH] Source 4: 0 new items
 app-1      | [FETCH] Source 5: 0 new items
 "
 Esto significa que ha ejecutado el match_alert pero no ha encontrado ninguna que coincida (Scheduler también correcto).
+
+---
+
+## Resumen — Estado al cierre de Sprint 3 (revisado mayo 2026)
+
+Al finalizar el Sprint 3, NewsRadar incorpora el CRUD completo de alertas, el motor de matching noticia-alerta y el scheduler periódico, sobre la base de fuentes e ingesta del Sprint 2.
+
+> **Correcciones respecto al documento original:**
+> - El campo `keyword` + `synonyms` del modelo `Alert` evolucionó a `descriptors` (lista de strings).
+> - `iptc_category` texto libre evolucionó a objetos IPTC formales `{"code": "...", "label": "..."}`.
+> - El campo `information_sources_ids` se renombró a `rss_channels_ids`.
+> - Los endpoints de debug `/run-matching`, `/matchAlert/{id}` y `/run-scheduler` fueron temporales; no están en el estado final.
+> - La ruta de fuentes es `/api/v1/information-sources` (no `/api/v1/sources`).
+
+### De qué consta
+
+| Área                  | Detalle                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Modelo `Alert`**    | `id`, `name`, `descriptors` (lista), `categories` (IPTC), `rss_channels_ids`, `cron_expression`, `is_active`, `user_id` |
+| **Tabla `AlertNews`** | Relación M:N entre alertas y noticias; evita duplicar noticias por alerta                                               |
+| **`alertLogic.py`**   | `match_alert(alert, news_item)` — comprueba si algún descriptor de la alerta aparece en título/resumen de la noticia    |
+| **`scheduler.py`**    | `fetch_all_sources_job()` — cada ciclo: fetch RSS → match alertas → notificar (stub en este sprint)                     |
+| **CRUD alertas**      | `GET`, `POST`, `PUT`, `DELETE /api/v1/users/{user_id}/alerts` (requieren JWT)                                           |
+
+### Ejemplos
+
+**Crear alerta**
+```json
+// POST /api/v1/users/1/alerts
+// Authorization: Bearer <JWT>
+// Request
+{
+  "name": "Guerra Alerta",
+  "descriptors": ["guerra", "conflicto"],
+  "categories": [{ "code": "11000000", "label": "Política" }],
+  "rss_channels_ids": [],
+  "cron_expression": "*/5 * * * *",
+  "is_active": true
+}
+
+// Response 201
+{
+  "id": 1,
+  "name": "Guerra Alerta",
+  "descriptors": [
+    "guerra",
+    "conflicto",
+    "guerra alerta"
+  ],
+  "categories": [
+    {
+      "code": "11000000",
+      "label": "Política"
+    }
+  ],
+  "rss_channels_ids": [],
+  "information_sources_ids": [],
+  "cron_expression": "*/5 * * * *",
+  "user_id": 1,
+  "is_active": true
+}
+```
+
+**Listar alertas de un usuario**
+```bash
+curl http://localhost:8000/api/v1/users/1/alerts \
+  -H "Authorization: Bearer <JWT>"
+# [ { "id": 1, "name": "Guerra Alerta", ... } ]
+```
+
+**Actualizar alerta**
+```json
+// PUT /api/v1/users/1/alerts/1
+// Request
+{ "descriptors": ["guerra", "armamento"], "is_active": true }
+
+// Response 200
+{
+  "id": 1,
+  "name": "Guerra Alerta",
+  "descriptors": [
+    "guerra",
+    "armamento"
+  ],
+  "categories": [
+    {
+      "code": "11000000",
+      "label": "Política"
+    }
+  ],
+  "rss_channels_ids": [],
+  "information_sources_ids": [],
+  "cron_expression": "*/5 * * * *",
+  "user_id": 1,
+  "is_active": true
+}
+```
+
+**Borrar alerta**
+```bash
+curl -X DELETE http://localhost:8000/api/v1/users/1/alerts/1 \
+  -H "Authorization: Bearer <JWT>"
+# HTTP 204 No Content
+```
+
+**Logs del scheduler en ejecución**
+con docker-compose logs -f app
+```
+app-1 | [FETCH] Source 1: 5 new items
+app-1 | [MATCH] Alert 1 → 2 noticias coincidentes
+app-1 | [NOTIFY] Alert 1 → notificación enviada
+```

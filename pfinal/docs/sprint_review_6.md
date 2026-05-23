@@ -480,3 +480,58 @@ Se debe incluir el id de la categoría a modificar, puede ser el de la recientem
 Código: **404**
 
 Verificar si fue borrado con el endpoint de "list categories".
+
+---
+
+## Resumen — Estado al cierre de Sprint 6 (revisado mayo 2026)
+
+Al finalizar el Sprint 6, NewsRadar incorpora el módulo completo de analítica (stats, by-category, wordcloud) y el CRUD de categorías IPTC, sobre la base de alertas y notificaciones de sprints anteriores.
+
+> **Correcciones respecto al documento original:**
+> - La nota "Tienes que tener rol de usuario, no gestor" es incorrecta: cualquier usuario autenticado (admin, gestor, user) puede acceder a los endpoints de stats.
+> - Las categorías IPTC (≥ 16) están **sembradas automáticamente** al inicializar la BD; no es necesario crearlas manualmente para que el sistema funcione.
+> - El formato real de `GET /api/v1/stats` es el mostrado en el documento (lista con un objeto que contiene `"metrics": [...]`); sin cambios.
+
+### De qué consta
+
+| Área | Detalle |
+|------|---------|
+| **Stats generales** | `GET /api/v1/stats` — `total_news`, `total_sources`, `total_alerts` filtrados por el usuario autenticado |
+| **Stats por categoría** | `GET /api/v1/stats/by-category` — distribución de noticias y alertas por categoría |
+| **Wordcloud** | `GET /api/v1/stats/wordcloud` — top 40 palabras más frecuentes en títulos/resúmenes, agrupadas por categoría |
+| **Categorías — CRUD** | `GET`, `POST`, `PUT`, `DELETE /api/v1/categories` |
+| **Categorías semilla** | ≥ 16 categorías IPTC cargadas automáticamente al arrancar |
+
+### Ejemplos
+
+**Estadísticas generales**
+```bash
+curl http://localhost:8000/api/v1/stats \
+  -H "Authorization: Bearer <JWT>"
+# [ { "id": 1, "metrics": [ {"name":"total_news","value":42}, {"name":"total_sources","value":15}, {"name":"total_alerts","value":2} ] } ]
+```
+
+**Wordcloud**
+```bash
+curl http://localhost:8000/api/v1/stats/wordcloud \
+  -H "Authorization: Bearer <JWT>"
+# { "Economía": [{"word":"mercado","count":12}, ...], "Política": [...] }
+```
+
+**Listar categorías**
+```bash
+curl http://localhost:8000/api/v1/categories \
+  -H "Authorization: Bearer <JWT>"
+# [ {"id":1,"name":"Política","source":"IPTC"}, {"id":2,"name":"Economía, negocios y finanzas","source":"IPTC"}, ... ]
+```
+
+**Crear categoría adicional**
+```json
+// POST /api/v1/categories
+// Authorization: Bearer <JWT>
+// Request
+{ "name": "Deporte", "source": "IPTC_prueba" }
+
+// Response 201
+{ "id": 18, "name": "Deporte", "source": "IPTC_prueba" }
+```

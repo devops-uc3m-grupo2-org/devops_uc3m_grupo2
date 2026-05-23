@@ -304,3 +304,59 @@ Ejecuta para ver un **array de noticias** con la siguiente estructura:
   }
 ]
 ```
+
+---
+
+## Resumen — Estado al cierre de Sprint 2 (revisado mayo 2026)
+
+Al finalizar el Sprint 2, NewsRadar incorpora la gestión de fuentes de información RSS y la ingesta de noticias sobre la base de autenticación y Docker del Sprint 1.
+
+> **Correcciones respecto al documento original:**
+> - La ruta real es `/api/v1/information-sources` (no `/api/v1/sources`).
+> - La app corre en el puerto `8000` (no `9000`); el modo local con SQLite fue temporal de desarrollo.
+> - El proyecto usa **PostgreSQL** en todo momento, no SQLite.
+> - Los endpoints de fuentes requieren `Authorization: Bearer <JWT>`.
+> - La ingesta automática vía scheduler llegó en sprints posteriores; en sprint 2 era manual por endpoint.
+
+### De qué consta
+
+| Área | Detalle |
+|------|---------|
+| **Modelo `InformationSource`** | `id`, `name`, `medium`, `rss_url`, `iptc_category` (texto libre en este sprint) |
+| **Modelo `NewsItem`** | `id`, `title`, `link`, `summary`, `published`, `source_id` |
+| **Servicio `fetcher.py`** | `fetch_feed(db, source_id)` — descarga RSS con `feedparser`, evita duplicados por `link` |
+| **CRUD fuentes** | `POST` y `GET /api/v1/information-sources` (requieren JWT) |
+| **Ingesta manual** | `POST /api/v1/information-sources/{source_id}/fetch` |
+| **Consulta noticias** | `GET /api/v1/news` (requiere JWT) |
+
+### Ejemplos
+
+**Crear fuente RSS**
+```json
+// POST /api/v1/information-sources
+// Authorization: Bearer <JWT>
+// Request
+{
+  "name": "RTVE",
+  "medium": "RTVE",
+  "rss_url": "https://www.rtve.es/rss/portada.xml",
+  "iptc_category": "politics"
+}
+
+// Response 201
+{ "id": 1, "name": "RTVE", "rss_url": "https://www.rtve.es/rss/portada.xml" }
+```
+
+**Lanzar ingesta de una fuente**
+```bash
+curl -X POST http://localhost:8000/api/v1/information-sources/1/fetch \
+  -H "Authorization: Bearer <JWT>"
+# { "source_id": 1, "new_items": 10 }
+```
+
+**Consultar noticias almacenadas**
+```bash
+curl http://localhost:8000/api/v1/news \
+  -H "Authorization: Bearer <JWT>"
+# [ { "id": 1, "title": "...", "link": "...", "published": "...", "source_id": 1 }, ... ]
+```
