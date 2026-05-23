@@ -25,6 +25,8 @@ services:
     volumes:
       - ./app:/app/app
       - ./static:/app/static
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   pgadmin:
     image: dpage/pgadmin4
