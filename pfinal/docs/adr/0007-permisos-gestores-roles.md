@@ -21,6 +21,8 @@ RBAC basado en la tabla `roles` y relaciones many-to-many con `users`. Los endpo
 
 **Verificado el 2026-05-22** (inspección manual M del examen): un usuario con rol `user` (sin `admin` ni `gestor`) recibe `403 Forbidden` al intentar acceder a endpoints protegidos por `require_gestor`.
 
+El rol `gestor` es un **requisito del enunciado**, no solo una elección interna — el verificador del enunciado incluye el caso SMOKE-006 que comprueba explícitamente que existe un rol gestor funcional.
+
 ## Consecuencias
 
 - Sistema de roles completamente funcional en BD y endpoints.
