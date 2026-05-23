@@ -470,3 +470,38 @@ Muchos endpoints dependen de `user_id`, por lo que:
 7. Creación de notificación simulada
 
 ---
+
+# Cobertura de código (pytest-cov)
+
+## Comando
+
+```bash
+docker compose exec app python -m pytest app/tests --cov=app.main --cov=app.core --cov=app.models --cov=app.services --cov-report=term-missing
+```
+
+## Resultado (2026-05-23)
+
+```
+Name                         Stmts   Miss  Cover   Missing
+----------------------------------------------------------
+app/core/__init__.py             0      0   100%
+app/core/database.py            14      4    71%   15-19
+app/models/__init__.py           0      0   100%
+app/models/models.py           108      0   100%
+app/services/ai.py              32     12    62%   20-28, 34, 63-64
+app/services/alertLogic.py      38      7    82%   10, 13, 26, 37, 46-48
+----------------------------------------------------------
+TOTAL                          192     23    88%
+```
+
+**72 passed, 20 warnings en ~55 s**
+
+## Por qué `app/main.py` no aparece
+
+`conftest.py` importa `from app.main import app` a nivel de módulo (antes de que pytest-cov active la cobertura), por lo que el módulo ya está cargado cuando coverage empieza y no se contabiliza. Para medirlo explícitamente:
+
+```bash
+docker compose exec app bash -c "coverage run -m pytest app/tests -q && coverage report --include='app/main.py' --show-missing"
+```
+
+Los módulos de lógica (models, services, core) son los relevantes para la cobertura — `main.py` es pegamento de rutas que los tests ejercen indirectamente.

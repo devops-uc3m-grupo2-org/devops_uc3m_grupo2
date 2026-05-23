@@ -38,10 +38,10 @@ Dos capas de verificación:
 
 El verificador oficial (`id=5930080`, versión del correo 3) pasa todos los casos de forma reproducible:
 
-| Ejecución | Fecha | venv + pip | Tests | Total |
-|---|---|---|---|---|
-| 1ª pasada | 2026-05-21 12:01 | 563 s (9 min 23 s) | 198 s (3 min 18 s) | 761 s (12 min 41 s) |
-| 2ª pasada | 2026-05-22 13:07 | 844 s (14 min 4 s) | 186 s (3 min 6 s) | 1030 s (17 min 10 s) |
+| Ejecución | Fecha            | venv + pip         | Tests              | Total                |
+| --------- | ---------------- | ------------------ | ------------------ | -------------------- |
+| 1ª pasada | 2026-05-21 12:01 | 563 s (9 min 23 s) | 198 s (3 min 18 s) | 761 s (12 min 41 s)  |
+| 2ª pasada | 2026-05-22 13:07 | 844 s (14 min 4 s) | 186 s (3 min 6 s)  | 1030 s (17 min 10 s) |
 
 ```
 Total casos: 281 | OK: 281 (100.00%) | WARNING: 0 | NOK: 0
@@ -53,20 +53,25 @@ bash pfinal/start.sh             # reset BD + rebuild Docker
 bash pfinal/run_verifier.sh --all  # 281 tests (~17 min total)
 ```
 
-**2. Tests internos pytest — 26 tests, cobertura 96,48 %**
+**2. Tests internos pytest — 72 tests (72 passed)**
 
-| Archivo | Qué verifica |
-|---|---|
-| `test_health.py` | API activa |
-| `test_login.py` | Registro, login correcto e incorrecto |
-| `test_sources.py` | CRUD fuentes, fetch, duplicados |
-| `test_alerts.py` | CRUD alertas y notificaciones con JWT |
-| `test_news.py` | Listado público y fetch autenticado |
-| `test_ai.py` | `/suggestions` con keyword conocida, desconocida y sin auth |
-| `test_stats.py` | Métricas reales, auth requerida, contador sube al crear fuentes |
-| `test_monitoring.py` | Pipeline completo: alerta → noticia → AlertNews → notificación |
+| Archivo                  | Qué verifica                                                    |
+| ------------------------ | --------------------------------------------------------------- |
+| `test_health.py`         | API activa                                                      |
+| `test_login.py`          | Registro, login correcto e incorrecto                           |
+| `test_sources.py`        | CRUD fuentes, fetch, duplicados                                 |
+| `test_alerts.py`         | CRUD alertas y notificaciones con JWT                           |
+| `test_news.py`           | Listado público y fetch autenticado                             |
+| `test_ai.py`             | `/suggestions` con keyword conocida, desconocida y sin auth     |
+| `test_stats.py`          | Métricas reales, auth requerida, contador sube al crear fuentes |
+| `test_stats_extended.py` | Stats por categoría, wordcloud, límite de alertas               |
+| `test_auth_extended.py`  | Token inválido, forgot/reset password, email duplicado          |
+| `test_roles_extended.py` | CRUD completo de roles, integridad referencial (409)            |
+| `test_categories.py`     | CRUD completo de categorías IPTC                                |
+| `test_users_extended.py` | CRUD usuarios, notificaciones por alerta                        |
+| `test_monitoring.py`     | Pipeline completo: alerta → noticia → AlertNews → notificación  |
 
-GitHub Actions lanza esos tests en cada push a `main` con una BD PostgreSQL real (no SQLite). El pipeline está en verde. La cobertura supera el 80 % mínimo exigido (96,48 % real).
+GitHub Actions lanza esos tests en cada push a `main` con una BD PostgreSQL real (no SQLite). El pipeline está en verde.
 
 ---
 
@@ -92,9 +97,9 @@ ADR de referencia: **ADR 0008**.
 
 ## "¿Qué pasa si una fuente RSS falla o devuelve datos malformados?"
 
-El fetcher (`app/services/fetcher.py`) itera las entradas del feed con `getattr(entry, "link", None)` y omite silenciosamente cualquier entrada sin URL. El scheduler envuelve cada canal en un `try/except` individual, de modo que si un canal falla los demás siguen procesándose.
+El fetcher (`app/services/fetcher.py`) itera las entradas del feed extrayendo la URL con `getattr(entry, "link", None) or getattr(entry, "id", None)` — primero intenta `link`, y si no existe usa `id` como fallback. Si ninguno está disponible, omite silenciosamente esa entrada. El scheduler envuelve cada canal en un `try/except` individual, de modo que si un canal falla los demás siguen procesándose.
 
-Las noticias duplicadas se detectan por URL única (`NewsItem.link` tiene constraint `unique=True`). **Bug corregido**: antes, un `IntegrityError` por URL duplicada dejaba la sesión SQLAlchemy en estado `PendingRollbackError` y el ciclo completo fallaba. Corregido usando `db.begin_nested()` (savepoint) por cada item — si hay conflicto, solo ese item se revierte y el resto del ciclo continúa:
+Las noticias duplicadas se detectan en dos capas: primero una consulta SELECT comprueba si ya existe esa URL (`NewsItem.link` tiene constraint `unique=True`) y hace `continue` si es así. El `db.begin_nested()` (savepoint) es una red de seguridad para race conditions — si dos inserts simultáneos pasan el SELECT a la vez, el `IntegrityError` solo revierte ese item y el ciclo continúa. **Bug corregido**: antes no había savepoint, por lo que un `IntegrityError` dejaba la sesión en estado `PendingRollbackError` y fallaba el ciclo completo:
 
 ```python
 try:
@@ -118,8 +123,11 @@ Las variables sensibles (`SECRET_KEY`, `DATABASE_URL`, `ALGORITHM`, `ACCESS_TOKE
 
 1. **IA real vía Groq**: ya está integrado — `GROQ_API_KEY` en `.env` activa Llama 3.3 70B. El punto de extensión en `generate_synonyms` funciona en producción.
 2. **Notificaciones por email**: ya implementado — `SEND_EMAILS=true` en `.env` con Gmail App Password envía emails reales de verificación y de alerta. Verificado el 2026-05-21.
-3. **Autenticación por roles**: implementado — el rol `lector` recibe 403 al intentar gestionar alertas (caso de inspección manual M verificado).
+3. **Autenticación por roles**: implementado — un usuario con rol `user` (sin `admin` ni `gestor`) recibe 403 al intentar acceder a endpoints protegidos por `require_gestor`.
 4. **Tests E2E**: los actuales ya usan una BD PostgreSQL real (no SQLite) tanto en local como en GitHub Actions; el siguiente nivel sería un test que levante el stack completo con `docker-compose` desde cero.
+5. **Paginación**: los endpoints de listado (`/news`, `/alerts`, `/notifications`) devuelven hasta 100-200 items con `.limit()` fijo. Con más tiempo añadiríamos parámetros `skip`/`limit` en la query para paginación real.
+6. **Refresh tokens**: el JWT de acceso expira a los 60 minutos sin mecanismo de renovación — el usuario debe hacer login de nuevo. Añadiríamos un refresh token de larga duración.
+7. **Rate limiting**: los endpoints de autenticación (`/auth/login`, `/auth/register`) no tienen protección contra fuerza bruta. Añadiríamos `slowapi` o similar para limitar intentos por IP.
 
 ---
 
@@ -127,12 +135,42 @@ Las variables sensibles (`SECRET_KEY`, `DATABASE_URL`, `ALGORITHM`, `ACCESS_TOKE
 
 El profesor comprueba 5 casos (M1-M5) además del verificador automático. Cada uno tiene un script:
 
-| Script | Qué verifica | Resultado (2026-05-21/22) |
-|---|---|---|
-| `bash pfinal/m1_email_notificacion.sh` | Email de notificación al detectar noticias | ✅ PASADO |
-| `bash pfinal/m2_formato_asunto.sh` | Asunto: "Actualización de [alerta] en [DD/MM/YYYY HH:MM]" | ✅ PASADO |
-| `bash pfinal/m3_registro_verificacion.sh` | Email de verificación al registrar usuario | ✅ PASADO |
-| `bash pfinal/m4_expiracion_24h.sh` | Token de verificación caduca en 24h (1440 min) | ✅ PASADO |
-| `bash pfinal/demo_m5.sh` | 8 noticias sintéticas con Mock RSS en 2 ciclos | ✅ PASADO (360s) |
+| Script                                    | Qué verifica                                              | Resultado (2026-05-21/22) |
+| ----------------------------------------- | --------------------------------------------------------- | ------------------------- |
+| `bash pfinal/m1_email_notificacion.sh`    | Email de notificación al detectar noticias                | ✅ PASADO                  |
+| `bash pfinal/m2_formato_asunto.sh`        | Asunto: "Actualización de [alerta] en [DD/MM/YYYY HH:MM]" | ✅ PASADO                  |
+| `bash pfinal/m3_registro_verificacion.sh` | Email de verificación al registrar usuario                | ✅ PASADO                  |
+| `bash pfinal/m4_expiracion_24h.sh`        | Token de verificación caduca en 24h (1440 min)            | ✅ PASADO                  |
+| `bash pfinal/m5_mock_rss.sh`              | 8 noticias sintéticas con Mock RSS en 2 ciclos            | ✅ PASADO (360s)           |
 
-Si el puerto SMTP 587 está bloqueado (ej: VPN de la UC3M), poner `SEND_EMAILS=false` en `.env` — los scripts M1/M2/M3 siguen pasando porque el log de Docker muestra igualmente `[EMAIL]` con el asunto completo.
+Si el puerto SMTP 587 está bloqueado (ej: VPN de la UC3M), poner `SEND_EMAILS=false` en `.env` — los scripts M1/M2/M3 siguen pasando
+porque el log de Docker muestra igualmente `[EMAIL]` con el asunto completo.
+
+para m5_mock_rss.sh, hay que previamente correr python mock_rss_service.py --port 8100, y entonces se hace bash pfinal/m5_mock_rss. (este llama a demo_m5.sh)
+
+
+---
+
+## "¿Qué cobertura de código tenéis?"
+
+**88% sobre los módulos de lógica** (models, services, core), medido con pytest-cov:
+
+```
+Name                         Stmts   Miss  Cover
+----------------------------------------------------------
+app/core/database.py            14      4    71%
+app/models/models.py           108      0   100%
+app/services/ai.py              32     12    62%
+app/services/alertLogic.py      38      7    82%
+----------------------------------------------------------
+TOTAL                          192     23    88%
+```
+
+Comando para reproducirlo:
+```bash
+docker compose exec app python -m pytest app/tests \
+  --cov=app.main --cov=app.core --cov=app.models --cov=app.services \
+  --cov-report=term-missing
+```
+
+`app/main.py` no aparece en el reporte porque `conftest.py` lo importa a nivel de módulo antes de que pytest-cov active la cobertura — el módulo ya está cargado cuando coverage empieza. Los tests sí ejercen todas sus rutas indirectamente (281/281 OK en el verificador del profesor).
