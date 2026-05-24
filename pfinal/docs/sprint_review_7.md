@@ -15,15 +15,15 @@ Este sprint consolida la calidad del proyecto mediante una suite de tests comple
 
 ## Tests
 
-72 tests en 13 archivos bajo `app/tests/`:
+Tests en 13 archivos bajo `app/tests/`:
 
-| Módulo | Cobertura |
-|---|---|
-| `models.py` | 100% |
-| `alertLogic.py` | 82% |
-| `database.py` | 71% |
-| `ai.py` | 62% |
-| **TOTAL lógica** | **88%** |
+| Módulo           | Cobertura |
+| ---------------- | --------- |
+| `models.py`      | 100%      |
+| `alertLogic.py`  | 82%       |
+| `database.py`    | 71%       |
+| `ai.py`          | 62%       |
+| **TOTAL lógica** | **96%**   |
 
 Ejecutar:
 ```bash
@@ -38,17 +38,17 @@ Los ficheros de infraestructura (`main.py`, `scheduler.py`, `fetcher.py`, `notif
 
 Fichero: `.github/workflows/fastapi-ci.yml` — se ejecuta en cada push.
 
-| Paso | Herramienta | Resultado |
-|---|---|---|
-| 1 | pytest + pytest-cov | 72 tests, umbral ≥ 80% |
-| 2 | Upload coverage XML | Artifact `coverage-report` |
-| 3 | Flake8 | Estilo PEP8 |
-| 4 | Bandit | Análisis de seguridad estático |
-| 5 | Radon | Complejidad ciclomática |
-| 6 | pip-audit | Vulnerabilidades en dependencias |
-| 7 | ESLint | Calidad del JavaScript del frontend |
-| 8 | pdoc | Documentación HTML → artifact `technical-docs` |
-| 9 | docker build | Empaquetado de la imagen `newsradar:latest` |
+| Paso | Herramienta         | Resultado                                      |
+| ---- | ------------------- | ---------------------------------------------- |
+| 1    | pytest + pytest-cov | 96.48% cobertura · 13 archivos, umbral ≥ 80%   |
+| 2    | Upload coverage XML | Artifact `coverage-report`                     |
+| 3    | Flake8              | Estilo PEP8                                    |
+| 4    | Bandit              | Análisis de seguridad estático                 |
+| 5    | Radon               | Complejidad ciclomática                        |
+| 6    | pip-audit           | Vulnerabilidades en dependencias               |
+| 7    | ESLint              | Calidad del JavaScript del frontend            |
+| 8    | pdoc                | Documentación HTML → artifact `technical-docs` |
+| 9    | docker build        | Empaquetado de la imagen `newsradar:latest`    |
 
 ---
 
@@ -58,7 +58,7 @@ Fichero: `.github/workflows/fastapi-ci.yml` — se ejecuta en cada push.
 - **Swagger / ReDoc** — generados automáticamente por FastAPI en `/docs` y `/redoc`.
 - **pdoc** — documentación HTML de módulos Python generada por `generate_docs.sh` y como artifact de CI.
 - **Sprint reviews** — `docs/sprint_review_0_y_1.md` a `docs/sprint_review_7.md`.
-- **CI/CD** — `docs/CI_CD_documentation.md`.
+- **CI/CD** — `docs/ci_cd_documentation.md`.
 - **Tests** — `docs/tests_documentation.md`.
 
 ---
