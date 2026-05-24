@@ -1,1 +1,6 @@
 *.sh text eol=lf
+
+# Excluir del zip (git archive)
+.vscode/ export-ignore
+.claude/ export-ignore
+pfinal/correos_profe/ export-ignore

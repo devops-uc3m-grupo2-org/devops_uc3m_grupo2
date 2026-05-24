@@ -85,7 +85,7 @@ Respuesta esperada: `b'{"openapi":"3.1.0","info":{"title":"Mock RSS News API"...
 | Script | Qué hace |
 |---|---|
 | `checklist_profe.sh` | Verifica automáticamente las 26 preguntas de proceso del checklist del profesor. Con `--proyecto` también las 40 de proyecto. |
-| `script_correo_4.sh` | Comprueba que todo está listo para el día del examen según los requisitos del correo 4 del profesor (281 tests en vivo, M1-M5 en vivo, zip entregable). |
+| `zippear.sh` | Genera el zip entregable para AulaGlobal (incluye .env), comprueba scripts M1-M5 y muestra el procedimiento del día del examen. |
 
 ---
 

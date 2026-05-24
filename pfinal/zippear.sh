@@ -73,6 +73,21 @@ echo ""
 echo "── [4/5] Generando zip para AulaGlobal ──"
 cd "$REPO_ROOT"
 git archive --format=zip --output="$ZIP_OUTPUT" HEAD 2>/dev/null
+
+# Inyectar .env (excluido por .gitignore pero necesario para arrancar)
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    python3 -c "
+import zipfile, os
+zip_path = '$ZIP_OUTPUT'
+env_path = '$SCRIPT_DIR/.env'
+with zipfile.ZipFile(zip_path, 'a') as z:
+    z.write(env_path, 'pfinal/.env')
+print('  .env añadido al zip')
+"
+else
+    warn ".env no encontrado en pfinal/ — el zip no incluirá variables de entorno"
+fi
+
 ZIP_SIZE=$(du -sh "$ZIP_OUTPUT" 2>/dev/null | cut -f1)
 ok "newsradar_entrega.zip generado — tamaño: $ZIP_SIZE"
 echo "   Ruta: $ZIP_OUTPUT"
