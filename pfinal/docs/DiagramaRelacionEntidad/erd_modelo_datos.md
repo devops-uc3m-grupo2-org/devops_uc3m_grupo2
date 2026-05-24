@@ -1,4 +1,20 @@
-# Modelo de datos NewsRadar — referencia para Draw.io
+# Modelo de datos NewsRadar
+
+## Cómo regenerar el diagrama
+
+El diagrama se genera con **[dbdiagram.io](https://dbdiagram.io)**:
+
+1. Abre [dbdiagram.io](https://dbdiagram.io)
+2. Borra el ejemplo por defecto
+3. Pega el contenido de `code_generar_dbdiagram_io.sql` (DBML)
+4. El diagrama se genera automáticamente
+5. Exporta al formato deseado:
+   - **Export → PNG** → `DiagramaRelacionEntidad.png`
+   - **Export → PDF** → `DiagramaRelacionEntidad.pdf`
+   - **Export → SVG** → `DiagramaRelacionEntidad.svg`
+   - **Export → PostgreSQL** → `DiagramaRelacionEntidad.sql`
+
+---
 
 ## Entidades y atributos
 
