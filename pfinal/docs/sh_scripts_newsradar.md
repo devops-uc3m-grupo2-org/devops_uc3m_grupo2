@@ -13,7 +13,7 @@ Todos los scripts se ejecutan desde la raíz de `pfinal/`. Requieren Docker en e
 1. bash check_conexion.sh      # (opcional) red OK antes de empezar
 2. bash start.sh               # levanta app + BD desde cero
 3. bash pre_examen.sh          # check rápido de todo (~30 s)
-4. bash run_verifier.sh        # 281 casos del verificador (~17 min)
+4. bash run_verifier.sh        # 281 casos del verificador (~30s con .venv existente, ~15 min sin él)
 5. bash m1_email_notificacion.sh  # inspecciones manuales M1–M5 según lo pida el profe
    bash m2_formato_asunto.sh
    bash m3_registro_verificacion.sh
@@ -47,7 +47,7 @@ Todos los scripts se ejecutan desde la raíz de `pfinal/`. Requieren Docker en e
 
 | Script | Qué hace |
 |---|---|
-| `run_verifier.sh` | Borra el `.venv` del verificador, lo recrea, instala deps y lanza `run_tests.py`. Muestra timer en vivo y tiempos al final. **Usar este para el examen.** |
+| `run_verifier.sh` | Lanza los 281 tests del verificador. **Si `.venv` ya existe lo reutiliza (~30s)**; si no existe lo crea desde cero (~15 min). Usar `--fresh-venv` para forzar recreación. Muestra timer en vivo y tiempos al final. **Usar este para el examen.** |
 | `verify.sh` | Versión simplificada: lanza el verificador directamente con `--all` asumiendo que el `.venv` ya existe. |
 | `shell_acceso.sh` | Abre una shell interactiva con el `.venv` del verificador activado y el directorio correcto. Para ejecutar comandos del verificador a mano. |
 
