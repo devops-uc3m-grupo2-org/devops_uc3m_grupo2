@@ -61,29 +61,46 @@ fi
 echo "OK — $SERVICE responde"
 echo ""
 
-# ── 1. Borrar entorno virtual anterior ────────────────────────────────────
-echo "── [1/4] Borrando .venv anterior (si existe) ──"
+# ── 1-3. Entorno virtual ──────────────────────────────────────────────────
 cd "$VERIFICA_DIR"
-rm -rf .venv
-echo "OK — .venv eliminado"
-echo ""
-
-# ── 2. Crear entorno virtual nuevo ────────────────────────────────────────
-echo "── [2/4] Creando entorno virtual limpio ──"
 t_venv_start=$SECONDS
-start_timer "Creando .venv"
-python3 -m venv .venv
-stop_timer
-echo "   OK — .venv creado en $((SECONDS - t_venv_start))s"
+
+if [ -f ".venv/bin/python" ]; then
+    echo "── [1/4] .venv existente encontrado — reutilizando ──"
+    echo "   (usa --fresh-venv para forzar recreación)"
+    t_venv_end=$SECONDS
+else
+    echo "── [1/4] Creando entorno virtual ──"
+    python3 -m venv .venv
+    echo ""
+    echo "── [2/4] Instalando dependencias ──"
+    t_pip_start=$SECONDS
+    start_timer "Instalando requirements"
+    .venv/bin/pip install --upgrade pip -q
+    .venv/bin/pip install -r requirements.txt -q
+    stop_timer
+    t_venv_end=$SECONDS
+    echo "   OK — entorno listo en $((t_venv_end - t_venv_start))s"
+fi
 echo ""
 
-# ── 3. Instalar dependencias ──────────────────────────────────────────────
-echo "── [3/4] Instalando dependencias ──"
-t_pip_start=$SECONDS
-start_timer "Instalando requirements"
-.venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r requirements.txt
-stop_timer
+# Si piden venv fresco, recrear
+if [[ "${*}" == *"--fresh-venv"* ]]; then
+    echo "── [1/4] --fresh-venv: recreando .venv ──"
+    rm -rf .venv
+    python3 -m venv .venv
+    t_pip_start=$SECONDS
+    start_timer "Instalando requirements"
+    .venv/bin/pip install --upgrade pip -q
+    .venv/bin/pip install -r requirements.txt -q
+    stop_timer
+    t_venv_end=$SECONDS
+    echo "   OK — entorno listo en $((t_venv_end - t_venv_start))s"
+    echo ""
+fi
+
+# variable para el resumen de tiempos
+t_pip_start=${t_pip_start:-$t_venv_start}
 t_venv_end=$SECONDS
 echo "   OK — dependencias instaladas en $((t_venv_end - t_pip_start))s"
 echo "   Entorno listo en $((t_venv_end - t_venv_start))s total"
