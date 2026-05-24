@@ -33,12 +33,12 @@
 | 29 | Almacenamiento noticias y entidades | `app/models/models.py` | `NewsItem`, `Alert`, `Notification`, `InformationSource` |
 | 30 | Código en GitHub | `.github/` | Repositorio `devops_uc3m_grupo2` |
 | 31 | Documentación Markdown | `README.md`, `docs/` | README principal + docs/ |
-| 32 | ADRs en /docs/adr | `docs/adr/` | 13 ADRs documentados |
+| 32 | ADRs en /docs/adr | `pfinal/docs/adr/` | 14 ADRs documentados (0001-0014) |
 | 33 | Diagrama arquitectura | `docs/` | `DiagramaRelacionEntidad.drawio.png` |
-| 34 | Pruebas automatizadas | `app/tests/` | 72 tests en 12 archivos |
+| 34 | Pruebas automatizadas | `pfinal/app/tests/` | 13 archivos de test · cobertura 96% |
 | 35 | GitHub Actions pipeline | `.github/workflows/tests.yml` | FastAPI CI + CI |
 | 36 | Informe cobertura de código | `.github/workflows/tests.yml` | `--cov-report=xml`, artifact `coverage-report` |
 | 37 | Despliegue en máquina limpia | `docker-compose.yml` | `docker compose up --build` |
 | 38 | Informe cobertura automático | `.github/workflows/tests.yml` | `--cov=app --cov-report=term` |
-| 39 | Trazabilidad requisitos ↔ código | `docs/trazabilidad_requisitos.md` | Este documento |
-| 40 | Registro de prompts IA | `docs/prompts_ia.md` | Ver documento |
+| 39 | Trazabilidad requisitos ↔ código | `pfinal/docs/trazabilidad_requisitos.md` | Este documento |
+| 40 | Registro de prompts IA | `pfinal/docs/prompts_ia.md` | Ver documento |

@@ -40,7 +40,7 @@ graph TB
     end
 
     subgraph CI["CI/CD — GitHub Actions"]
-        Pipeline["FastAPI CI\npytest 72 tests\ncoverage XML\nartifact upload"]
+        Pipeline["FastAPI CI\npytest 13 archivos · 96% coverage\ncoverage XML\nartifact upload"]
     end
 
     Browser -->|HTTP/REST| Auth
@@ -162,4 +162,4 @@ sequenceDiagram
 | Contenedores | Docker + Docker Compose |
 | Frontend | HTML + CSS + JavaScript (vanilla) |
 | CI/CD | GitHub Actions |
-| Tests | pytest + pytest-cov (26 tests) |
+| Tests | pytest + pytest-cov (13 archivos · 96% cobertura) |
