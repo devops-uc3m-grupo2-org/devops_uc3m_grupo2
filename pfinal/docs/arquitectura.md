@@ -12,7 +12,7 @@ graph TB
     subgraph API["Backend — FastAPI (Python 3.12)"]
         Auth["Auth\n/api/v1/auth/*\nJWT · registro · login\nverificación · reset pwd"]
         Alerts["Alertas\n/api/v1/users/{id}/alerts\nCRUD · límite 20\ncontrol de roles"]
-        Sources["Fuentes RSS\n/api/v1/information-sources\nCRUD · 100 canales IPTC"]
+        Sources["Fuentes RSS\n/api/v1/information-sources\nCRUD · 218 canales IPTC"]
         News["Noticias\n/api/v1/news\nlistado · fetch · latest"]
         Stats["Estadísticas\n/api/v1/stats\nglobal · by-category\nwordcloud"]
         AI["IA\n/api/v1/suggestions\nsinónimos IPTC"]
@@ -23,7 +23,7 @@ graph TB
         Fetcher["feedparser\nfetch_feed()"]
         AlertLogic["Motor de alertas\nprocess_alerts_for_items()\nmatch_alert()"]
         Notifier["Notificaciones\nnotify_alert()\nsend_email()"]
-        Seed["Seed RSS\nseed_rss_channels()\n10 medios · 100 canales"]
+        Seed["Seed RSS\nseed_rss_channels()\n15 medios · 218 canales"]
     end
 
     subgraph Datos["Persistencia"]
@@ -36,7 +36,7 @@ graph TB
     end
 
     subgraph RSS["Fuentes externas"]
-        Feeds["📡 Feeds RSS\nEl País · El Mundo · ABC\nRTVE · Expansión · Marca\n+ 4 más"]
+        Feeds["📡 Feeds RSS\nEl País · El Mundo · ABC\nRTVE · Expansión · Marca\n+ 9 más (15 medios total)"]
     end
 
     subgraph CI["CI/CD — GitHub Actions"]
@@ -55,7 +55,7 @@ graph TB
     Sources --> DB
     News --> DB
     Stats --> DB
-    AI --> AI
+    Browser -->|HTTP/REST| AI
 
     Scheduler -->|cada 5 min| Fetcher
     Fetcher -->|feedparser| Feeds
@@ -65,7 +65,7 @@ graph TB
     AlertLogic --> Notifier
     Notifier -->|smtplib| SMTP
 
-    DB --> SQLite
+    DB -. dev fallback .-> SQLite
 ```
 
 ---
