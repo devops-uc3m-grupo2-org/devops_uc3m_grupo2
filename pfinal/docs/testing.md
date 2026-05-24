@@ -1,6 +1,9 @@
 # Guía de tests — NewsRadar
 
-Suite: **72 tests** en 12 archivos. Se pueden correr de tres formas: localmente con SQLite (sin Docker), localmente con PostgreSQL o con Docker.
+> **Este documento:** cómo ejecutar los tests — comandos, venv, opciones pytest, CI.
+> **Para qué hace cada test:** ver [`tests_documentation.md`](tests_documentation.md).
+
+Suite: **72 tests en 13 archivos · 96% cobertura**. Se pueden correr de tres formas: localmente con SQLite (sin Docker), localmente con PostgreSQL o con Docker.
 
 ---
 
@@ -144,7 +147,8 @@ pytest pfinal/app/tests/ -v
 | `test_stats_extended.py` | 7 | Wordcloud, stats por categoría, límite de 20 alertas, `/alerts/check` |
 | `test_categories.py` | 9 | CRUD completo de categorías IPTC + 404s |
 | `test_roles_extended.py` | 10 | CRUD completo de roles + 409 al borrar rol asignado |
-| `test_users_extended.py` | 19 | CRUD usuarios, CRUD completo de notificaciones |
+| `test_users_extended.py` | 13 | CRUD usuarios, CRUD completo de notificaciones |
+| `test_monitoring.py` | 6 | Matching alertas-noticias, pipeline completo |
 
 ---
 
@@ -200,7 +204,7 @@ GET  /api/v1/stats                  → métricas del sistema
 GET  /api/v1/stats/wordcloud        → nube de palabras por categoría
 GET  /api/v1/stats/by-category      → conteo por categoría IPTC
 POST /api/v1/news/fetch             → importar noticias RSS
-POST /api/v1/alerts/check           → ejecutar matching alertas-noticias
+POST /api/v1/news/fetch             → importar + matching automático vía scheduler
 ```
 
 ---
@@ -240,9 +244,9 @@ pip install -r requirements.txt --force-reinstall
 
 ## CI — GitHub Actions
 
-Los tests se ejecutan automáticamente en cada `push` y `pull_request` desde [`.github/workflows/tests.yml`](../.github/workflows/tests.yml):
+Los tests se ejecutan automáticamente en cada `push` y `pull_request` desde [`.github/workflows/fastapi-ci.yml`](../.github/workflows/fastapi-ci.yml):
 
-1. Levanta PostgreSQL 15 como servicio del runner.
+1. Levanta PostgreSQL 16 como servicio del runner.
 2. Instala dependencias (`requirements.txt` + pytest, pytest-cov, flake8, bandit).
 3. Ejecuta análisis de calidad: **Flake8** (Python) y **ESLint** (JavaScript).
 4. Ejecuta análisis de seguridad: **Bandit**.

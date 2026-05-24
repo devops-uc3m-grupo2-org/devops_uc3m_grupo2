@@ -2,6 +2,11 @@
 
 Sistema de monitorización de noticias RSS con alertas inteligentes, clasificación IPTC y sugerencias de IA.
 
+> **Este documento:** punto de entrada del proyecto — arranque, endpoints, tests, CI/CD y tabla de documentación.
+> **Documentos clave:** [`docs/demo_recorrido.md`](docs/demo_recorrido.md) · [`docs/arquitectura.md`](docs/arquitectura.md) · [`docs/inspeccion_manual_swagger.md`](docs/inspeccion_manual_swagger.md) · [`docs/guia_de_respuestas_a_preguntas_tipicas.md`](docs/guia_de_respuestas_a_preguntas_tipicas.md)
+
+> **Verificador:** 281/281 OK (100 %) — última ejecución 2026-05-24
+
 ## Stack técnico
 
 - **Backend**: FastAPI + Python 3.12
@@ -21,7 +26,7 @@ bash start.sh
 
 # O manualmente:
 cp .env.example .env        # ajustar credenciales SMTP y GROQ_API_KEY
-docker compose up --build -d
+docker compose up --build
 ```
 
 | Recurso      | URL                                                      |
@@ -34,7 +39,9 @@ docker compose up --build -d
 Al arrancar se crean automáticamente:
 - Roles: `admin`, `gestor`, `user`
 - Usuario admin: `admin@newsradar.com` / `admin123`
-- 15 fuentes RSS + 200 canales IPTC (10 medios, 17 categorías)
+- 15 fuentes RSS + 200 canales IPTC (15 medios, 16 categorías activas)
+
+> El catálogo IPTC define 17 categorías y todas están en el enum del modelo (`IPTCCategoryEnum`). En BD se activan 16 porque ninguna fuente del seed genera noticias de Religión y culto de forma consistente — la categoría existe en el modelo pero no tiene canales activos.
 
 ## Ejecutar los tests
 
@@ -48,7 +55,7 @@ docker compose exec app python -m pytest app/tests \
   --cov-report=term-missing
 ```
 
-72 tests en 13 archivos — cobertura real: **88%** en módulos de lógica.
+72 tests en 13 archivos — cobertura real: **96%** en módulos de lógica.
 
 | Archivo | Qué cubre |
 |---|---|
@@ -117,7 +124,7 @@ GitHub Actions en `.github/workflows/fastapi-ci.yml` ejecuta en cada push:
 
 | Paso | Herramienta | Qué hace |
 |---|---|---|
-| 1 | pytest + pytest-cov | 72 tests, cobertura ≥ 80% obligatoria |
+| 1 | pytest + pytest-cov | 96.48% cobertura · 13 archivos, umbral ≥ 80% |
 | 2 | coverage XML | Artifact `coverage-report` descargable |
 | 3 | Flake8 | Estilo PEP8 |
 | 4 | Bandit | Análisis de seguridad |
@@ -129,7 +136,7 @@ GitHub Actions en `.github/workflows/fastapi-ci.yml` ejecuta en cada push:
 
 ## Scripts de operación
 
-Ver [sh_scripts_newsradar.md](sh_scripts_newsradar.md) para la guía completa de todos los scripts `.sh` y el orden de ejecución en el examen.
+Ver [docs/sh_scripts_newsradar.md](docs/sh_scripts_newsradar.md) para la guía completa de todos los scripts `.sh` y el orden de ejecución en el examen.
 
 ## Configuración email (SMTP Gmail)
 
@@ -142,6 +149,25 @@ SEND_EMAILS=true                    # false → solo log, no envía
 
 Con `SEND_EMAILS=false` los emails aparecen en `docker compose logs app` con prefijo `[EMAIL]` — M1/M2/M3 pasan igualmente.
 
+## Documentación
+
+| Documento | Ruta |
+|---|---|
+| Arquitectura del sistema | `docs/arquitectura.md` |
+| Diagrama entidad-relación | `docs/DiagramaRelacionEntidad/DiagramaRelacionEntidad.png` |
+| Trazabilidad requisitos ↔ código | `docs/trazabilidad_requisitos.md` |
+| Registro de prompts IA | `docs/prompts_ia.md` |
+| ADRs (decisiones arquitectónicas) | `docs/adr/` — 14 ficheros (0001–0014) |
+| Sprint reviews | `docs/sprint_review_0_y_1.md` … `docs/sprint_review_7.md` |
+| Demo paso a paso (curl + explicaciones) | `docs/demo_recorrido.md` |
+| Script Python de demo automatizada | `docs/demo_recorrido.py` |
+| Guía de inspección manual (Swagger) | `docs/inspeccion_manual_swagger.md` |
+| Preguntas típicas de defensa | `docs/guia_de_respuestas_a_preguntas_tipicas.md` |
+| Guía de tests | `docs/testing.md` |
+| CI/CD | `docs/ci_cd_documentation.md` |
+
+---
+
 ## Sprints
 
 | Sprint | Contenido | Estado |
@@ -152,4 +178,4 @@ Con `SEND_EMAILS=false` los emails aparecen en `docker compose logs app` con pre
 | S4 | IA generativa: sugerencias y sinónimos (Groq) | ✅ |
 | S5 | Motor RSS + matching alertas + notificaciones email | ✅ |
 | S6 | Stats/dashboard con métricas reales | ✅ |
-| S7 | Tests (72), CI/CD GitHub Actions, documentación | ✅ |
+| S7 | Tests (72 · 13 archivos · 96%), CI/CD GitHub Actions, documentación | ✅ |

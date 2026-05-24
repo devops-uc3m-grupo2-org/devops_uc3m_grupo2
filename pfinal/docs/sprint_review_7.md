@@ -1,5 +1,8 @@
 # Sprint Review 7 – Tests, CI/CD y Documentación
 
+> **Este documento:** Sprint 7 — 72 tests · 96% cobertura, pipeline GitHub Actions, documentación técnica completa.
+> **Anterior:** [`sprint_review_6.md`](sprint_review_6.md)
+
 Este sprint consolida la calidad del proyecto mediante una suite de tests completa, un pipeline de integración y entrega continua en GitHub Actions, y documentación técnica actualizada.
 
 ---
@@ -15,7 +18,7 @@ Este sprint consolida la calidad del proyecto mediante una suite de tests comple
 
 ## Tests
 
-Tests en 13 archivos bajo `app/tests/`:
+72 tests en 13 archivos bajo `app/tests/`:
 
 | Módulo           | Cobertura |
 | ---------------- | --------- |

@@ -1,6 +1,7 @@
 # Inspección manual M1-M5 desde Swagger
 
-> Verificado en la UC3M el 2026-05-22. Todos los pasos ejecutados y confirmados.
+> **Este documento:** guía paso a paso para verificar M1-M5 desde Swagger UI — verificado el 2026-05-22.
+> **Ver también:** [`demo_recorrido.md`](demo_recorrido.md) · [`guia_de_respuestas_a_preguntas_tipicas.md`](guia_de_respuestas_a_preguntas_tipicas.md)
 
 URL Swagger: `http://localhost:8000/docs`
 
@@ -285,13 +286,13 @@ Aparecen: `noticia`, `sintetica`, `resumen`, `sintetico`, `pruebas`.
 
 ## Resumen final
 
-| Caso | Endpoint clave | Tiempo | Resultado UC3M |
-|---|---|---|---|
-| M1 | `POST /users/1/alerts` + esperar scheduler | ~5-10 min | ✅ 17:35 |
-| M2 | logs Docker | instantáneo | ✅ formato correcto |
-| M3 | `POST /auth/register` + logs | instantáneo | ✅ 17:38 |
-| M4 | `GET /auth/verify?token=falso` | instantáneo | ✅ HTTP 400 |
-| M5 | fuente + canal + alerta mock + esperar 2 ciclos | ~10-12 min | ✅ 8/8 notif |
+| Caso | Endpoint clave                                  | Tiempo      | Resultado UC3M     |
+| ---- | ----------------------------------------------- | ----------- | ------------------ |
+| M1   | `POST /users/1/alerts` + esperar scheduler      | ~5-10 min   | ✅ 17:35            |
+| M2   | logs Docker                                     | instantáneo | ✅ formato correcto |
+| M3   | `POST /auth/register` + logs                    | instantáneo | ✅ 17:38            |
+| M4   | `GET /auth/verify?token=falso`                  | instantáneo | ✅ HTTP 400         |
+| M5   | fuente + canal + alerta mock + esperar 2 ciclos | ~10-12 min  | ✅ 8/8 notif        |
 
 > La nube de palabras **no usa IA** — es conteo de frecuencia de palabras de las noticias matcheadas.
 > La IA (Groq Llama 3.3 70B) solo se usa en `GET /api/v1/suggestions?keyword=...`.

@@ -1,5 +1,8 @@
 # Documentación Tests Automáticos
 
+> **Este documento:** qué hace cada test — descripción test a test, arquitectura conftest, cobertura.
+> **Para ejecutar los tests:** ver [`testing.md`](testing.md).
+
 ---
 
 #  Formato de los ficheros de tests
@@ -132,6 +135,7 @@ Durante la inicialización se insertan datos base:
 - roles:
   - `admin`
   - `user`
+  - `gestor`
 - usuario admin del sistema
 
 ---
@@ -495,6 +499,8 @@ TOTAL                          192     23    88%
 ```
 
 **72 passed, 20 warnings en ~55 s**
+
+> Esta tabla mide solo los módulos de lógica (`core`, `models`, `services`) excluyendo `main.py`. La cobertura global reportada por CI (incluyendo `main.py`) es **96.48%**.
 
 ## Por qué `app/main.py` no aparece
 

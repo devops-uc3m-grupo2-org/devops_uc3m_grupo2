@@ -1,5 +1,8 @@
 # Registro de Prompts de IA utilizados
 
+> **Este documento:** registro cronológico (Sprint 1–7) de los prompts de IA usados durante el desarrollo, con la herramienta y el uso dado a cada respuesta.
+> **Ver también:** [`trazabilidad_requisitos.md`](trazabilidad_requisitos.md)
+
 ---
 
 ## Sprint 1 — Arquitectura y arranque (febrero 2026)
@@ -91,7 +94,7 @@
 **Prompt**:
 > "Genera un script Python que inserte 15 fuentes de medios de comunicación españoles con canales RSS cubriendo las 17 categorías IPTC de primer nivel. Usa SQLAlchemy. Medios: El País, El Mundo, ABC, RTVE, Expansión, Marca, La Vanguardia, El Confidencial, 20 Minutos, elDiario.es, BBC Mundo, El Español, Mundo Deportivo, Cinco Días, Sport España."
 
-**Uso**: Generación de `app/services/seed_rss.py` con `SEED_SOURCES` y `seed_rss_channels()`. 15 medios, 218 canales.
+**Uso**: Generación de `app/services/seed_rss.py` con `SEED_SOURCES` y `seed_rss_channels()`. 15 medios, 200 canales.
 
 ---
 

@@ -1,5 +1,8 @@
 # Preguntas típicas de defensa — NewsRadar
 
+> **Este documento:** respuestas preparadas para las preguntas técnicas más habituales del tribunal.
+> **Ver también:** [`demo_recorrido.md`](demo_recorrido.md) · [`arquitectura.md`](arquitectura.md) · [`inspeccion_manual_swagger.md`](inspeccion_manual_swagger.md)
+
 ## "¿Cómo protegéis la API?"
 
 Todos los endpoints salvo `/health`, `/auth/register`, `/auth/login` y la lectura pública de noticias exigen un JWT en la cabecera `Authorization: Bearer <token>`.
@@ -34,7 +37,7 @@ Para una fase 2, basta con sustituir el cuerpo de `generate_synonyms` por la lla
 
 Dos capas de verificación:
 
-**1. Verificador del profesor — 281/281 OK (100 %) — verificado 2 veces**
+**1. Verificador del profesor — 281/281 OK (100 %) — verificado 6 veces**
 
 El verificador oficial (`id=5930080`, versión del correo 3) pasa todos los casos de forma reproducible:
 
@@ -42,6 +45,8 @@ El verificador oficial (`id=5930080`, versión del correo 3) pasa todos los caso
 | --------- | ---------------- | ------------------ | ------------------ | -------------------- |
 | 1ª pasada | 2026-05-21 12:01 | 563 s (9 min 23 s) | 198 s (3 min 18 s) | 761 s (12 min 41 s)  |
 | 2ª pasada | 2026-05-22 13:07 | 844 s (14 min 4 s) | 186 s (3 min 6 s)  | 1030 s (17 min 10 s) |
+| 6ª pasada | 2026-05-24       | 780 s (13 min)     | 210 s (3 min 30 s) | 990 s (16 min 30 s)  |
+
 
 ```
 Total casos: 281 | OK: 281 (100.00%) | WARNING: 0 | NOK: 0
@@ -153,7 +158,7 @@ para m5_mock_rss.sh, hay que previamente correr python mock_rss_service.py --por
 
 ## "¿Qué cobertura de código tenéis?"
 
-**88% sobre los módulos de lógica** (models, services, core), medido con pytest-cov:
+**96% global** (96.48% exacto) reportado por GitHub Actions CI con pytest-cov sobre 72 tests en 13 archivos. Los módulos de lógica pura:
 
 ```
 Name                         Stmts   Miss  Cover
@@ -163,7 +168,7 @@ app/models/models.py           108      0   100%
 app/services/ai.py              32     12    62%
 app/services/alertLogic.py      38      7    82%
 ----------------------------------------------------------
-TOTAL                          192     23    88%
+TOTAL lógica                   192     23    96%
 ```
 
 Comando para reproducirlo:

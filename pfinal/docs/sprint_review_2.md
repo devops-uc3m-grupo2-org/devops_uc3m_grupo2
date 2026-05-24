@@ -1,5 +1,8 @@
 # Sprint 2 – Fuentes RSS y noticias (NewsRadar)
 
+> **Este documento:** Sprint 2 — fuentes RSS, ingesta de noticias con feedparser, endpoints CRUD de fuentes.
+> **Anterior:** [`sprint_review_0_y_1.md`](sprint_review_0_y_1.md) · **Siguiente:** [`sprint_review_3.md`](sprint_review_3.md)
+
 Este sprint añade al backend de **NewsRadar** la gestión de **fuentes de información (RSS)** y la **ingesta básica de noticias** en la base de datos, manteniendo la autenticación JWT y PostgreSQL del Sprint 1.
 
 ---

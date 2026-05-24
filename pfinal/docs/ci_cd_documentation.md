@@ -1,16 +1,19 @@
 # Proceso de creación de Integración Continua (CI) y Distribución Continua (CD)
 
+> **Este documento:** descripción del pipeline GitHub Actions: pasos, herramientas, cobertura y correcciones aplicadas.
+> **Ver también:** [`sprint_review_7.md`](sprint_review_7.md) · [`testing.md`](testing.md) · [`buenas_practicas.md`](buenas_practicas.md)
+
 ## Integración Continua (CI)
 
 Este proyecto utiliza **GitHub Actions** para ejecutar un pipeline de integración continua (CI) que valida automáticamente el código en cada `push` y `pull_request`.
 
-Ubicado en `.github/workflows/tests.yml`.
+Ubicado en `.github/workflows/fastapi-ci.yml`.
 
 Los tests se ejecutan con una base de datos **PostgreSQL real** dentro del runner de GitHub Actions, replicando el entorno de producción (no SQLite).
 
 ## Docker Compose
 
-En fichero `docker-compose.yml` — define los servicios `app` (FastAPI) y `db` (PostgreSQL 17).
+En fichero `docker-compose.yml` — define los servicios `app` (FastAPI) y `db` (PostgreSQL 16).
 
 ---
 
@@ -117,7 +120,9 @@ La cobertura medida localmente sobre los módulos de lógica (sin excluir test f
 | `app/core/database.py` | 71% |
 | `app/services/alertLogic.py` | 82% |
 | `app/services/ai.py` | 62% |
-| **TOTAL** | **88%** |
+| **TOTAL lógica** | **96%** |
+
+> La cobertura global reportada por CI (incluyendo `main.py` y todos los módulos) es **96.48%**. La tabla anterior mide solo los módulos de lógica pura (excluye infraestructura).
 
 ---
 

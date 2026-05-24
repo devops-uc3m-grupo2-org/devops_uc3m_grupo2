@@ -1,5 +1,8 @@
 # Sprint 3 – Alertas CRUD + Etiquetado + Cron básico
 
+> **Este documento:** Sprint 3 — CRUD de alertas, motor de matching noticia-alerta, scheduler APScheduler.
+> **Anterior:** [`sprint_review_2.md`](sprint_review_2.md) · **Siguiente:** [`sprint_review_4.md`](sprint_review_4.md)
+
 
 En este sprint se busca trabajar en el backend de **Newsradar** para agregar la lógica de las **alertas** generadas cuando llega una noticia con la información pertinente. Asimismo, se enfoca en lograr que la aplicación etiquete debidamente esta noticia de acuerdo a sus palabras claves y la almacene a falta de ser categorizada. Asimismo, se busca desarrollar una primera versión del scheduling, que permita hacer periodicamente identificación de noticias.
 

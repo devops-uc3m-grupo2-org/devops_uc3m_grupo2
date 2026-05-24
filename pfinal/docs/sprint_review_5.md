@@ -1,5 +1,8 @@
 # Sprint 5 – Gestión de Notificaciones (Alerts Notifications CRUD)
 
+> **Este documento:** Sprint 5 — CRUD de notificaciones por alerta, gestión de canales RSS dentro de fuentes.
+> **Anterior:** [`sprint_review_4.md`](sprint_review_4.md) · **Siguiente:** [`sprint_review_6.md`](sprint_review_6.md)
+
 En este módulo se implementa la gestión completa de **notificaciones asociadas a alertas de usuario** dentro del sistema *NewsRadar*. Estas notificaciones representan eventos generados cuando una alerta detecta coincidencias con noticias o métricas relevantes.
 
 ---

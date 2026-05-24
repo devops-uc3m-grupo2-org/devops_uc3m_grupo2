@@ -1,5 +1,8 @@
 # Trazabilidad Requisitos ↔ Código
 
+> **Este documento:** tabla que mapea cada uno de los 40 requisitos del enunciado con el archivo y función que lo implementa.
+> **Ver también:** [`arquitectura.md`](arquitectura.md) · [`prompts_ia.md`](prompts_ia.md)
+
 | # | Requisito | Archivo | Función / Clase |
 |---|---|---|---|
 | 1 | Alertas sobre palabra clave | `app/main.py` | `AlertBase.descriptors`, `create_user_alert` |
@@ -15,8 +18,8 @@
 | 11 | Resumen RSS en notificación | `app/services/notifications.py` | `notify_alert()` → `item.summary[:200]` |
 | 12 | Alta canales RSS por medio | `app/main.py` | `create_source_channel` |
 | 13 | Mínimo 100 canales RSS iniciales | `app/services/seed_rss.py` | `seed_rss_channels()` |
-| 14 | 10 medios diferentes | `pfinal/app/services/seed_rss.py` | `SEED_SOURCES` (15 medios · 218 canales) |
-| 15 | Todas las categorías IPTC (17) | `app/services/seed_rss.py` | Canales con las 17 categorías IPTC |
+| 14 | 10 medios diferentes | `pfinal/app/services/seed_rss.py` | `SEED_SOURCES` (15 medios · 200 canales) |
+| 15 | Todas las categorías IPTC (17) | `app/services/seed_rss.py` | 16 categorías IPTC activas en BD (catálogo completo de 17 definido en `IPTCCategoryEnum`) |
 | 16 | Roles Gestor y Lector | `app/main.py` | `create_seed_data()` → roles `admin`, `user` y `gestor` |
 | 17 | Lector bloqueado en gestión alertas | `app/main.py` | `require_gestor()` aplicado a POST/PUT/DELETE |
 | 18 | Email, nombre, apellidos, org en registro | `app/main.py` | `UserCreate`, `register` |

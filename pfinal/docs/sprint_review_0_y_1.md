@@ -1,5 +1,8 @@
 # Estado actual – NewsRadar (25‑mar 2026)
 
+> **Este documento:** Sprint 0–1 — infraestructura inicial, Docker, autenticación JWT, usuarios y roles.
+> **Siguiente:** [`sprint_review_2.md`](sprint_review_2.md)
+
 ## Sprint 0 – Infraestructura + Docker + BD + Alembic
 
 ### Objetivo

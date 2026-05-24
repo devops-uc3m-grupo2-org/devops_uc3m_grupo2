@@ -1,5 +1,8 @@
 # NewsRadar — Recorrido de demo (probado en vivo)
 
+> **Este documento:** guía paso a paso de la demo para el examen — arranque, endpoints clave, script Python y flujo M1-M5.
+> **Ver también:** [`../README.md`](../README.md) · [`inspeccion_manual_swagger.md`](inspeccion_manual_swagger.md) · [`guia_de_respuestas_a_preguntas_tipicas.md`](guia_de_respuestas_a_preguntas_tipicas.md)
+
 Todos los pasos han sido ejecutados y verificados contra `http://192.168.1.172:8000`.
 Para la defensa, sustituye esa IP por `localhost` si corres el proyecto en tu máquina.
 

@@ -1,5 +1,8 @@
 # Arquitectura del sistema NewsRadar
 
+> **Este documento:** diagrama de componentes, stack técnico, flujo de datos y decisiones de diseño del sistema.
+> **Ver también:** [`trazabilidad_requisitos.md`](trazabilidad_requisitos.md) · [`DiagramaRelacionEntidad/erd_modelo_datos.md`](DiagramaRelacionEntidad/erd_modelo_datos.md)
+
 ## Diagrama de componentes
 
 ```mermaid
@@ -12,7 +15,7 @@ graph TB
     subgraph API["Backend — FastAPI (Python 3.12)"]
         Auth["Auth\n/api/v1/auth/*\nJWT · registro · login\nverificación · reset pwd"]
         Alerts["Alertas\n/api/v1/users/{id}/alerts\nCRUD · límite 20\ncontrol de roles"]
-        Sources["Fuentes RSS\n/api/v1/information-sources\nCRUD · 218 canales IPTC"]
+        Sources["Fuentes RSS\n/api/v1/information-sources\nCRUD · 200 canales · 16 categorías IPTC"]
         News["Noticias\n/api/v1/news\nlistado · fetch · latest"]
         Stats["Estadísticas\n/api/v1/stats\nglobal · by-category\nwordcloud"]
         AI["IA\n/api/v1/suggestions\nsinónimos IPTC"]

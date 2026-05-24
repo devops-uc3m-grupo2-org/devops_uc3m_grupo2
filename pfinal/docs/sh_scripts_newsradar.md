@@ -1,5 +1,8 @@
 # Scripts de NewsRadar — guía rápida
 
+> **Este documento:** guía de todos los scripts `.sh` del proyecto y el orden de ejecución el día del examen.
+> **Ver también:** [`../README.md`](../README.md) · [`demo_recorrido.md`](demo_recorrido.md)
+
 Todos los scripts se ejecutan desde la raíz de `pfinal/`. Requieren Docker en ejecución salvo donde se indique.
 
 ---

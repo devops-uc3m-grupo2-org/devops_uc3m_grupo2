@@ -1,5 +1,8 @@
 # Architectural Decision Records (ADR)
 
+> **Este documento:** índice de las 14 decisiones arquitectónicas del proyecto (0001–0014).
+> **Ver también:** [`../arquitectura.md`](../arquitectura.md) · [`../trazabilidad_requisitos.md`](../trazabilidad_requisitos.md)
+
 En este directorio se documentan las decisiones arquitectónicas importantes de NEWSRADAR siguiendo el formato ADR.
 
 - [0001 - Elección del lenguaje de programación](0001-lenguaje-de-programacion.md)

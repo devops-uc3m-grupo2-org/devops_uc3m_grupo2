@@ -1,5 +1,8 @@
 # Sprint 4 – Endpoint de Sugerencias IA (Synonyms / Keywords)
 
+> **Este documento:** Sprint 4 — sugerencias IA (Groq/fallback IPTC), CRUD de roles, integridad referencial.
+> **Anterior:** [`sprint_review_3.md`](sprint_review_3.md) · **Siguiente:** [`sprint_review_5.md`](sprint_review_5.md)
+
 En este apartado se implementa un endpoint basado en IA que permite generar **sugerencias de palabras clave y sinónimos** a partir de un término introducido por el usuario.
 
 ------------------------------------------------------------------------

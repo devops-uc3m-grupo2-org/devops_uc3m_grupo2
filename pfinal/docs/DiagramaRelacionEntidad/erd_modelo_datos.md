@@ -1,5 +1,8 @@
 # Modelo de datos NewsRadar
 
+> **Este documento:** instrucciones para regenerar el diagrama entidad-relación y descripción de las tablas.
+> **Ver también:** [`../arquitectura.md`](../arquitectura.md) · [`../trazabilidad_requisitos.md`](../trazabilidad_requisitos.md)
+
 ## Cómo regenerar el diagrama
 
 El diagrama se genera con **[dbdiagram.io](https://dbdiagram.io)**:

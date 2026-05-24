@@ -1,5 +1,8 @@
 # Sprint Review 6 – Estadísticas (Dashboard + Analytics + Wordcloud)
 
+> **Este documento:** Sprint 6 — estadísticas globales, analytics por categoría IPTC, wordcloud de noticias.
+> **Anterior:** [`sprint_review_5.md`](sprint_review_5.md) · **Siguiente:** [`sprint_review_7.md`](sprint_review_7.md)
+
 Este sprint introduce el módulo de **analítica y métricas** en **NewsRadar**. Su objetivo es proporcionar información agregada sobre noticias, alertas y categorías, además de generar visualizaciones tipo **wordcloud** basadas en el contenido de las noticias relacionadas con las alertas del usuario.
 
 El sistema matching fue verficado previamente en el sprint 3.

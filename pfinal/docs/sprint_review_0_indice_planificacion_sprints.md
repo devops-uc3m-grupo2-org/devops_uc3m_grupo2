@@ -1,5 +1,8 @@
 # Planificación del proceso de desarrollo — NewsRadar
 
+> **Este documento:** índice de sprints y calendario del proyecto. Contiene los enlaces a todos los sprint reviews.
+> **Ver también:** [`arquitectura.md`](arquitectura.md) · [`trazabilidad_requisitos.md`](trazabilidad_requisitos.md)
+
 ## Calendario de sprints
 
 | Sprint | Objetivo | Fechas |
@@ -9,7 +12,7 @@
 | 2 | Gestión fuentes y canales RSS | 23-mar – 29-mar 2026 |
 | 3 | Sistema de alertas CRUD + etiquetado | 30-mar – 5-abr 2026 |
 | 4 | Integración intensiva IA generativa | 6-abr – 12-abr 2026 |
-| 5 | Motor de monitorización RSS + notificaciones | 13-abr – 19-abr 2026 |
+| 5 | Gestión de notificaciones + CRUD canales en fuentes | 13-abr – 19-abr 2026 |
 | 6 | Panel de mando + métricas + visualización | 20-abr – 26-abr 2026 |
 | 7 | Calidad, CI/CD, documentación y defensa | 27-abr – 10-may 2026 |
 | Buffer | Buffer + correcciones + verificación | 11-may – 24-may 2026 |

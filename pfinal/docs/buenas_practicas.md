@@ -1,5 +1,8 @@
 # Buenas prácticas de Git, GitHub y versionado
 
+> **Este documento:** guía de flujo de ramas, commits, SemVer y estrategia de branching del equipo para el proyecto NewsRadar.
+> **Ver también:** [`ci_cd_documentation.md`](ci_cd_documentation.md) · [`sprint_review_0_indice_planificacion_sprints.md`](sprint_review_0_indice_planificacion_sprints.md)
+
 Guía sencilla para usar Git, GitHub, ramas, tags y SemVer en un proyecto de desarrollo (por ejemplo, FastAPI + Docker).
 
 ---
