@@ -1,0 +1,211 @@
+{
+  "defaults": {
+    "seed_login": {
+      "email": "admin@newsradar.com",
+      "password": "admin123"
+    },
+    "create_user_payload": {
+      "email": "__AUTO_EMAIL__",
+      "first_name": "Test",
+      "last_name": "User",
+      "organization": "QA",
+      "password": "Valid123",
+      "role_ids": "__ROLE_IDS__"
+    },
+    "strings": {
+      "sql_marker": "' OR '1'='1",
+      "xss_marker": "<script>alert('x')</script>",
+      "unicode_first_name": "李",
+      "unicode_last_name": "García",
+      "special_first_name": "José",
+      "special_last_name": "Peña-Núñez"
+    },
+    "requests": {
+      "users_collection": "/api/v1/users",
+      "roles_collection": "/api/v1/roles"
+    }
+  },
+  "cases": {
+    "GU-001": {
+      "payload_ref": "create_user_payload"
+    },
+    "GU-002": {
+      "payload_ref": "create_user_payload",
+      "remove_fields": ["email"]
+    },
+    "GU-003": {
+      "payload_ref": "create_user_payload",
+      "remove_fields": ["first_name"]
+    },
+    "GU-004": {
+      "payload_ref": "create_user_payload",
+      "remove_fields": ["last_name"]
+    },
+    "GU-005": {
+      "payload_ref": "create_user_payload",
+      "remove_fields": ["role_ids"]
+    },
+    "GU-006": {
+      "payload_ref": "create_user_payload",
+      "remove_fields": ["password"]
+    },
+    "GU-007": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "email": "invalid-email"
+      }
+    },
+    "GU-009": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "first_name": ""
+      }
+    },
+    "GU-010": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "first_name": "__FIRST_NAME_TOO_LONG__"
+      }
+    },
+    "GU-011": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "last_name": ""
+      }
+    },
+    "GU-012": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "last_name": "__LAST_NAME_TOO_LONG__"
+      }
+    },
+    "GU-013": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "organization": "__ORG_TOO_LONG__"
+      }
+    },
+    "GU-014": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "password": "12345"
+      }
+    },
+    "GU-015": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "password": "__PASSWORD_TOO_LONG__"
+      }
+    },
+    "GU-016": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "role_ids": []
+      }
+    },
+    "GU-017": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "role_ids": ["admin"]
+      }
+    },
+    "GU-018": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "role_ids": [99999999]
+      }
+    },
+    "GU-022": {
+      "payload_ref": "create_user_payload",
+      "remove_fields": ["organization"]
+    },
+    "GU-023": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "first_name": "__SPECIAL_FIRST_NAME__",
+        "last_name": "__SPECIAL_LAST_NAME__"
+      }
+    },
+    "GU-024": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "first_name": "Test __SQL_MARKER__"
+      }
+    },
+    "GU-025": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "first_name": "__XSS_MARKER__"
+      }
+    },
+    "GU-027": {
+      "update_payload": {
+        "first_name": "Actualizado",
+        "organization": "QA Updated"
+      }
+    },
+    "GU-033": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "first_name": "  Juan  ",
+        "last_name": "  Perez  "
+      }
+    },
+    "GU-034": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "email": "__AUTO_EMAIL_UPPER__"
+      }
+    },
+    "GU-038": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "unexpected_field": "surplus"
+      }
+    },
+    "GU-040": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "first_name": "__UNICODE_FIRST_NAME__",
+        "last_name": "__UNICODE_LAST_NAME__"
+      }
+    },
+    "GU-049": {
+      "raw_body": "<user></user>",
+      "content_type": "application/xml"
+    },
+    "GU-050": {
+      "raw_body": "{\"email\":\"bad\",}",
+      "content_type": "application/json"
+    },
+    "GU-052": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "email": "__AUTO_EMAIL_ALIAS__"
+      }
+    },
+    "GU-053": {
+      "patch_payload": {
+        "organization": "Solo PATCH"
+      }
+    },
+    "GU-055": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "email": {
+          "$ne": null
+        }
+      }
+    },
+    "GU-060": {
+      "payload_ref": "create_user_payload",
+      "overrides": {
+        "role_ids": [1, "admin", 3]
+      }
+    },
+    "GU-061": {
+      "payload_ref": "create_user_payload",
+      "notes": "El payload debe usar exclusivamente el role_id del rol cuyo name es gestor resuelto en tiempo de ejecucion"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "defaults": {
+    "seed_login": {
+      "email": "admin@newsradar.com",
+      "password": "admin123"
+    },
+    "min_rss_channels": 100,
+    "min_information_sources": 10,
+    "admin_email": "admin@newsradar.com",
+    "admin_role_names": ["admin", "administrador"],
+    "default_role_name": "gestor",
+    "iptc_categories": [
+      ["01000000", "Artes, cultura, entretenimiento y medios"],
+      ["03000000", "Catástrofes y accidentes"],
+      ["13000000", "Ciencia y tecnología"],
+      ["16000000", "Conflicto, guerra y paz"],
+      ["15000000", "Deporte"],
+      ["04000000", "Economía, negocios y finanzas"],
+      ["05000000", "Educación"],
+      ["10000000", "Estilo de vida y tiempo libre"],
+      ["08000000", "Interés humano, animales, insólito"],
+      ["09000000", "Mano de obra"],
+      ["06000000", "Medio ambiente"],
+      ["17000000", "Meteorología"],
+      ["02000000", "Policía y justicia"],
+      ["11000000", "Política"],
+      ["12000000", "Religión y culto"],
+      ["07000000", "Salud"],
+      ["14000000", "Sociedad"]
+    ]
+  },
+  "cases": {
+    "SMOKE-001": {
+      "note": "Verifica existencia de usuario administrador inicial"
+    },
+    "SMOKE-002": {
+      "note": "Verifica cantidad minima de fuentes/medios iniciales"
+    },
+    "SMOKE-003": {
+      "note": "Verifica cantidad minima de canales RSS iniciales"
+    },
+    "SMOKE-004": {
+      "note": "Verifica que cada categoria tenga al menos un canal RSS asociado"
+    },
+    "SMOKE-005": {
+      "note": "Verifica que todas las categorias IPTC requeridas existen por id+name"
+    },
+    "SMOKE-006": {
+      "note": "Verifica que existe el role por defecto con name = gestor"
+    }
+  }
+}

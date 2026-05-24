@@ -1,0 +1,24 @@
+{
+  "defaults": {
+    "seed_login": {
+      "email": "admin@newsradar.com",
+      "password": "admin123"
+    },
+    "invalid_login": {
+      "email": "admin@newsradar.com",
+      "password": "bad-password"
+    }
+  },
+  "cases": {
+    "API-003": {
+      "login_ref": "seed_login",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/users"
+      }
+    },
+    "API-004": {
+      "login_ref": "invalid_login"
+    }
+  }
+}

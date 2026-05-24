@@ -1,0 +1,254 @@
+{
+  "defaults": {
+    "seed_login": {
+      "email": "admin@newsradar.com",
+      "password": "admin123"
+    },
+    "create_stats_payload": {
+      "metrics": [
+        {
+          "name": "mentions",
+          "value": 10.0
+        },
+        {
+          "name": "score",
+          "value": 0.85
+        }
+      ]
+    }
+  },
+  "cases": {
+    "ST-002": {
+      "remove_fields": ["metrics"]
+    },
+    "ST-003": {
+      "overrides": {
+        "metrics": []
+      }
+    },
+    "ST-004": {
+      "overrides": {
+        "metrics": [
+          {
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "ST-005": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "mentions"
+          }
+        ]
+      }
+    },
+    "ST-006": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "ST-007": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "ST-008": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "mentions",
+            "value": "abc"
+          }
+        ]
+      }
+    },
+    "ST-009": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "mentions",
+            "value": null
+          }
+        ]
+      }
+    },
+    "ST-010": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "sentiment",
+            "value": -0.8
+          }
+        ]
+      }
+    },
+    "ST-011": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "score",
+            "value": 3.1415
+          }
+        ]
+      }
+    },
+    "ST-012": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "volume",
+            "value": 1000000000000000.0
+          }
+        ]
+      }
+    },
+    "ST-014": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "mentions",
+            "value": 1.0
+          },
+          {
+            "name": "mentions",
+            "value": 2.0
+          }
+        ]
+      }
+    },
+    "ST-015": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "  mentions  ",
+            "value": 5.0
+          }
+        ]
+      }
+    },
+    "ST-016": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "mención-ñ",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "ST-017": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "mentions",
+            "value": 1.0,
+            "extra": "x"
+          }
+        ]
+      }
+    },
+    "ST-018": {
+      "overrides": {
+        "metrics": {
+          "name": "a",
+          "value": 1
+        }
+      }
+    },
+    "ST-019": {
+      "overrides": {
+        "metrics": [
+          {}
+        ]
+      }
+    },
+    "ST-020": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "single",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "ST-024": {
+      "update_payload": {
+        "metrics": [
+          {
+            "name": "updated",
+            "value": 99.5
+          }
+        ]
+      }
+    },
+    "ST-025": {
+      "update_payload": {
+        "metrics": [
+          {
+            "name": "mentions",
+            "value": "bad"
+          }
+        ]
+      }
+    },
+    "ST-028": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "métrica-á",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "ST-030": {
+      "overrides": {
+        "metrics": [
+          {
+            "name": "METRICA",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    "ST-031": {
+      "initial_payload": {
+        "metrics": [
+          {
+            "name": "a",
+            "value": 1.0
+          },
+          {
+            "name": "b",
+            "value": 2.0
+          }
+        ]
+      },
+      "update_payload": {
+        "metrics": [
+          {
+            "name": "b",
+            "value": 2.0
+          },
+          {
+            "name": "a",
+            "value": 1.0
+          }
+        ]
+      }
+    }
+  }
+}
