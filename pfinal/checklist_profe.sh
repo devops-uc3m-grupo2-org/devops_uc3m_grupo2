@@ -75,7 +75,7 @@ health_status=$(curl -sf "$BASE/health" \
     | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || echo "")
 
 # Ficheros de arquitectura
-arch_md="$REPO_DIR/docs/arquitectura.md"
+arch_md="${SCRIPT_DIR}/docs/arquitectura.md"
 arch_lines=$(wc -l < "$arch_md" 2>/dev/null || echo "0")
 
 # Diagramas en docs/
@@ -380,9 +380,13 @@ print(len(s) if isinstance(s, list) else '?')
 
     # B9 — Buzón interno  (ruta: /users/{id}/alerts/{alert_id}/notifications)
     notif_route=$(grep -n "notifications" "$SCRIPT_DIR/app/main.py" 2>/dev/null \
-        | grep "@app.get\|@app.post" | grep "notification" | head -1 || true)
-    if [ -n "$notif_route" ]; then
-        ok "B9" "Buzón interno — ruta GET .../alerts/{id}/notifications en main.py: '$notif_route'"
+        | grep "alerts.*notifications\|notification" | head -1 || true)
+    notif_code=$(curl -s -o /dev/null -w "%{http_code}" \
+        "$BASE/users/1/alerts/1/notifications" -H "$AUTH" 2>/dev/null || echo "")
+    if [ "$notif_code" = "200" ]; then
+        ok "B9" "Buzón interno → GET /users/1/alerts/1/notifications = 200"
+    elif [ -n "$notif_route" ]; then
+        ok "B9" "Buzón interno — ruta en main.py: '$notif_route'"
     else
         info "B9" "Mostrar Swagger: GET /users/{id}/alerts/{alert_id}/notifications"
     fi
@@ -432,7 +436,13 @@ print(len(s) if isinstance(s, list) else '?')
     hr "FUNCIONALIDAD: Usuarios y Roles (B16–B21)"
 
     # B16 — Roles Gestor y Lector definidos
-    ok "B16" "Roles: 'gestor' y 'lector' en app/models/ + app/core/auth.py"
+    roles_api=$(curl -sf "$BASE/roles" -H "$AUTH" \
+        | python3 -c "import sys,json; print(', '.join(r['name'] for r in json.load(sys.stdin)))" 2>/dev/null || echo "")
+    if echo "$roles_api" | grep -q "gestor"; then
+        ok "B16" "Roles definidos: $roles_api (gestor + user/lector + admin)"
+    else
+        info "B16" "Mostrar GET /roles — roles gestor y user(lector)"
+    fi
 
     # B17 — Lector no puede gestionar alertas (→ 403)
     TS=$(date +%s)
@@ -484,18 +494,21 @@ print(len(s) if isinstance(s, list) else '?')
         && ok "B22" "Wordcloud → GET /stats/wordcloud = 200" \
         || info "B22" "Mostrar Swagger: GET /stats/wordcloud"
 
-    # B23 — Total de noticias en estadísticas  (respuesta: [{name:total_news, value:X}, ...])
+    # B23 — Total de noticias en estadísticas  (respuesta: [{metrics:[{name:total_news,value:X}]}])
     stats_json=$(api_json "$BASE/stats" "$AUTH")
     total_news=$(echo "$stats_json" | python3 -c "
-    import sys, json
-    d = json.load(sys.stdin)
-    if isinstance(d, list):
-        for item in d:
-            if isinstance(item, dict) and item.get('name') == 'total_news':
-                print(item.get('value', '?')); break
-    elif isinstance(d, dict):
-        print(d.get('total_news', d.get('news_count', '?')))
-    " 2>/dev/null || echo "?")
+import sys, json
+d = json.load(sys.stdin)
+if isinstance(d, list):
+    for item in d:
+        for m in item.get('metrics', []):
+            if m.get('name') == 'total_news':
+                print(int(m.get('value', 0))); raise SystemExit
+        if isinstance(item, dict) and item.get('name') == 'total_news':
+            print(item.get('value', '?')); raise SystemExit
+elif isinstance(d, dict):
+    print(d.get('total_news', d.get('news_count', '?')))
+" 2>/dev/null || echo "?")
     [ "$total_news" != "?" ] \
         && ok "B23" "Total noticias en stats: $total_news → GET /stats (campo total_news)" \
         || info "B23" "Mostrar Swagger: GET /stats → elemento {name:total_news, value:N}"
@@ -577,13 +590,15 @@ print(len(s) if isinstance(s, list) else '?')
     fi
 
     # B39 — Trazabilidad requisitos → código
-    [ -f "$REPO_DIR/docs/trazabilidad_requisitos.md" ] \
-        && ok "B39" "Trazabilidad documentada → docs/trazabilidad_requisitos.md" \
+    traz_file=$(find "$SCRIPT_DIR/docs" "$REPO_DIR/docs" -name "trazabilidad_requisitos.md" 2>/dev/null | head -1 || true)
+    [ -n "$traz_file" ] \
+        && ok "B39" "Trazabilidad documentada → $traz_file" \
         || info "B39" "Mostrar: docs/trazabilidad_requisitos.md"
 
     # B40 — Registro de prompts de IA
-    [ -f "$REPO_DIR/docs/prompts_ia.md" ] \
-        && ok "B40" "Prompts de IA → docs/prompts_ia.md" \
+    prompts_file=$(find "$SCRIPT_DIR/docs" "$REPO_DIR/docs" -name "prompts_ia.md" 2>/dev/null | head -1 || true)
+    [ -n "$prompts_file" ] \
+        && ok "B40" "Prompts de IA → $prompts_file" \
         || info "B40" "Mostrar: docs/prompts_ia.md"
 
 fi  # end if [ -z "$TOKEN" ]
