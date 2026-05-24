@@ -34,7 +34,7 @@ def generate_synonyms(keyword: str) -> list[str]:
         return _fallback_synonyms(keyword)
 
     try:
-        client = Groq(api_key=api_key)
+        client = Groq(api_key=api_key, timeout=5.0)
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
