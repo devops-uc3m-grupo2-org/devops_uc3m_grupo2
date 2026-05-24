@@ -321,9 +321,9 @@ metrics = {m["name"]: int(m["value"]) for m in stats[0]["metrics"]}
 print(f"[{code}] Stats: {metrics}")
 ```
 
-Ejecución (el script está guardado en `docs/demo_recorrido.py`):
+Ejecución (el script está guardado en `pfinal/docs/demo_recorrido.py`):
 ```bash
-python3 docs/demo_recorrido.py
+python3 pfinal/docs/demo_recorrido.py
 ```
 
 ---
