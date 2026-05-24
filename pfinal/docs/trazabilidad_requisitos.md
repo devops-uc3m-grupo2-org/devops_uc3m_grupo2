@@ -34,7 +34,7 @@
 | 30 | Código en GitHub | `.github/` | Repositorio `devops_uc3m_grupo2` |
 | 31 | Documentación Markdown | `README.md`, `pfinal/docs/` | README principal + pfinal/docs/ |
 | 32 | ADRs en /docs/adr | `pfinal/docs/adr/` | 14 ADRs documentados (0001-0014) |
-| 33 | Diagrama arquitectura | `pfinal/docs/` | `DiagramaRelacionEntidad.drawio.png` |
+| 33 | Diagrama arquitectura | `pfinal/docs/DiagramaRelacionEntidad/` | `DiagramaRelacionEntidad.png` + `.svg` + `.pdf` |
 | 34 | Pruebas automatizadas | `pfinal/app/tests/` | 13 archivos de test · cobertura 96% |
 | 35 | GitHub Actions pipeline | `.github/workflows/tests.yml` | FastAPI CI + CI |
 | 36 | Informe cobertura de código | `.github/workflows/tests.yml` | `--cov-report=xml`, artifact `coverage-report` |
