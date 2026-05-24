@@ -161,7 +161,7 @@ Al finalizar los sprints 0 y 1, NewsRadar presenta:
 | Área | Detalle |
 |------|---------|
 | **Docker Compose** | Servicios `app` (FastAPI + Uvicorn) y `db` (PostgreSQL 16-alpine) |
-| **Base de datos** | PostgreSQL con volumen persistente `postgres_data`; migraciones con Alembic |
+| **Base de datos** | PostgreSQL con volumen persistente `postgres_data`; esquema creado con `Base.metadata.create_all()` (ver ADR-0011) |
 | **Health check** | `GET /api/v1/health` → `{"status":"ok"}` |
 | **Registro** | `POST /api/v1/auth/register` → crea usuario, devuelve `201` con sus datos |
 | **Login / JWT** | `POST /api/v1/auth/login` → devuelve `access_token` Bearer |

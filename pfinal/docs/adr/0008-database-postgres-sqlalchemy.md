@@ -9,7 +9,7 @@ El proyecto necesita una base de datos relacional fiable para almacenar usuarios
 
 ## Decisión
 
-Usar PostgreSQL como base de datos relacional y SQLAlchemy como ORM en el backend. Las migraciones se gestionarán con Alembic.
+Usar PostgreSQL como base de datos relacional y SQLAlchemy como ORM en el backend. Las migraciones se gestionarán con Alembic (decisión revisada en ADR-0011: se usa `create_all()`).
 
 ## Justificación
 

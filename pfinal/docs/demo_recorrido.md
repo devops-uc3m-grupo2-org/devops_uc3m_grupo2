@@ -30,6 +30,14 @@ curl http://localhost:8000/api/v1/health
 
 > ⚠️ **Importante:** no usar `--reload` en el Dockerfile (ya eliminado). Con `--reload`, uvicorn reinicia el servidor cada vez que el scheduler escribe en `__pycache__` → conexiones cortadas. Sin él, el servidor es estable.
 
+> ⚠️ **Si `docker compose up --build` falla con** `bind source path does not exist: /run/desktop/mnt/host/wsl/...`: es un builder de buildkit con bind mount de sesión WSL obsoleto. Solución:
+> ```bash
+> docker buildx ls                  # busca el builder con driver "docker-container"
+> docker buildx rm <nombre>         # ejemplo: docker buildx rm eager_ptolemy
+> docker compose up --build         # ahora funciona
+> ```
+> `bash pfinal/start.sh` no tiene este problema porque usa el builder por defecto.
+
 ---
 
 ## 1. Login — obtener el JWT
