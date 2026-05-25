@@ -1352,6 +1352,20 @@ def create_source_channel(
         if not category:
             raise HTTPException(status_code=404, detail="Categoría no encontrada")
 
+    # límite configurable de canales por fuente (env RSS_CHANNELS_PER_SOURCE)
+    from os import getenv
+    try:
+        RSS_CHANNELS_PER_SOURCE = int(getenv("RSS_CHANNELS_PER_SOURCE", "5"))
+    except Exception:
+        RSS_CHANNELS_PER_SOURCE = 5
+    try:
+        RSS_LIMIT_CODE = int(getenv("RSS_LIMIT_CODE", "400"))
+    except Exception:
+        RSS_LIMIT_CODE = 400
+    existing_count = db.query(ChannelModel).filter(ChannelModel.information_source_id == source_id).count()
+    if existing_count >= RSS_CHANNELS_PER_SOURCE:
+        raise HTTPException(status_code=RSS_LIMIT_CODE, detail="Límite de canales RSS alcanzado para esta fuente")
+
     new_channel = ChannelModel(
         url=normalized_url,
         information_source_id=source_id,
