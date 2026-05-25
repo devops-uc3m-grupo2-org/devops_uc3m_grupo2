@@ -103,6 +103,7 @@ class Alert(Base):
     information_sources_ids = Column(JSON, default=[])
     cron_expression = Column(String(120), default="*/5 * * * *")
     is_active = Column(Boolean, default=True, nullable=False)
+    priority = Column(Integer, default=3, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="alerts")
     notifications = relationship("Notification", back_populates="alert", cascade="all, delete-orphan")

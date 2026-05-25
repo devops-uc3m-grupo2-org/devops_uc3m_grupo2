@@ -373,6 +373,7 @@ class AlertBase(BaseModel):
     information_sources_ids: List[str] = Field(default_factory=list)
     cron_expression: str = Field(..., min_length=1, max_length=120)
     is_active: Optional[bool] = True
+    priority: int = Field(3)
 
     @field_validator("cron_expression")
     @classmethod
@@ -394,6 +395,7 @@ class AlertUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     descriptors: Optional[List[str]] = None
     categories: Optional[List[AlertCategoryItem]] = None
+    priority: Optional[int] = None
     rss_channels_ids: List[str] = Field(default_factory=list)
     information_sources_ids: List[str] = Field(default_factory=list)
     cron_expression: Optional[str] = Field(None, min_length=1, max_length=120)
@@ -429,6 +431,7 @@ class Alert(BaseModel):
     cron_expression: str
     user_id: int
     is_active: bool
+    priority: int
     class Config: from_attributes = True
 
 class NotificationCreate(BaseModel):
@@ -974,6 +977,13 @@ def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel 
             if len(descriptors) >= 3:
                 break
     descriptors = descriptors[:10]
+    # validar prioridad entre 1 y 3
+    try:
+        prio = int(payload.priority)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Bad request")
+    if prio < 1 or prio > 3:
+        raise HTTPException(status_code=400, detail="Bad request")
     new_alert = AlertModel(
         name=normalized_name,
         descriptors=descriptors,
@@ -982,6 +992,7 @@ def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel 
         information_sources_ids=payload.information_sources_ids,
         cron_expression=payload.cron_expression,
         is_active=payload.is_active,
+        priority=prio,
         user_id=user_id,
     )
     db.add(new_alert)
@@ -1031,6 +1042,14 @@ def update_user_alert(
         alert.cron_expression = update_data["cron_expression"]
     if "is_active" in update_data:
         alert.is_active = update_data["is_active"]
+    if "priority" in update_data:
+        try:
+            pval = int(update_data["priority"])
+        except Exception:
+            raise HTTPException(status_code=400, detail="Bad request")
+        if pval < 1 or pval > 3:
+            raise HTTPException(status_code=400, detail="Bad request")
+        alert.priority = pval
     db.commit()
     db.refresh(alert)
     return alert
