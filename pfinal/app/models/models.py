@@ -24,6 +24,7 @@ class User(Base):
     last_name = Column(String(120), nullable=False)
     organization = Column(String(180), nullable=False)
     hashed_password = Column(String(128), nullable=False)
+    telefono = Column(String(20), nullable=False)
     alerts = relationship("Alert", back_populates="user", cascade="all, delete-orphan")
     roles = relationship("Role", secondary=user_roles, backref="users")
 

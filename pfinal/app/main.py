@@ -261,6 +261,7 @@ class User(BaseModel):
     first_name: str
     last_name: str
     organization: str
+    telefono: str
     role_ids: List[int] = Field(default_factory=list)
     class Config: from_attributes = True
 
@@ -269,6 +270,7 @@ class UserCreate(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=120)
     last_name: str = Field(..., min_length=1, max_length=120)
     organization: str = Field(..., min_length=1, max_length=180)
+    telefono: str = Field(...)
     password: str = Field(..., min_length=6, max_length=128)
     role_ids: List[int] = Field(default_factory=list)
 
@@ -283,11 +285,22 @@ class UserCreate(BaseModel):
     class Config:
         use_enum_values = True
 
+    @field_validator("telefono")
+    @classmethod
+    def validate_telefono(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise ValueError("telefono inválido")
+        digits = re.sub(r"\D", "", v)
+        if len(digits) != 9:
+            raise ValueError("telefono debe tener 9 dígitos numéricos")
+        return v
+
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     first_name: Optional[str] = Field(None, min_length=1, max_length=120)
     last_name: Optional[str] = Field(None, min_length=1, max_length=120)
     organization: Optional[str] = Field(None, min_length=1, max_length=180)
+    telefono: Optional[str] = None
     password: Optional[str] = Field(None, min_length=6, max_length=128)
     role_ids: Optional[List[int]] = None
 
@@ -300,6 +313,16 @@ class UserUpdate(BaseModel):
         if not cleaned:
             raise ValueError("field cannot be empty")
         return cleaned
+
+    @field_validator("telefono")
+    @classmethod
+    def validate_telefono_update(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        digits = re.sub(r"\D", "", v)
+        if len(digits) != 9:
+            raise ValueError("telefono debe tener 9 dígitos numéricos")
+        return v
 
 class RoleCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=90)
@@ -779,6 +802,7 @@ def create_user(payload: UserCreate, current_user: UserModel = Depends(get_curre
         first_name=payload.first_name,
         last_name=payload.last_name,
         organization=payload.organization,
+        telefono=payload.telefono,
         hashed_password=pwd_context.hash(payload.password),
         roles=roles,
     )
@@ -905,9 +929,39 @@ def create_user_alert(user_id: int, payload: AlertBase, current_user: UserModel 
     if db.query(AlertModel).filter(AlertModel.user_id == user_id, func.lower(AlertModel.name) == normalized_name.lower()).first():
         raise HTTPException(status_code=409, detail="Ya existe una alerta con ese nombre para el usuario")
     categories = _validate_alert_categories(payload.categories)
+    # límite configurable vía env: ALERTS_PER_USER (por defecto 20)
+    from os import getenv
+    try:
+        ALERTS_PER_USER = int(getenv("ALERTS_PER_USER", "20"))
+    except Exception:
+        ALERTS_PER_USER = 20
+    COOLDOWN_MIN = int(getenv("ALERTS_COOLDOWN_MIN", "8"))
+    ERROR_CODE = int(getenv("ALERTS_LIMIT_CODE", "403"))
     alert_count = db.query(AlertModel).filter(AlertModel.user_id == user_id).count()
-    if alert_count >= 20:
-        raise HTTPException(status_code=422, detail="Límite alcanzado: un usuario no puede tener más de 20 alertas")
+    if alert_count >= ALERTS_PER_USER:
+        # comprobar última alerta creada para aplicar cooldown
+        last_alert = (
+            db.query(AlertModel)
+            .filter(AlertModel.user_id == user_id)
+            .order_by(AlertModel.id.desc())
+            .first()
+        )
+        if last_alert and getattr(last_alert, "created_at", None):
+            from datetime import datetime, timezone, timedelta
+
+            try:
+                last_ts = last_alert.created_at
+                now = datetime.now(timezone.utc)
+                if isinstance(last_ts, str):
+                    last_ts = datetime.fromisoformat(last_ts)
+                if now - last_ts < timedelta(minutes=COOLDOWN_MIN):
+                    raise HTTPException(status_code=ERROR_CODE, detail="Límite de alertas alcanzado: espere el periodo de enfriamiento")
+            except HTTPException:
+                raise
+            except Exception:
+                raise HTTPException(status_code=ERROR_CODE, detail="Límite de alertas alcanzado")
+        else:
+            raise HTTPException(status_code=ERROR_CODE, detail="Límite de alertas alcanzado")
     if len(payload.descriptors) != len(set(payload.descriptors)):
         raise HTTPException(status_code=422, detail="Los descriptores no pueden contener duplicados")
     descriptors = list(payload.descriptors)
