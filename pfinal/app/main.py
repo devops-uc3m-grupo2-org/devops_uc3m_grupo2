@@ -62,7 +62,7 @@ from app.services.ai import generate_synonyms
 from app.services.fetcher import fetch_feed
 from app.services.alertLogic import process_alerts_for_items
 from app.services.seed_rss import seed_rss_channels
-from app.services.notifications import send_verification_email, send_reset_email
+from app.services.notifications import send_verification_email, send_reset_email, send_email
 from app.core.scheduler import start_scheduler
 
 # --- CONFIGURACIÓN DE SEGURIDAD ---
@@ -685,8 +685,49 @@ def get_roles_for_ids(role_ids: List[int], db: Session) -> List[RoleModel]:
 @app.post(f"{API_PREFIX}/auth/login", response_model=TokenResponse, tags=["auth"])
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(UserModel).filter(UserModel.email == payload.email).first()
-    if not user or not pwd_context.verify(payload.password, user.hashed_password):
+    # Si no existe el usuario, no exponemos información sobre bloqueo
+    if not user:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+    # Si la cuenta está inactiva, denegar con 403
+    if hasattr(user, "is_active") and not user.is_active:
+        raise HTTPException(status_code=403, detail="Cuenta inactiva")
+
+    # Verificar contraseña
+    if not pwd_context.verify(payload.password, user.hashed_password):
+        # incrementar contador de fallos si el campo existe
+        try:
+            user.failed_login_attempts = (getattr(user, "failed_login_attempts", 0) or 0) + 1
+            # Si alcanza 3 intentos consecutivos => bloquear cuenta
+            if user.failed_login_attempts >= 3:
+                user.is_active = False
+                db.add(user)
+                db.commit()
+                # enviar email de notificación de bloqueo (no es crítico)
+                subject = "NewsRadar: cuenta bloqueada"
+                body = (
+                    f"Hola {getattr(user, 'first_name', '')},\n\n"
+                    "Tu cuenta ha sido bloqueada automáticamente tras múltiples intentos fallidos de acceso.\n"
+                    "Contacta con el administrador si necesitas ayuda para reactivar tu cuenta.\n\nSaludos,\nNewsRadar"
+                )
+                try:
+                    send_email(user.email, subject, body)
+                except Exception:
+                    pass
+                raise HTTPException(status_code=403, detail="Cuenta bloqueada por múltiples intentos fallidos")
+            else:
+                db.add(user)
+                db.commit()
+        except Exception:
+            db.rollback()
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+    # Contraseña correcta: resetear contador
+    if getattr(user, "failed_login_attempts", 0):
+        user.failed_login_attempts = 0
+        db.add(user)
+        db.commit()
+
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
 
