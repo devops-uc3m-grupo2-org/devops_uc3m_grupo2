@@ -125,9 +125,8 @@ def _reject_bad_url(value: str, *, rss: bool = False) -> str:
         raise HTTPException(status_code=422, detail="URL no accesible")
     if rss:
         lowered = normalized.lower()
-        rss_like = any(token in lowered for token in ("rss", "feed", "hnrss.org", "feeds."))
-        xml_like = lowered.endswith(".xml") or "xml" in lowered or rss_like
-        if not rss_like or not xml_like:
+        xml_like = lowered.endswith(".xml") or "xml" in lowered
+        if not xml_like:
             raise HTTPException(status_code=422, detail="La URL no parece un RSS/XML")
     return normalized
 
