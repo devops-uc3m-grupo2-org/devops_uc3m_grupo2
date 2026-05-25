@@ -50,6 +50,7 @@ class IPTCCategoryEnum(str, enum.Enum):
     SOCIETY = "Sociedad"
     SPORT = "Deporte"
     CONFLICTS_WAR_AND_PEACE = "Conflicto, guerra y paz"
+    SUCESOS = "Sucesos"
     WEATHER = "Meteorología"
 
 class Category(Base):

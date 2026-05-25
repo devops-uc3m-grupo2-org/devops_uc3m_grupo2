@@ -18,6 +18,7 @@ IPTC_CATALOG = {
     "15000000": "Deporte",
     "16000000": "Conflicto, guerra y paz",
     "17000000": "Meteorología",
+    "11110000": "Sucesos",
 }
 IPTC_NAME_TO_ID = {name.casefold(): int(code) for code, name in IPTC_CATALOG.items()}
 

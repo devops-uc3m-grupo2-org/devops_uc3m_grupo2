@@ -100,6 +100,7 @@ IPTC_CATALOG: dict[str, str] = {
     "15000000": "Deporte",
     "16000000": "Conflicto, guerra y paz",
     "17000000": "Meteorología",
+    "11110000": "Sucesos",
 }
 IPTC_NAME_TO_CODE = {name.casefold(): code for code, name in IPTC_CATALOG.items()}
 
