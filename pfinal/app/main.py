@@ -1796,6 +1796,7 @@ def create_seed_data():
             last_name="NewsRadar",
             organization="NewsRadar",
             hashed_password=pwd_context.hash("admin123"),
+            telefono="999888777",
             roles=[admin_role] if admin_role else [],
         )
         db.add(admin)
